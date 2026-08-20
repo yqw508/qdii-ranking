@@ -1,6 +1,6 @@
 # QDII 美股含量榜单
 
-筛选中国境内场外可申购的人民币 QDII 基金，按保守确认的美股持仓下限排名。机构持仓仅作为同美股占比时的第一参考指标。
+筛选中国境内场外可申购的人民币主动管理 QDII 基金，按保守确认的美股持仓下限排名。机构持仓仅作为同美股占比时的第一参考指标。数据源归类为“指数型-海外股票”等指数策略不在当前榜单范围内。
 
 ## 本地更新
 
@@ -32,6 +32,19 @@ git commit -m "Update QDII ranking"
 git push origin main
 ```
 
+推送完成后，使用已登录目标环境的 CloudBase CLI 部署静态应用：
+
+```powershell
+tcb app deploy qdii-ranking-web `
+  --env-id run-cool-d2gy0iw957219659c `
+  --framework static `
+  --output-dir public `
+  --deploy-path /qdii `
+  --cwd . `
+  --force `
+  --json
+```
+
 CloudBase 部署配置：
 
 - 环境：`run-cool-d2gy0iw957219659c`
@@ -49,6 +62,6 @@ CloudBase 部署配置：
 https://qdii-ranking-web-run-cool-d2gy0iw957219659c.webapps.tcloudbase.com/?v=<榜单日期>
 ```
 
-日期查询参数用于减少微信继续使用旧页面缓存。应用也可以从环境公共域名的 `/qdii/` 路径访问。
+日期查询参数用于减少微信继续使用旧页面缓存。`/qdii` 是 CloudBase 内部部署路径；应用独立域名直接使用根路径，不要再次拼接 `/qdii/`。
 
 CloudBase 默认域名会在访客首次打开时显示腾讯云风险提醒，需要点击“确定访问”后进入榜单。要在微信中直接进入榜单，必须为该静态应用绑定已完成 ICP 备案的自定义域名和 HTTPS 证书。

@@ -149,16 +149,48 @@ jobs:
 
       - name: Deploy static application
         id: deployment
-        run: >-
-          tcb app deploy qdii-ranking-web
-          --env-id run-cool-d2gy0iw957219659c
-          --framework static
-          --output-dir public
-          --deploy-path /qdii
-          --cwd .
-          --force
-          --yes
-          --json
+        shell: bash
+        run: |
+          deploy_log=$(mktemp)
+          trap 'rm -f "$deploy_log"' EXIT
+          tcb app deploy qdii-ranking-web \
+            --env-id run-cool-d2gy0iw957219659c \
+            --framework static \
+            --output-dir public \
+            --deploy-path /qdii \
+            --cwd . \
+            --force \
+            --yes \
+            --json > >(tee "$deploy_log") 2>&1 &
+          deploy_pid=$!
+
+          for second in {1..600}; do
+            if grep -Fq '"totalDuration":' "$deploy_log" && \
+               grep -Fq '"url": "https://qdii-ranking-web-run-cool-d2gy0iw957219659c.webapps.tcloudbase.com/' "$deploy_log"; then
+              if kill -0 "$deploy_pid" 2>/dev/null; then
+                kill "$deploy_pid" 2>/dev/null || true
+                wait "$deploy_pid" 2>/dev/null || true
+                echo "CloudBase deploy reported success; stopped the residual CLI process"
+              else
+                wait "$deploy_pid"
+              fi
+              exit 0
+            fi
+
+            if ! kill -0 "$deploy_pid" 2>/dev/null; then
+              set +e
+              wait "$deploy_pid"
+              deploy_status=$?
+              set -e
+              exit "$deploy_status"
+            fi
+            sleep 1
+          done
+
+          kill "$deploy_pid" 2>/dev/null || true
+          wait "$deploy_pid" 2>/dev/null || true
+          echo "::error::CloudBase deploy did not finish within 10 minutes"
+          exit 1
 
       - name: Verify deployed page
         id: deployed_validation

@@ -67,9 +67,9 @@ jobs:
         uses: actions/cache@v6
         with:
           path: output/qdii-ranking/cache
-          key: qdii-ranking-${{ runner.os }}-${{ hashFiles('scripts/update_qdii_ranking.py', 'references/us-equity-instruments.json') }}-${{ github.run_id }}
+          key: qdii-ranking-${{ runner.os }}-${{ hashFiles('scripts/update_qdii_ranking.py', 'references/us-equity-instruments.json', 'references/contract-benchmarks.json') }}-${{ github.run_id }}
           restore-keys: |
-            qdii-ranking-${{ runner.os }}-${{ hashFiles('scripts/update_qdii_ranking.py', 'references/us-equity-instruments.json') }}-
+            qdii-ranking-${{ runner.os }}-${{ hashFiles('scripts/update_qdii_ranking.py', 'references/us-equity-instruments.json', 'references/contract-benchmarks.json') }}-
 
       - name: Install Python dependencies
         id: dependencies

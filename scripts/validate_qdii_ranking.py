@@ -17,6 +17,8 @@ from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any, Iterable
 
+import send_qdii_email as mailer
+
 
 SHANGHAI_TZ = timezone(timedelta(hours=8))
 EXPECTED_FILTERS = {
@@ -25,12 +27,19 @@ EXPECTED_FILTERS = {
     "min_age_years": 3,
     "min_three_year_return_pct": 50.0,
     "min_us_equity_pct": 50.0,
+    "min_direct_limit_cny_exclusive": 1000,
+    "min_contract_benchmark_weight_pct": 80.0,
 }
-EXPECTED_EXCLUDE_KEYWORDS = {"债", "亚洲", "中国", "港"}
+EXPECTED_EXCLUDE_KEYWORDS = {"亚洲", "中国", "港"}
 EXPECTED_RANKING_METHOD = (
     "nasdaq100_correlation desc, abs(nasdaq100_beta - 1) asc, "
     "us_equity_confirmed_pct desc, institution_holding_ratio_pct desc, "
     "three_year_return_pct desc, code asc"
+)
+EXPECTED_GLOBAL_RANKING_METHOD = (
+    "three_year_return_drawdown_ratio desc, three_year_return_pct desc, "
+    "three_year_max_drawdown_pct desc, institution_holding_ratio_pct desc, "
+    "scale_billion_cny desc, code asc"
 )
 NASDAQ100_MIN_OBSERVATIONS = 140
 NASDAQ100_MIN_SPAN_DAYS = 1000
@@ -47,6 +56,7 @@ class RankingHtmlParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self.codes: list[str] = []
+        self.lists: list[str] = []
         self.blocks: dict[str, str] = {}
         self.all_text: list[str] = []
         self._current_code: str | None = None
@@ -62,6 +72,7 @@ class RankingHtmlParser(HTMLParser):
             if not code or self._current_code is not None:
                 raise ValidationError("HTML contains an invalid nested fund record")
             self._current_code = code
+            self.lists.append(attributes.get("data-list") or "")
             self._current_text = []
 
     def handle_endtag(self, tag: str) -> None:
@@ -144,6 +155,19 @@ def is_reportable_warning(warning: str) -> bool:
         return True
     if warning.startswith("纳指100基准更新失败，使用完整缓存："):
         return True
+    if warning.startswith(("合同基准剔除 ", "产品概要告警 ", "额度剔除 ")):
+        return True
+    if "的申购额度无法确定；引用前请核对关联公告" in warning:
+        return True
+    if "quota notice could not be parsed" in warning:
+        return True
+    if warning.startswith(("美国主榜仅 ", "全球补充榜仅 ")):
+        return True
+    if warning in {
+        "美国主榜当前没有符合全部条件的基金。",
+        "全球补充榜当前没有符合全部条件的基金。",
+    }:
+        return True
     return False
 
 
@@ -183,20 +207,60 @@ def validate_filters(filters: Any) -> None:
         "Ranking method is not the Nasdaq-100 correlation rule",
     )
     require(
+        filters.get("global_supplement_ranking_method")
+        == EXPECTED_GLOBAL_RANKING_METHOD,
+        "Global supplement ranking method is unexpected",
+    )
+    require(
         filters.get("performance_candidates_scanned")
         == filters.get("base_candidates_total"),
         "Performance scan count does not match the base candidate count",
     )
     require(
-        filters.get("us_equity_candidates_scanned")
+        filters.get("contract_candidates_scanned")
         == filters.get("performance_qualified_count"),
-        "US-equity scan count does not match the performance-qualified count",
+        "Contract scan count does not match the performance-qualified count",
     )
     require(
-        isinstance(filters.get("us_equity_qualified_count"), int)
-        and filters["us_equity_qualified_count"] >= EXPECTED_FILTERS["top"],
-        "Fewer than ten funds qualified for US-equity exposure",
+        filters.get("us_equity_candidates_scanned")
+        == filters.get("us_style_candidates_count"),
+        "US-equity scan count does not match the US-style candidate count",
     )
+    require(
+        filters.get("us_quota_candidates_scanned")
+        == filters.get("us_equity_qualified_count"),
+        "US quota scan count does not match the US-equity qualified count",
+    )
+    require(
+        filters.get("global_quota_candidates_scanned")
+        == filters.get("global_style_candidates_count"),
+        "Global quota scan count does not match the global-style candidate count",
+    )
+    require(
+        filters.get("exclude_asset_classes") == ["bond", "commodity"],
+        "Unexpected global asset exclusions",
+    )
+
+
+def validate_exclusion_summary(value: Any) -> None:
+    require(isinstance(value, list), "exclusion_summary must be a list")
+    reasons: set[str] = set()
+    for item in value:
+        require(isinstance(item, dict), "exclusion_summary items must be objects")
+        reason = item.get("reason")
+        label = item.get("label")
+        codes = item.get("codes")
+        require(isinstance(reason, str) and reason, "Exclusion reason is missing")
+        require(reason not in reasons, f"Duplicate exclusion reason: {reason}")
+        reasons.add(reason)
+        require(isinstance(label, str) and label, f"Exclusion label is missing for {reason}")
+        require(isinstance(codes, list), f"Exclusion codes must be a list for {reason}")
+        require(
+            all(isinstance(code, str) and re.fullmatch(r"\d{6}", code) for code in codes),
+            f"Exclusion codes are invalid for {reason}",
+        )
+        require(len(codes) == len(set(codes)), f"Duplicate exclusion codes for {reason}")
+        require(item.get("count") == len(codes), f"Exclusion count differs for {reason}")
 
 
 def validate_benchmark(benchmark: Any, run_date: date) -> None:
@@ -233,11 +297,16 @@ def validate_benchmark(benchmark: Any, run_date: date) -> None:
         )
 
 
-def validate_limit(limit: Any, code: str, channel: str) -> None:
+def validate_limit(
+    limit: Any, code: str, channel: str, allow_unknown: bool = False
+) -> None:
     require(isinstance(limit, dict), f"{code} {channel} limit must be an object")
     status = limit.get("status")
+    allowed = {"limited", "unlimited", "suspended"}
+    if allow_unknown:
+        allowed.add("unknown")
     require(
-        status in {"limited", "unlimited", "suspended"},
+        status in allowed,
         f"{code} {channel} limit is unresolved",
     )
     if status == "limited":
@@ -249,10 +318,104 @@ def validate_limit(limit: Any, code: str, channel: str) -> None:
         require(bool(limit.get("source_url")), f"{code} {channel} limit has no source")
 
 
-def validate_records(payload: dict[str, Any]) -> list[dict[str, Any]]:
-    records = payload.get("records")
-    require(isinstance(records, list), "records must be a list")
-    require(len(records) == EXPECTED_FILTERS["top"], "Ranking must contain exactly ten records")
+def validate_contract_benchmark(
+    contract: Any, record: dict[str, Any], run_date: date
+) -> None:
+    code = record["code"]
+    require(isinstance(contract, dict), f"{code} has no contract benchmark")
+    for field in (
+        "benchmark_text",
+        "benchmark_id",
+        "benchmark_name",
+        "market_scope",
+        "market_label",
+        "asset_class",
+        "style_label",
+        "structure",
+        "prospectus_title",
+        "source_url",
+        "catalog_fingerprint",
+    ):
+        require(bool(contract.get(field)), f"{code} contract benchmark {field} is missing")
+    require(
+        as_number(contract.get("benchmark_weight_pct"), f"{code} benchmark weight")
+        >= EXPECTED_FILTERS["min_contract_benchmark_weight_pct"],
+        f"{code} contract benchmark weight is below the threshold",
+    )
+    require(
+        contract.get("market_scope") in {"us", "non_us", "global"},
+        f"{code} contract benchmark market is excluded",
+    )
+    require(
+        contract.get("asset_class") in {"equity", "reit", "volatility"},
+        f"{code} contract benchmark asset class is excluded",
+    )
+    require(
+        contract.get("structure") in {"standard", "leveraged", "inverse", "volatility"},
+        f"{code} contract benchmark structure is invalid",
+    )
+    require(contract.get("excluded_target") is False, f"{code} targets an excluded market")
+    require(
+        contract.get("management_style") in {"active", "passive"}
+        and record.get("management_style") == contract.get("management_style"),
+        f"{code} management style is invalid",
+    )
+    require(
+        contract.get("product_summary_status") in {"matched", "missing", "unreadable"},
+        f"{code} product summary status is invalid",
+    )
+    published = parse_date(str(contract.get("prospectus_published_date")))
+    require(published <= run_date, f"{code} uses a future prospectus")
+    require(
+        re.fullmatch(r"[0-9a-f]{64}", str(contract.get("catalog_fingerprint"))) is not None,
+        f"{code} contract benchmark catalog fingerprint is invalid",
+    )
+    tags = record.get("product_structure_tags")
+    require(
+        isinstance(tags, list) and tags and all(isinstance(tag, str) and tag for tag in tags),
+        f"{code} product structure tags are invalid",
+    )
+
+
+def validate_nasdaq_fit(record: dict[str, Any], run_date: date) -> None:
+    code = record["code"]
+    fit = record.get("nasdaq100_fit")
+    require(isinstance(fit, dict), f"{code} has no Nasdaq-100 fit")
+    correlation = as_number(fit.get("correlation"), f"{code} correlation")
+    beta = as_number(fit.get("beta"), f"{code} beta")
+    tracking_error = as_number(fit.get("tracking_error_pct"), f"{code} tracking error")
+    require(-1 <= correlation <= 1, f"{code} correlation is outside [-1, 1]")
+    require(tracking_error >= 0, f"{code} tracking error is negative")
+    require(
+        correlation == round(correlation, 4) and beta == round(beta, 4),
+        f"{code} correlation or beta exceeds four decimal places",
+    )
+    require(
+        tracking_error == round(tracking_error, 2),
+        f"{code} tracking error exceeds two decimal places",
+    )
+    observations = fit.get("observations")
+    require(
+        isinstance(observations, int) and observations >= NASDAQ100_MIN_OBSERVATIONS,
+        f"{code} has insufficient Nasdaq-100 observations",
+    )
+    fit_start = parse_date(str(fit.get("start_date")))
+    fit_end = parse_date(str(fit.get("end_date")))
+    require(fit_start <= fit_end <= run_date, f"{code} Nasdaq-100 fit dates are invalid")
+    require(
+        (fit_end - fit_start).days >= NASDAQ100_MIN_SPAN_DAYS,
+        f"{code} Nasdaq-100 fit span is too short",
+    )
+
+
+def validate_records(
+    payload: dict[str, Any], records: Any, ranking_list: str
+) -> list[dict[str, Any]]:
+    require(isinstance(records, list), f"{ranking_list} records must be a list")
+    require(
+        len(records) <= EXPECTED_FILTERS["top"],
+        f"{ranking_list} contains more than ten records",
+    )
     run_date = parse_date(payload["run_date"])
     cutoff = years_ago(run_date, EXPECTED_FILTERS["min_age_years"])
     codes: list[str] = []
@@ -265,6 +428,7 @@ def validate_records(payload: dict[str, Any]) -> list[dict[str, Any]]:
             f"Record {expected_rank} has an invalid fund code",
         )
         require(record.get("rank") == expected_rank, f"{code} has a non-contiguous rank")
+        require(record.get("ranking_list") == ranking_list, f"{code} is in the wrong ranking list")
         codes.append(code)
         name = record.get("name")
         require(isinstance(name, str) and name, f"{code} has no fund name")
@@ -272,10 +436,7 @@ def validate_records(payload: dict[str, Any]) -> list[dict[str, Any]]:
             not any(keyword in name for keyword in EXPECTED_EXCLUDE_KEYWORDS),
             f"{code} contains an excluded fund-name keyword",
         )
-        require(
-            record.get("fund_type") not in {"指数型-海外股票", "QDII-纯债"},
-            f"{code} has an excluded fund type",
-        )
+        require(record.get("fund_type") != "QDII-纯债", f"{code} has an excluded fund type")
         require(
             record.get("purchase_status") in {"open", "limited"},
             f"{code} is not currently purchasable",
@@ -300,63 +461,64 @@ def validate_records(payload: dict[str, Any]) -> list[dict[str, Any]]:
             "three_year_max_drawdown_pct",
         ):
             as_number(record.get(field), f"{code} {field}")
+        validate_nasdaq_fit(record, run_date)
+        validate_contract_benchmark(record.get("contract_benchmark"), record, run_date)
 
-        fit = record.get("nasdaq100_fit")
-        require(isinstance(fit, dict), f"{code} has no Nasdaq-100 fit")
-        correlation = as_number(fit.get("correlation"), f"{code} correlation")
-        beta = as_number(fit.get("beta"), f"{code} beta")
-        tracking_error = as_number(
-            fit.get("tracking_error_pct"), f"{code} tracking error"
-        )
-        require(-1 <= correlation <= 1, f"{code} correlation is outside [-1, 1]")
-        require(tracking_error >= 0, f"{code} tracking error is negative")
-        require(math.isfinite(beta), f"{code} beta must be finite")
-        require(
-            correlation == round(correlation, 4) and beta == round(beta, 4),
-            f"{code} correlation or beta exceeds four decimal places",
-        )
-        require(
-            tracking_error == round(tracking_error, 2),
-            f"{code} tracking error exceeds two decimal places",
-        )
-        observations = fit.get("observations")
-        require(
-            isinstance(observations, int)
-            and observations >= NASDAQ100_MIN_OBSERVATIONS,
-            f"{code} has insufficient Nasdaq-100 observations",
-        )
-        fit_start = parse_date(str(fit.get("start_date")))
-        fit_end = parse_date(str(fit.get("end_date")))
-        require(
-            fit_start <= fit_end <= run_date,
-            f"{code} Nasdaq-100 fit dates are invalid",
-        )
-        require(
-            (fit_end - fit_start).days >= NASDAQ100_MIN_SPAN_DAYS,
-            f"{code} Nasdaq-100 fit span is too short",
-        )
+        if ranking_list == "us_main":
+            exposure = record.get("us_equity_exposure")
+            require(isinstance(exposure, dict), f"{code} has no US-equity exposure")
+            confirmed = as_number(exposure.get("confirmed_pct"), f"{code} confirmed exposure")
+            possible = as_number(exposure.get("possible_pct"), f"{code} possible exposure")
+            unresolved = as_number(exposure.get("unresolved_pct"), f"{code} unresolved exposure")
+            require(confirmed >= EXPECTED_FILTERS["min_us_equity_pct"], f"{code} does not meet the confirmed US-equity threshold")
+            require(confirmed <= possible <= 100, f"{code} has an invalid exposure interval")
+            require(unresolved >= 0, f"{code} has a negative unresolved exposure")
+            require(exposure.get("status") == "qualified", f"{code} exposure is not qualified")
+            require(bool(exposure.get("source_url")), f"{code} exposure has no source")
+            contract = record["contract_benchmark"]
+            require(
+                contract["market_scope"] == "us" and contract["asset_class"] == "equity",
+                f"{code} is not a US-equity contract benchmark",
+            )
+        else:
+            require("us_equity_exposure" not in record, f"{code} global record has US exposure data")
+            annualized = as_number(
+                record.get("three_year_annualized_return_pct"), f"{code} annualized return"
+            )
+            start = parse_date(record["three_year_performance_start_date"])
+            end = parse_date(record["three_year_performance_end_date"])
+            expected_annualized = (
+                (1 + float(record["three_year_return_pct"]) / 100)
+                ** (365 / (end - start).days)
+                - 1
+            ) * 100
+            require(
+                math.isclose(annualized, round(expected_annualized, 2), abs_tol=1e-9),
+                f"{code} annualized return differs from its three-year return",
+            )
+            drawdown = abs(float(record["three_year_max_drawdown_pct"]))
+            score = record.get("return_drawdown_ratio")
+            if drawdown == 0:
+                require(score is None, f"{code} zero-drawdown ratio must be null")
+            else:
+                require(
+                    math.isclose(
+                        as_number(score, f"{code} return/drawdown ratio"),
+                        round(expected_annualized / drawdown, 4),
+                        abs_tol=1e-9,
+                    ),
+                    f"{code} return/drawdown ratio differs",
+                )
 
-        exposure = record.get("us_equity_exposure")
-        require(isinstance(exposure, dict), f"{code} has no US-equity exposure")
-        confirmed = as_number(exposure.get("confirmed_pct"), f"{code} confirmed exposure")
-        possible = as_number(exposure.get("possible_pct"), f"{code} possible exposure")
-        unresolved = as_number(exposure.get("unresolved_pct"), f"{code} unresolved exposure")
-        require(
-            confirmed >= EXPECTED_FILTERS["min_us_equity_pct"],
-            f"{code} does not meet the confirmed US-equity threshold",
-        )
-        require(confirmed <= possible <= 100, f"{code} has an invalid exposure interval")
-        require(unresolved >= 0, f"{code} has a negative unresolved exposure")
-        require(exposure.get("status") == "qualified", f"{code} exposure is not qualified")
-        require(bool(exposure.get("source_url")), f"{code} exposure has no source")
-
-        require(record.get("quota_status") != "unknown", f"{code} quota is unresolved")
-        require(
-            record.get("quota_confidence") in {"medium", "high"},
-            f"{code} quota confidence is too low",
-        )
         validate_limit(record.get("direct_limit"), code, "direct")
-        validate_limit(record.get("agency_limit"), code, "agency")
+        validate_limit(record.get("agency_limit"), code, "agency", allow_unknown=True)
+        direct = record["direct_limit"]
+        require(
+            direct["status"] == "unlimited"
+            or int(direct.get("amount_cny") or 0)
+            > EXPECTED_FILTERS["min_direct_limit_cny_exclusive"],
+            f"{code} does not meet the strict direct-sale limit threshold",
+        )
         quota_sources = record.get("quota_source_urls")
         require(
             isinstance(quota_sources, list)
@@ -374,20 +536,35 @@ def validate_records(payload: dict[str, Any]) -> list[dict[str, Any]]:
                 )
 
     require(len(codes) == len(set(codes)), "Ranking contains duplicate fund codes")
-    expected_order = sorted(
-        records,
-        key=lambda item: (
-            -float(item["nasdaq100_fit"]["correlation"]),
-            abs(float(item["nasdaq100_fit"]["beta"]) - 1),
-            -float(item["us_equity_exposure"]["confirmed_pct"]),
-            -float(item["institution_holding_ratio_pct"]),
-            -float(item["three_year_return_pct"]),
-            item["code"],
-        ),
-    )
+    if ranking_list == "us_main":
+        expected_order = sorted(
+            records,
+            key=lambda item: (
+                -float(item["nasdaq100_fit"]["correlation"]),
+                abs(float(item["nasdaq100_fit"]["beta"]) - 1),
+                -float(item["us_equity_exposure"]["confirmed_pct"]),
+                -float(item["institution_holding_ratio_pct"]),
+                -float(item["three_year_return_pct"]),
+                item["code"],
+            ),
+        )
+    else:
+        expected_order = sorted(
+            records,
+            key=lambda item: (
+                float("-inf")
+                if item["return_drawdown_ratio"] is None
+                else -float(item["return_drawdown_ratio"]),
+                -float(item["three_year_return_pct"]),
+                -float(item["three_year_max_drawdown_pct"]),
+                -float(item["institution_holding_ratio_pct"]),
+                -float(item["scale_billion_cny"]),
+                item["code"],
+            ),
+        )
     require(
         [item["code"] for item in records] == [item["code"] for item in expected_order],
-        "Ranking order does not match the Nasdaq-100 correlation sort rule",
+        f"{ranking_list} order does not match its sort rule",
     )
     return records
 
@@ -400,41 +577,53 @@ def validate_csv(path: Path, records: list[dict[str, Any]]) -> None:
     except OSError as exc:
         raise ValidationError(f"Could not read {path}: {exc}") from exc
     require(len(rows) == len(records), "CSV record count differs from JSON")
-    numeric_fields = {
-        "institution_holding_ratio_pct": "institution_holding_ratio_pct",
-        "scale_billion_cny": "scale_billion_cny",
-        "one_year_return_pct": "one_year_return_pct",
-        "one_year_max_drawdown_pct": "one_year_max_drawdown_pct",
-        "three_year_return_pct": "three_year_return_pct",
-        "three_year_max_drawdown_pct": "three_year_max_drawdown_pct",
-    }
-    identical_fields = (
-        "holder_report_date",
-        "inception_date",
-        "scale_report_date",
-        "one_year_performance_start_date",
-        "one_year_performance_end_date",
-        "three_year_performance_start_date",
-        "three_year_performance_end_date",
-        "purchase_status",
-        "share_class_rule",
-        "channel_rule",
-        "quota_confidence",
-        "fund_page_url",
-        "performance_source_url",
-    )
     for record, row in zip(records, rows):
         code = record["code"]
-        require(row.get("code") == code, f"CSV order differs at {code}")
-        require(row.get("rank") == str(record["rank"]), f"CSV rank differs for {code}")
-        require(row.get("name") == record["name"], f"CSV name differs for {code}")
-        for field in identical_fields:
+        for field in ("ranking_list", "code", "name"):
             require(row.get(field) == str(record[field]), f"CSV {field} differs for {code}")
-        for csv_field, json_field in numeric_fields.items():
+        require(row.get("rank") == str(record["rank"]), f"CSV rank differs for {code}")
+        for field in (
+            "institution_holding_ratio_pct",
+            "scale_billion_cny",
+            "one_year_return_pct",
+            "one_year_max_drawdown_pct",
+            "three_year_return_pct",
+            "three_year_max_drawdown_pct",
+        ):
             require(
-                math.isclose(float(row[csv_field]), float(record[json_field]), abs_tol=1e-9),
+                math.isclose(float(row[field]), float(record[field]), abs_tol=1e-9),
+                f"CSV {field} differs for {code}",
+            )
+        contract = record["contract_benchmark"]
+        contract_fields = {
+            "contract_benchmark_name": "benchmark_name",
+            "contract_benchmark_text": "benchmark_text",
+            "contract_market_scope": "market_scope",
+            "contract_market_label": "market_label",
+            "contract_asset_class": "asset_class",
+            "contract_style_label": "style_label",
+            "contract_structure": "structure",
+            "contract_source_url": "source_url",
+            "product_summary_status": "product_summary_status",
+        }
+        for csv_field, json_field in contract_fields.items():
+            require(
+                row.get(csv_field) == str(contract[json_field]),
                 f"CSV {csv_field} differs for {code}",
             )
+        require(
+            math.isclose(
+                float(row["contract_benchmark_weight_pct"]),
+                float(contract["benchmark_weight_pct"]),
+                abs_tol=1e-9,
+            ),
+            f"CSV contract benchmark weight differs for {code}",
+        )
+        require(
+            row.get("product_structure_tags")
+            == " | ".join(record["product_structure_tags"]),
+            f"CSV product structure tags differ for {code}",
+        )
         fit = record["nasdaq100_fit"]
         for csv_field, fit_field in (
             ("nasdaq100_correlation", "correlation"),
@@ -456,32 +645,26 @@ def validate_csv(path: Path, records: list[dict[str, Any]]) -> None:
             and row["nasdaq100_end_date"] == fit["end_date"],
             f"CSV Nasdaq-100 dates differ for {code}",
         )
-        exposure = record["us_equity_exposure"]
-        require(
-            math.isclose(
-                float(row["us_equity_confirmed_pct"]),
-                float(exposure["confirmed_pct"]),
-                abs_tol=1e-9,
-            ),
-            f"CSV confirmed exposure differs for {code}",
-        )
-        require(
-            math.isclose(
-                float(row["us_equity_possible_pct"]),
-                float(exposure["possible_pct"]),
-                abs_tol=1e-9,
-            ),
-            f"CSV possible exposure differs for {code}",
-        )
-        require(row["us_equity_status"] == exposure["status"], f"CSV exposure status differs for {code}")
-        require(
-            row["us_equity_report_date"] == exposure["report_date"],
-            f"CSV exposure report date differs for {code}",
-        )
-        require(
-            row["us_equity_source_url"] == exposure["source_url"],
-            f"CSV exposure source differs for {code}",
-        )
+        if record["ranking_list"] == "us_main":
+            exposure = record["us_equity_exposure"]
+            for field in ("confirmed_pct", "possible_pct"):
+                require(
+                    math.isclose(
+                        float(row[f"us_equity_{field}"]),
+                        float(exposure[field]),
+                        abs_tol=1e-9,
+                    ),
+                    f"CSV US exposure {field} differs for {code}",
+                )
+        else:
+            require(row["us_equity_confirmed_pct"] == "", f"CSV global exposure is not blank for {code}")
+            require(
+                row["three_year_annualized_return_pct"]
+                == str(record["three_year_annualized_return_pct"]),
+                f"CSV annualized return differs for {code}",
+            )
+            expected_ratio = "" if record["return_drawdown_ratio"] is None else str(record["return_drawdown_ratio"])
+            require(row["return_drawdown_ratio"] == expected_ratio, f"CSV return/drawdown ratio differs for {code}")
         require(row["direct_limit"] == format_limit(record["direct_limit"]), f"CSV direct limit differs for {code}")
         require(row["agency_limit"] == format_limit(record["agency_limit"]), f"CSV agency limit differs for {code}")
         require(
@@ -503,20 +686,34 @@ def validate_markdown(path: Path, payload: dict[str, Any], records: list[dict[st
     for record, (rank, code, name, line) in zip(records, parsed):
         require(rank == record["rank"] and code == record["code"], f"Markdown order differs at {record['code']}")
         require(name == record["name"], f"Markdown name differs for {record['code']}")
-        expected_values = (
-            format_percentage(record["institution_holding_ratio_pct"]),
-            f"{float(record['scale_billion_cny']):.2f}亿元",
-            format_percentage(record["one_year_return_pct"], show_sign=True),
-            format_percentage(record["one_year_max_drawdown_pct"]),
+        expected_values = [
             format_percentage(record["three_year_return_pct"], show_sign=True),
             format_percentage(record["three_year_max_drawdown_pct"]),
-            format_correlation(record["nasdaq100_fit"]["correlation"]),
-            format_beta(record["nasdaq100_fit"]["beta"]),
-            format_percentage(record["us_equity_exposure"]["confirmed_pct"]),
             format_limit(record["direct_limit"]),
             format_limit(record["agency_limit"]),
-        )
+        ]
+        if record["ranking_list"] == "us_main":
+            expected_values.extend(
+                (
+                    format_correlation(record["nasdaq100_fit"]["correlation"]),
+                    format_beta(record["nasdaq100_fit"]["beta"]),
+                    format_percentage(record["us_equity_exposure"]["confirmed_pct"]),
+                )
+            )
+        else:
+            ratio = "∞" if record["return_drawdown_ratio"] is None else f"{record['return_drawdown_ratio']:.2f}"
+            expected_values.extend(
+                (
+                    record["contract_benchmark"]["benchmark_name"],
+                    format_percentage(record["three_year_annualized_return_pct"], show_sign=True),
+                    ratio,
+                )
+            )
         require(all(value in line for value in expected_values), f"Markdown metrics differ for {record['code']}")
+        require(
+            record["contract_benchmark"]["benchmark_name"] in document,
+            f"Markdown contract benchmark differs for {record['code']}",
+        )
 
 
 def parse_html(document: str) -> RankingHtmlParser:
@@ -536,47 +733,112 @@ def validate_html_document(
     require(payload["run_date"] in " ".join(parser.all_text), f"{label} run date differs")
     expected_codes = [record["code"] for record in records]
     require(parser.codes == expected_codes, f"{label} fund order differs from JSON")
+    require(
+        parser.lists == [record["ranking_list"] for record in records],
+        f"{label} ranking-list assignments differ from JSON",
+    )
+    all_text = " ".join(parser.all_text)
+    require("美国主榜" in all_text and "全球补充榜" in all_text, f"{label} tabs are missing")
     for record in records:
         code = record["code"]
         block = parser.blocks[code]
-        expected_values = (
+        expected_values = [
             record["name"],
-            format_percentage(record["institution_holding_ratio_pct"]),
+            record["contract_benchmark"]["benchmark_name"],
+            record["contract_benchmark"]["benchmark_text"],
             f"{float(record['scale_billion_cny']):.2f} 亿元",
             format_percentage(record["one_year_return_pct"], show_sign=True),
             format_percentage(record["one_year_max_drawdown_pct"]),
-            format_percentage(record["us_equity_exposure"]["confirmed_pct"]),
             format_percentage(record["three_year_return_pct"], show_sign=True),
             format_percentage(record["three_year_max_drawdown_pct"]),
-            format_correlation(record["nasdaq100_fit"]["correlation"]),
-            format_beta(record["nasdaq100_fit"]["beta"]),
-            format_percentage(record["nasdaq100_fit"]["tracking_error_pct"]),
-            f"{record['nasdaq100_fit']['observations']} 周",
-            record["nasdaq100_fit"]["start_date"],
-            record["nasdaq100_fit"]["end_date"],
             format_limit(record["direct_limit"]),
             format_limit(record["agency_limit"]),
-        )
+            *record["product_structure_tags"],
+        ]
+        if record["ranking_list"] == "us_main":
+            expected_values.extend(
+                (
+                    format_percentage(record["us_equity_exposure"]["confirmed_pct"]),
+                    format_correlation(record["nasdaq100_fit"]["correlation"]),
+                    format_beta(record["nasdaq100_fit"]["beta"]),
+                    format_percentage(record["nasdaq100_fit"]["tracking_error_pct"]),
+                    f"{record['nasdaq100_fit']['observations']} 周",
+                )
+            )
+        else:
+            ratio = "∞" if record["return_drawdown_ratio"] is None else f"{record['return_drawdown_ratio']:.2f}"
+            expected_values.extend(
+                (
+                    format_percentage(record["three_year_annualized_return_pct"], show_sign=True),
+                    ratio,
+                    record["contract_benchmark"]["market_label"],
+                )
+            )
         require(all(value in block for value in expected_values), f"{label} metrics differ for {code}")
+
+
+def validate_email_rendering(payload: dict[str, Any], records: list[dict[str, Any]]) -> None:
+    page_url = f"https://example.test/?v={payload['run_date']}"
+    plain = mailer.success_plain_text(payload, page_url)
+    html_document = mailer.success_html(payload, page_url)
+    for document, label in ((plain, "Plain email"), (html_document, "HTML email")):
+        positions = [document.find(record["code"]) for record in records]
+        require(all(position >= 0 for position in positions), f"{label} is missing a fund code")
+        require(positions == sorted(positions), f"{label} fund order differs from JSON")
+        for record in records:
+            expected = [
+                record["contract_benchmark"]["benchmark_name"],
+                mailer.format_percentage(record["three_year_return_pct"], show_sign=True),
+                mailer.format_limit(record["direct_limit"]),
+                mailer.format_limit(record["agency_limit"]),
+            ]
+            if record["ranking_list"] == "us_main":
+                expected.extend(
+                    (
+                        mailer.format_correlation(record["nasdaq100_fit"]["correlation"]),
+                        mailer.format_beta(record["nasdaq100_fit"]["beta"]),
+                    )
+                )
+            else:
+                expected.append(mailer.format_ratio(record["return_drawdown_ratio"]))
+            require(
+                all(value in document for value in expected),
+                f"{label} metrics differ for {record['code']}",
+            )
 
 
 def validate_local_artifacts(
     output_dir: Path, publish_dir: Path, expected_date: str
 ) -> tuple[dict[str, Any], list[str]]:
     payload = load_payload(output_dir / "latest.json")
-    require(payload.get("schema_version") == 7, "Unexpected JSON schema version")
+    require(payload.get("schema_version") == 8, "Unexpected JSON schema version")
     require(payload.get("run_date") == expected_date, "Ranking date is not today's Shanghai date")
     require(
         str(payload.get("generated_at", ""))[:10] == expected_date,
         "Generation timestamp does not match the ranking date",
     )
     validate_filters(payload.get("filters"))
+    validate_exclusion_summary(payload.get("exclusion_summary"))
     validate_benchmark(payload.get("benchmark"), parse_date(expected_date))
-    records = validate_records(payload)
+    global_section = payload.get("global_supplement")
+    require(isinstance(global_section, dict), "global_supplement must be an object")
+    require(
+        global_section.get("ranking_method") == EXPECTED_GLOBAL_RANKING_METHOD,
+        "Global supplement ranking method differs from filters",
+    )
+    us_records = validate_records(payload, payload.get("records"), "us_main")
+    global_records = validate_records(
+        payload, global_section.get("records"), "global_supplement"
+    )
+    require(us_records or global_records, "Both ranking lists are empty")
+    records = [*us_records, *global_records]
+    codes = [record["code"] for record in records]
+    require(len(codes) == len(set(codes)), "Fund codes are duplicated across ranking lists")
     reportable, blocking = classify_warnings(payload.get("warnings"))
     require(not blocking, "Blocking warnings: " + " | ".join(blocking))
     validate_csv(output_dir / "latest.csv", records)
     validate_markdown(output_dir / "latest.md", payload, records)
+    validate_email_rendering(payload, records)
 
     generated_html_path = output_dir / "latest.html"
     published_html_path = publish_dir / "index.html"
@@ -595,7 +857,10 @@ def validate_deployment(
     attempts: int,
     delay_seconds: float,
 ) -> None:
-    records = payload["records"]
+    records = [
+        *payload["records"],
+        *payload["global_supplement"]["records"],
+    ]
     last_error: Exception | None = None
     for attempt in range(1, attempts + 1):
         try:
@@ -653,7 +918,9 @@ def main(argv: Iterable[str] | None = None) -> int:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
     print(
-        f"Validated {len(payload['records'])} records for {payload['run_date']}"
+        f"Validated {len(payload['records'])} US records and "
+        f"{len(payload['global_supplement']['records'])} global records for "
+        f"{payload['run_date']}"
         + (" and the deployed page" if args.deployed_url else "")
     )
     return 0

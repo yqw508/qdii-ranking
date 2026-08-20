@@ -12,16 +12,39 @@ import validate_qdii_ranking as validator
 RUN_DATE = "2026-08-20"
 
 
-def make_record(rank):
-    code = f"{rank:06d}"
+def make_record(rank, ranking_list="us_main"):
+    code = f"{rank if ranking_list == 'us_main' else 100000 + rank:06d}"
     source = f"https://example.test/{code}/notice.pdf"
     confirmed = 100.0 - rank
     possible = confirmed + (0.5 if rank == 1 else 0.0)
     return {
         "rank": rank,
+        "ranking_list": ranking_list,
         "code": code,
         "name": f"全球科技精选{rank}(QDII)A",
         "fund_type": "QDII-普通股票",
+        "management_style": "active",
+        "product_structure_tags": ["主动", "股票", "大盘成长"],
+        "contract_benchmark": {
+            "benchmark_text": "纳斯达克100指数收益率×95%+人民币活期存款利率×5%",
+            "benchmark_id": "nasdaq-100" if ranking_list == "us_main" else "dax",
+            "benchmark_name": "纳斯达克100指数" if ranking_list == "us_main" else "德国DAX指数",
+            "benchmark_weight_pct": 95.0,
+            "market_scope": "us" if ranking_list == "us_main" else "non_us",
+            "market_label": "美国" if ranking_list == "us_main" else "德国",
+            "asset_class": "equity",
+            "style_label": "大盘成长" if ranking_list == "us_main" else "大盘宽基",
+            "structure": "standard",
+            "excluded_target": False,
+            "management_style": "active",
+            "prospectus_title": "更新招募说明书",
+            "prospectus_published_date": "2026-06-01",
+            "source_url": f"https://example.test/{code}/prospectus.pdf",
+            "product_summary_status": "matched",
+            "product_summary_published_date": "2026-06-02",
+            "product_summary_source_url": f"https://example.test/{code}/summary.pdf",
+            "catalog_fingerprint": "a" * 64,
+        },
         "institution_holding_ratio_pct": 50.0 - rank,
         "holder_report_date": "2025-12-31",
         "inception_date": "2020-01-01",
@@ -81,9 +104,22 @@ def make_record(rank):
     }
 
 
+def make_global_record(rank):
+    record = make_record(rank, "global_supplement")
+    record.pop("us_equity_exposure")
+    total_return = float(record["three_year_return_pct"])
+    span_days = 1096
+    annualized = ((1 + total_return / 100) ** (365 / span_days) - 1) * 100
+    record["three_year_annualized_return_pct"] = round(annualized, 2)
+    record["return_drawdown_ratio"] = round(
+        annualized / abs(float(record["three_year_max_drawdown_pct"])), 4
+    )
+    return record
+
+
 def make_payload():
     return {
-        "schema_version": 7,
+        "schema_version": 8,
         "run_date": RUN_DATE,
         "generated_at": "2026-08-20T09:08:00+08:00",
         "holder_report_date": "2025-12-31",
@@ -94,19 +130,30 @@ def make_payload():
             "min_age_years": 3,
             "min_three_year_return_pct": 50.0,
             "min_us_equity_pct": 50.0,
+            "min_direct_limit_cny_exclusive": 1000,
+            "min_contract_benchmark_weight_pct": 80.0,
             "base_candidates_total": 42,
             "performance_candidates_scanned": 42,
             "performance_qualified_count": 27,
-            "us_equity_candidates_scanned": 27,
-            "us_equity_qualified_count": 11,
+            "contract_candidates_scanned": 27,
+            "contract_qualified_count": 8,
+            "us_style_candidates_count": 3,
+            "us_equity_candidates_scanned": 3,
+            "us_equity_qualified_count": 3,
+            "us_quota_candidates_scanned": 3,
+            "us_quota_qualified_count": 3,
+            "global_style_candidates_count": 5,
+            "global_quota_candidates_scanned": 5,
+            "global_quota_qualified_count": 3,
             "full_scan_completed": True,
             "ranking_method": validator.EXPECTED_RANKING_METHOD,
+            "global_supplement_ranking_method": validator.EXPECTED_GLOBAL_RANKING_METHOD,
             "us_equity_method": "conservative confirmed lower bound",
-            "exclude_keywords": ["债", "亚洲", "中国", "港"],
-            "pre_rank_exclude_keywords": ["债"],
-            "post_enrichment_exclude_keywords": ["亚洲", "中国", "港"],
+            "contract_benchmark_method": "latest prospectus",
+            "exclude_keywords": ["亚洲", "中国", "港"],
             "exclude_fund_types": ["QDII-纯债"],
-            "share_class": "RMB A or explicit RMB primary share without C/D marker",
+            "exclude_asset_classes": ["bond", "commodity"],
+            "share_class": "OTC RMB A or explicit RMB primary share without C/D marker",
             "purchasable_only": True,
         },
         "cache": {
@@ -117,7 +164,7 @@ def make_payload():
                 "misses": 0,
                 "corrupt_rebuilds": 0,
             },
-            "periodic_reports": {
+            "announcement_pdfs": {
                 "hits": 0,
                 "downloads": 0,
                 "corrupt_redownloads": 0,
@@ -141,7 +188,23 @@ def make_payload():
             "fx_start_date": "2023-08-06",
             "fx_latest_date": "2026-08-19",
         },
-        "records": [make_record(rank) for rank in range(1, 11)],
+        "records": [make_record(rank) for rank in range(1, 4)],
+        "global_supplement": {
+            "ranking_method": validator.EXPECTED_GLOBAL_RANKING_METHOD,
+            "qualified_count": 3,
+            "records": sorted(
+                [make_global_record(rank) for rank in range(1, 4)],
+                key=lambda item: -float(item["return_drawdown_ratio"]),
+            ),
+        },
+        "exclusion_summary": [
+            {
+                "reason": "direct_limit_not_above_threshold",
+                "label": "直销额度不高于 1,000 元",
+                "count": 2,
+                "codes": ["000099", "000100"],
+            }
+        ],
         "warnings": [
             "跳过未完整披露的持有人报告期 2026-06-30：覆盖率不足。",
             "000001 Sample ETF 无法按 2026-06-30 的可用数据穿透，其 0.50% 仓位仅计入可能上限。",
@@ -155,7 +218,7 @@ def write_artifacts(root, payload):
     output_dir = root / "output"
     publish_dir = root / "public"
     ranking.write_json(output_dir / "latest.json", payload)
-    ranking.write_csv(output_dir / "latest.csv", payload["records"])
+    ranking.write_csv(output_dir / "latest.csv", payload)
     ranking.write_markdown(output_dir / "latest.md", payload)
     ranking.write_html(output_dir / "latest.html", payload)
     ranking.write_html(publish_dir / "index.html", payload)
@@ -174,13 +237,21 @@ class RankingValidatorTests(unittest.TestCase):
 
     def test_accepts_complete_artifacts_and_reportable_warnings(self):
         payload, warnings = self.validate()
-        self.assertEqual(10, len(payload["records"]))
+        self.assertEqual(3, len(payload["records"]))
+        self.assertEqual(3, len(payload["global_supplement"]["records"]))
         self.assertEqual(3, len(warnings))
 
-    def test_rejects_record_shortfall(self):
+    def test_accepts_record_shortfall(self):
         payload = make_payload()
         payload["records"].pop()
-        with self.assertRaisesRegex(validator.ValidationError, "exactly ten"):
+        validated, _ = self.validate(payload)
+        self.assertEqual(2, len(validated["records"]))
+
+    def test_rejects_both_lists_empty(self):
+        payload = make_payload()
+        payload["records"] = []
+        payload["global_supplement"]["records"] = []
+        with self.assertRaisesRegex(validator.ValidationError, "Both ranking lists are empty"):
             self.validate(payload)
 
     def test_rejects_incomplete_full_scan(self):
@@ -209,8 +280,27 @@ class RankingValidatorTests(unittest.TestCase):
             "status": "unknown",
             "amount_cny": None,
         }
-        with self.assertRaisesRegex(validator.ValidationError, "quota is unresolved"):
+        with self.assertRaisesRegex(validator.ValidationError, "direct limit is unresolved"):
             self.validate(payload)
+
+    def test_rejects_direct_limit_equal_to_threshold(self):
+        payload = make_payload()
+        payload["records"][0]["direct_limit"]["amount_cny"] = 1000
+        with self.assertRaisesRegex(validator.ValidationError, "strict direct-sale"):
+            self.validate(payload)
+
+    def test_accepts_unknown_agency_limit(self):
+        payload = make_payload()
+        payload["records"][0]["agency_limit"] = {
+            "status": "unknown",
+            "amount_cny": None,
+            "effective_date": None,
+            "source_url": None,
+            "confidence": "low",
+        }
+        payload["records"][0]["quota_status"] = "unknown"
+        validated, _ = self.validate(payload)
+        self.assertEqual("unknown", validated["records"][0]["agency_limit"]["status"])
 
     def test_rejects_quota_source_not_listed_in_announcements(self):
         payload = make_payload()
@@ -249,7 +339,7 @@ class RankingValidatorTests(unittest.TestCase):
             path = output_dir / "latest.csv"
             content = path.read_text(encoding="utf-8-sig").replace("99.0", "98.0", 1)
             path.write_text(content, encoding="utf-8-sig")
-            with self.assertRaisesRegex(validator.ValidationError, "confirmed exposure"):
+            with self.assertRaisesRegex(validator.ValidationError, "US exposure confirmed_pct"):
                 validator.validate_local_artifacts(output_dir, publish_dir, RUN_DATE)
 
     def test_rejects_csv_nasdaq_metric_difference(self):
@@ -313,6 +403,11 @@ class RankingEmailTests(unittest.TestCase):
         html_body = message.get_body(preferencelist=("html",)).get_content()
         self.assertEqual("[QDII榜单] 2026-08-20 更新成功", message["Subject"])
         self.assertIn("000001", plain)
+        self.assertIn("100001", plain)
+        self.assertIn("美国主榜（3只）", plain)
+        self.assertIn("全球补充榜（3只）", plain)
+        self.assertIn("纳斯达克100指数", plain)
+        self.assertIn("德国DAX指数", plain)
         self.assertIn("99.00%-99.50%", plain)
         self.assertIn("99.0%/1.01", plain)
         self.assertIn("使用完整缓存", plain)
@@ -320,6 +415,10 @@ class RankingEmailTests(unittest.TestCase):
         self.assertIn("<table", html_body)
         self.assertIn("10万元", html_body)
         self.assertIn("99.0%", html_body)
+        self.assertIn("收益回撤比", html_body)
+        self.assertIn("被剔除候选摘要", plain)
+        self.assertIn("000099, 000100", plain)
+        self.assertIn("被剔除候选摘要", html_body)
 
     def test_failure_email_contains_stage_and_run_link(self):
         message = mailer.build_failure_message(

@@ -4,223 +4,163 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light">
-  <title>QDII 纳指相关榜单 · 2026-08-20</title>
+  <title>QDII 双榜 · 2026-08-20</title>
   <style>
-    :root {
-      color-scheme: light;
-      --bg: #f4f6f8;
-      --surface: #ffffff;
-      --text: #17202a;
-      --muted: #65717d;
-      --border: #d9dfe6;
-      --accent: #086b58;
-      --accent-soft: #e7f4f0;
-      --positive: #147a4b;
-      --negative: #b42318;
-      --link: #1457a6;
-      --warning: #8a4b08;
-    }
-    * { box-sizing: border-box; }
-    html { background: var(--bg); }
-    body {
-      margin: 0;
-      min-width: 280px;
-      color: var(--text);
-      background: var(--bg);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-      font-size: 15px;
-      line-height: 1.5;
-      letter-spacing: 0;
-      overflow-wrap: anywhere;
-    }
-    a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 3px; }
-    .page {
-      width: min(100%, 880px);
-      margin: 0 auto;
-      padding: max(16px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(28px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
-    }
-    .page-header { padding: 4px 2px 18px; }
-    .title-row { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
-    h1 { margin: 0; font-size: 22px; line-height: 1.25; letter-spacing: 0; }
-    .run-date { color: var(--muted); font-size: 13px; white-space: nowrap; }
-    .filter-line { display: flex; flex-wrap: wrap; gap: 2px 8px; margin: 10px 0 0; color: #35414d; font-size: 14px; }
-    .filter-condition { white-space: nowrap; }
-    .filter-condition:not(:last-child)::after { content: " ·"; color: var(--muted); }
-    .meta-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px 14px;
-      margin: 14px 0 0;
-    }
-    .meta-grid div { min-width: 0; }
-    dt, .metric-label, .quota-grid span { color: var(--muted); font-size: 12px; }
-    dd { margin: 2px 0 0; font-weight: 650; }
-    .ranking-list { display: grid; gap: 10px; }
-    .fund-item {
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      background: var(--surface);
-      overflow: clip;
-    }
-    .fund-item summary {
-      display: grid;
-      grid-template-columns: 34px minmax(0, 1fr) 18px;
-      align-items: center;
-      gap: 0 10px;
-      min-height: 64px;
-      padding: 12px;
-      cursor: pointer;
-      list-style: none;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .fund-item summary::-webkit-details-marker { display: none; }
-    .fund-item summary:focus-visible { outline: 3px solid #86b7e8; outline-offset: -3px; }
-    .rank {
-      display: grid;
-      width: 32px;
-      height: 32px;
-      place-items: center;
-      border-radius: 4px;
-      color: #fff;
-      background: #263746;
-      font-weight: 750;
-      font-variant-numeric: tabular-nums;
-    }
-    .fund-identity { min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
-    .fund-identity strong { min-width: 0; font-size: 16px; line-height: 1.35; }
-    .fund-code { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
-    .chevron {
-      width: 9px;
-      height: 9px;
-      border-right: 2px solid #7a8793;
-      border-bottom: 2px solid #7a8793;
-      transform: rotate(45deg) translate(-2px, 2px);
-      transition: transform 150ms ease;
-    }
-    .fund-item[open] .chevron { transform: rotate(225deg) translate(-1px, -1px); }
-    .summary-metrics {
-      grid-column: 2 / -1;
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px;
-      margin-top: 12px;
-    }
-    .summary-metric {
-      display: flex;
-      min-width: 0;
-      min-height: 46px;
-      flex-direction: column;
-      justify-content: center;
-      padding: 6px 8px;
-      border-left: 3px solid #c7cfd7;
-      background: #f7f8fa;
-    }
-    .summary-metric.accent { border-color: var(--accent); background: var(--accent-soft); }
-    .summary-metric.fit { grid-column: span 2; border-color: var(--link); background: #eef4fb; }
-    .summary-metric.fit .metric-value { font-size: 14px; }
-    .summary-metric.positive { border-color: var(--positive); }
-    .metric-value { font-weight: 750; font-variant-numeric: tabular-nums; white-space: nowrap; }
-    .metric-value.quota { font-size: 14px; }
-    .fund-detail { border-top: 1px solid var(--border); padding: 14px 12px 16px; }
-    .detail-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px 16px;
-      margin: 0;
-    }
-    .detail-grid div, .rule-grid div { min-width: 0; }
-    .positive-text { color: var(--positive); }
-    .negative-text { color: var(--negative); }
-    .quota-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-      margin: 16px 0 0;
-      padding: 14px 0;
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-    }
-    .quota-grid div { display: flex; min-width: 0; flex-direction: column; gap: 3px; }
-    .source-link, .source-value { font-weight: 700; }
-    .external { margin-left: 4px; font-size: 12px; }
-    .rule-grid { display: grid; gap: 10px; margin: 14px 0 0; }
-    .source-row { display: flex; flex-wrap: wrap; gap: 10px 18px; margin-top: 14px; }
-    .warnings { margin-top: 18px; border-top: 1px solid var(--border); }
-    .warnings summary {
-      display: flex;
-      min-height: 48px;
-      align-items: center;
-      justify-content: space-between;
-      color: var(--warning);
-      cursor: pointer;
-      font-weight: 700;
-    }
-    .warnings ul { margin: 0; padding: 0 0 0 22px; color: #4c5661; }
-    .warnings li { margin: 0 0 9px; }
-    footer { margin-top: 18px; color: var(--muted); font-size: 12px; }
-    @media (min-width: 820px) {
-      .page { padding-top: 28px; }
-      .meta-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-      .fund-item summary { grid-template-columns: 38px minmax(210px, 1fr) minmax(455px, 500px) 18px; gap: 12px; padding: 14px 16px; }
-      .summary-metrics { grid-column: 3; grid-row: 1; grid-template-columns: repeat(5, minmax(0, 1fr)); margin-top: 0; }
-      .summary-metric.fit { grid-column: span 1; }
-      .summary-metric { padding-inline: 8px; }
-      .chevron { grid-column: 4; }
-      .fund-detail { padding: 18px 66px 20px; }
-      .detail-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-      .rule-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    }
-    @media (prefers-reduced-motion: reduce) { .chevron { transition: none; } }
+    :root { color-scheme: light; --bg:#f3f5f7; --surface:#fff; --text:#18222c; --muted:#66727e; --border:#d7dde3; --accent:#086b58; --accent-soft:#e8f3ef; --blue:#195c9b; --blue-soft:#edf4fa; --positive:#147a4b; --negative:#b42318; --warning:#8a4b08; }
+    * { box-sizing:border-box; }
+    html { background:var(--bg); }
+    body { margin:0; min-width:280px; color:var(--text); background:var(--bg); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; font-size:15px; line-height:1.5; letter-spacing:0; overflow-wrap:anywhere; }
+    button { font:inherit; letter-spacing:0; }
+    a { color:var(--blue); text-decoration-thickness:1px; text-underline-offset:3px; }
+    .page { width:min(100%,980px); margin:0 auto; padding:max(16px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(28px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left)); }
+    .page-header { padding:4px 2px 16px; }
+    .title-row { display:flex; align-items:baseline; justify-content:space-between; gap:16px; }
+    h1 { margin:0; font-size:22px; line-height:1.25; letter-spacing:0; }
+    .run-date,.metric-label,dt,.quota-grid span,.benchmark-detail>span { color:var(--muted); font-size:12px; }
+    .run-date { white-space:nowrap; }
+    .filter-line { display:flex; flex-wrap:wrap; gap:2px 8px; margin:10px 0 0; color:#35414d; font-size:14px; }
+    .filter-condition { white-space:nowrap; }
+    .filter-condition:not(:last-child)::after { content:" ·"; color:var(--muted); }
+    .meta-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 14px; margin:14px 0 0; }
+    .meta-grid div, .detail-grid div, .rule-grid div { min-width:0; }
+    dd { margin:2px 0 0; font-weight:650; }
+    .tabs { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px; margin:0 0 12px; padding:4px; border:1px solid var(--border); border-radius:6px; background:#e9edf1; }
+    .tab { min-height:42px; border:0; border-radius:4px; color:#42505d; background:transparent; cursor:pointer; font-weight:700; }
+    .tab[aria-selected="true"] { color:var(--text); background:var(--surface); box-shadow:0 1px 2px rgba(20,32,44,.12); }
+    .tab-count { margin-left:6px; color:var(--muted); font-variant-numeric:tabular-nums; }
+    .tab:focus-visible,.fund-item summary:focus-visible { outline:3px solid #86b7e8; outline-offset:2px; }
+    .ranking-list { display:grid; gap:10px; }
+    .fund-item { border:1px solid var(--border); border-radius:6px; background:var(--surface); overflow:clip; }
+    .fund-item summary { display:grid; grid-template-columns:34px minmax(0,1fr) 18px; align-items:center; gap:0 10px; min-height:72px; padding:12px; cursor:pointer; list-style:none; -webkit-tap-highlight-color:transparent; }
+    .fund-item summary::-webkit-details-marker { display:none; }
+    .rank { display:grid; width:32px; height:32px; place-items:center; border-radius:4px; color:#fff; background:#263746; font-weight:750; font-variant-numeric:tabular-nums; }
+    .fund-identity { min-width:0; display:grid; gap:5px; }
+    .fund-name-row { display:flex; min-width:0; flex-wrap:wrap; align-items:baseline; gap:2px 8px; }
+    .fund-name-row strong { min-width:0; font-size:16px; line-height:1.35; }
+    .fund-code,.benchmark-label { color:var(--muted); font-size:13px; font-variant-numeric:tabular-nums; }
+    .tags { display:flex; flex-wrap:wrap; gap:4px; }
+    .tag { padding:1px 5px; border:1px solid #cbd3db; border-radius:3px; color:#4c5a67; background:#f8fafb; font-size:11px; }
+    .tag.risk { border-color:#e5a5a0; color:var(--negative); background:#fff5f4; }
+    .chevron { width:9px; height:9px; border-right:2px solid #7a8793; border-bottom:2px solid #7a8793; transform:rotate(45deg) translate(-2px,2px); transition:transform 150ms ease; }
+    .fund-item[open] .chevron { transform:rotate(225deg) translate(-1px,-1px); }
+    .summary-metrics { grid-column:2/-1; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:12px; }
+    .summary-metric { display:flex; min-width:0; min-height:46px; flex-direction:column; justify-content:center; padding:6px 8px; border-left:3px solid #c7cfd7; background:#f7f8fa; }
+    .summary-metric.fit { border-color:var(--blue); background:var(--blue-soft); }
+    .summary-metric.accent { border-color:var(--accent); background:var(--accent-soft); }
+    .summary-metric.positive { border-color:var(--positive); }
+    .metric-value { font-weight:750; font-variant-numeric:tabular-nums; white-space:nowrap; }
+    .metric-value.small,.metric-value.quota { font-size:13px; }
+    .fund-detail { border-top:1px solid var(--border); padding:14px 12px 16px; }
+    .detail-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px 16px; margin:0; }
+    .positive-text { color:var(--positive); } .negative-text { color:var(--negative); }
+    .benchmark-detail { display:grid; gap:3px; margin-top:16px; padding:12px 0; border-top:1px solid var(--border); }
+    .benchmark-detail strong { font-size:13px; font-weight:650; }
+    .quota-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; padding:12px 0; border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+    .quota-grid div { display:flex; min-width:0; flex-direction:column; gap:3px; }
+    .source-link,.source-value { font-weight:700; } .external { margin-left:4px; font-size:11px; }
+    .rule-grid { display:grid; gap:10px; margin:14px 0 0; }
+    .source-row { display:flex; flex-wrap:wrap; gap:10px 18px; margin-top:14px; }
+    .empty-state { margin:0; padding:28px 4px; color:var(--muted); text-align:center; border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+    .warnings { margin-top:18px; border-top:1px solid var(--border); }
+    .warnings summary { display:flex; min-height:48px; align-items:center; justify-content:space-between; color:var(--warning); cursor:pointer; font-weight:700; }
+    .warnings ul { margin:0; padding:0 0 0 22px; color:#4c5661; } .warnings li { margin:0 0 9px; }
+    footer { margin-top:18px; color:var(--muted); font-size:12px; }
+    [hidden] { display:none !important; }
+    @media (min-width:820px) { .page { padding-top:28px; } .meta-grid { grid-template-columns:repeat(4,minmax(0,1fr)); } .fund-item summary { grid-template-columns:38px minmax(250px,1fr) minmax(430px,500px) 18px; gap:12px; padding:14px 16px; } .summary-metrics { grid-column:3; grid-row:1; grid-template-columns:repeat(4,minmax(0,1fr)); margin-top:0; } .chevron { grid-column:4; } .fund-detail { padding:18px 66px 20px; } .detail-grid { grid-template-columns:repeat(4,minmax(0,1fr)); } .rule-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+    @media (prefers-reduced-motion:reduce) { .chevron { transition:none; } }
   </style>
 </head>
 <body>
   <div class="page">
     <header class="page-header">
-      <div class="title-row">
-        <h1>QDII 纳指相关榜单</h1>
-        <time class="run-date" datetime="2026-08-20">2026-08-20</time>
-      </div>
-      <p class="filter-line"><span class="filter-condition">规模 &gt; 3 亿元</span><span class="filter-condition">成立超过 3 年</span><span class="filter-condition">近三年收益 ≥ 50%</span><span class="filter-condition">美股确认下限 ≥ 50%</span></p>
+      <div class="title-row"><h1>QDII 美国主榜与全球补充榜</h1><time class="run-date" datetime="2026-08-20">2026-08-20</time></div>
+      <p class="filter-line"><span class="filter-condition">规模 &gt; 3 亿元</span><span class="filter-condition">成立 &gt; 3 年</span><span class="filter-condition">三年收益 ≥ 50%</span><span class="filter-condition">直销 &gt; 1,000 元</span><span class="filter-condition">合同基准 ≥ 80%</span></p>
       <dl class="meta-grid">
         <div><dt>机构持仓报告期</dt><dd>2025-12-31</dd></div>
         <div><dt>规模报告期</dt><dd>2026-06-30</dd></div>
-        <div><dt>近一年净值区间</dt><dd>2025-08-18 至 2026-08-18、2025-08-19 至 2026-08-19</dd></div>
+        <div><dt>净值区间</dt><dd>2023-08-18 至 2026-08-18</dd></div>
         <div><dt>纳指基准更新</dt><dd>XNDX 2026-08-19 · 汇率 2026-08-20</dd></div>
-        <div><dt>全量扫描</dt><dd>41 只基础候选</dd></div>
-        <div><dt>数据警告</dt><dd>43 项</dd></div>
+        <div><dt>基础候选</dt><dd>74 只</dd></div>
+        <div><dt>合同扫描</dt><dd>35 只</dd></div>
+        <div><dt>美国 / 全球入榜</dt><dd>2 / 1 只</dd></div>
+        <div><dt>数据警告</dt><dd>28 项</dd></div>
       </dl>
     </header>
     <main>
-      <section class="ranking-list" aria-label="纳指相关基金榜单">
-
-      <details class="fund-item" data-code="000043">
+      <div class="tabs" role="tablist" aria-label="榜单切换">
+        <button class="tab" id="tab-us" type="button" role="tab" aria-selected="true" aria-controls="panel-us" data-panel="panel-us">美国主榜<span class="tab-count">2</span></button>
+        <button class="tab" id="tab-global" type="button" role="tab" aria-selected="false" aria-controls="panel-global" data-panel="panel-global">全球补充榜<span class="tab-count">1</span></button>
+      </div>
+      <section id="panel-us" class="ranking-list" role="tabpanel" aria-labelledby="tab-us">
+      <details class="fund-item" data-code="018966" data-list="us_main">
         <summary>
           <span class="rank" aria-label="排名 1">1</span>
           <span class="fund-identity">
-            <strong>嘉实美国成长股票人民币</strong>
-            <span class="fund-code">000043</span>
+            <span class="fund-name-row"><strong>汇添富纳斯达克100ETF发起式联接(QDII)人民币A</strong><span class="fund-code">018966</span></span>
+            <span class="benchmark-label">纳斯达克100指数 · 95%</span>
+            <span class="tags"><span class="tag ">被动</span><span class="tag ">股票</span><span class="tag ">大盘成长</span></span>
           </span>
           <span class="summary-metrics">
-            <span class="summary-metric fit">
-              <span class="metric-label">纳指相关 / β</span>
-              <span class="metric-value">97.6% · 0.96</span>
-            </span>
-            <span class="summary-metric accent">
-              <span class="metric-label">美股下限</span>
-              <span class="metric-value">94.94%</span>
-            </span>
-            <span class="summary-metric positive">
-              <span class="metric-label">近三年</span>
-              <span class="metric-value">+87.19%</span>
-            </span>
-            <span class="summary-metric">
-              <span class="metric-label">直销</span>
-              <span class="metric-value quota">10万元</span>
-            </span>
-            <span class="summary-metric">
-              <span class="metric-label">代销</span>
-              <span class="metric-value quota">100元</span>
-            </span>
+
+            <span class="summary-metric fit"><span class="metric-label">纳指相关 / β</span><span class="metric-value">99.8% · 0.93</span></span>
+            <span class="summary-metric accent"><span class="metric-label">美股下限</span><span class="metric-value">90.41%</span></span>
+            <span class="summary-metric positive"><span class="metric-label">近三年</span><span class="metric-value">+69.08%</span></span>
+            <span class="summary-metric"><span class="metric-label">直销</span><span class="metric-value quota">正常开放</span></span>
+          </span>
+          <span class="chevron" aria-hidden="true"></span>
+        </summary>
+        <div class="fund-detail">
+          <dl class="detail-grid">
+            <div><dt>成立日</dt><dd>2023-08-02</dd></div>
+            <div><dt>机构持有</dt><dd>3.30%</dd></div>
+            <div><dt>规模</dt><dd>16.33 亿元</dd></div>
+            <div><dt>近一年收益</dt><dd class="positive-text">+15.34%</dd></div>
+            <div><dt>近一年回撤</dt><dd class="negative-text">-13.60%</dd></div>
+            <div><dt>近三年收益</dt><dd class="positive-text">+69.08%</dd></div>
+            <div><dt>近三年回撤</dt><dd class="negative-text">-21.80%</dd></div>
+
+            <div><dt>纳指相关性</dt><dd>99.8%</dd></div>
+            <div><dt>Beta</dt><dd>0.93</dd></div>
+            <div><dt>跟踪误差</dt><dd>1.75%</dd></div>
+            <div><dt>相关样本</dt><dd>151 周</dd></div>
+            <div><dt>美股确认下限</dt><dd>90.41%</dd></div>
+            <div><dt>美股可能上限</dt><dd>90.41%</dd></div>
+          </dl>
+          <section class="benchmark-detail" aria-label="合同基准">
+            <span>合同基准</span>
+            <strong>经人民币汇率调整的纳斯达克 100 指数收益率*95%+商业银行活期存款利率（税后）*5% 如本基金标的指数变化， 则业绩比较基准中的标的指数将相应调整</strong>
+          </section>
+          <div class="quota-grid" aria-label="申购额度">
+            <div><span>直销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202507021701203448_1.pdf" target="_blank" rel="noopener noreferrer">正常开放<span class="external" aria-hidden="true">↗</span></a></div>
+            <div><span>代销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202507021701203448_1.pdf" target="_blank" rel="noopener noreferrer">正常开放<span class="external" aria-hidden="true">↗</span></a></div>
+          </div>
+          <dl class="rule-grid">
+            <div><dt>额度计算</dt><dd>不适用</dd></div>
+            <div><dt>净值区间</dt><dd>2023-08-18 至 2026-08-18</dd></div>
+            <div><dt>招募说明书日期</dt><dd>2026-08-14</dd></div>
+          </dl>
+          <div class="source-row">
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608141827963362_1.pdf" target="_blank" rel="noopener noreferrer">招募说明书<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608141827963210_1.pdf" target="_blank" rel="noopener noreferrer">人民币产品概要<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://fund.eastmoney.com/018966.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607211827187783_1.pdf" target="_blank" rel="noopener noreferrer">定期报告 2026-06-30<span class="external" aria-hidden="true">↗</span></a><a class="source-link" href="https://indexes.nasdaq.com/Index/History/XNDX" target="_blank" rel="noopener noreferrer">Nasdaq XNDX<span class="external" aria-hidden="true">↗</span></a><a class="source-link" href="https://www.safe.gov.cn/AppStructured/hlw/RMBQuery.do" target="_blank" rel="noopener noreferrer">美元兑人民币中间价<span class="external" aria-hidden="true">↗</span></a>
+          </div>
+        </div>
+      </details>
+      <details class="fund-item" data-code="000043" data-list="us_main">
+        <summary>
+          <span class="rank" aria-label="排名 2">2</span>
+          <span class="fund-identity">
+            <span class="fund-name-row"><strong>嘉实美国成长股票人民币</strong><span class="fund-code">000043</span></span>
+            <span class="benchmark-label">罗素1000成长指数 · 95%</span>
+            <span class="tags"><span class="tag ">主动</span><span class="tag ">股票</span><span class="tag ">大盘成长</span></span>
+          </span>
+          <span class="summary-metrics">
+
+            <span class="summary-metric fit"><span class="metric-label">纳指相关 / β</span><span class="metric-value">97.6% · 0.96</span></span>
+            <span class="summary-metric accent"><span class="metric-label">美股下限</span><span class="metric-value">94.94%</span></span>
+            <span class="summary-metric positive"><span class="metric-label">近三年</span><span class="metric-value">+87.19%</span></span>
+            <span class="summary-metric"><span class="metric-label">直销</span><span class="metric-value quota">10万元</span></span>
           </span>
           <span class="chevron" aria-hidden="true"></span>
         </summary>
@@ -229,18 +169,22 @@
             <div><dt>成立日</dt><dd>2013-06-14</dd></div>
             <div><dt>机构持有</dt><dd>7.73%</dd></div>
             <div><dt>规模</dt><dd>49.88 亿元</dd></div>
-            <div><dt>规模报告期</dt><dd>2026-06-30</dd></div>
             <div><dt>近一年收益</dt><dd class="positive-text">+17.38%</dd></div>
-            <div><dt>近一年最大回撤</dt><dd class="negative-text">-14.86%</dd></div>
+            <div><dt>近一年回撤</dt><dd class="negative-text">-14.86%</dd></div>
             <div><dt>近三年收益</dt><dd class="positive-text">+87.19%</dd></div>
-            <div><dt>近三年最大回撤</dt><dd class="negative-text">-23.84%</dd></div>
-            <div><dt>纳指100相关性</dt><dd>97.6%</dd></div>
-            <div><dt>纳指 Beta</dt><dd>0.96</dd></div>
-            <div><dt>年化跟踪误差</dt><dd>4.06%</dd></div>
-            <div><dt>相关性样本</dt><dd>151 周</dd></div>
+            <div><dt>近三年回撤</dt><dd class="negative-text">-23.84%</dd></div>
+
+            <div><dt>纳指相关性</dt><dd>97.6%</dd></div>
+            <div><dt>Beta</dt><dd>0.96</dd></div>
+            <div><dt>跟踪误差</dt><dd>4.06%</dd></div>
+            <div><dt>相关样本</dt><dd>151 周</dd></div>
+            <div><dt>美股确认下限</dt><dd>94.94%</dd></div>
             <div><dt>美股可能上限</dt><dd>95.17%</dd></div>
-            <div><dt>未解析仓位</dt><dd>0.23%</dd></div>
           </dl>
+          <section class="benchmark-detail" aria-label="合同基准">
+            <span>合同基准</span>
+            <strong>95%×罗素1000 成长指数收益率+5％×境内银行活期存款税后利率</strong>
+          </section>
           <div class="quota-grid" aria-label="申购额度">
             <div><span>直销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202511041774776219_1.pdf" target="_blank" rel="noopener noreferrer">10万元<span class="external" aria-hidden="true">↗</span></a></div>
             <div><span>代销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202511041774776219_1.pdf" target="_blank" rel="noopener noreferrer">100元<span class="external" aria-hidden="true">↗</span></a></div>
@@ -248,499 +192,31 @@
           <dl class="rule-grid">
             <div><dt>额度计算</dt><dd>不适用；直销/代销分别</dd></div>
             <div><dt>净值区间</dt><dd>2023-08-18 至 2026-08-18</dd></div>
-            <div><dt>纳指相关区间</dt><dd>2023-08-18 至 2026-08-18</dd></div>
+            <div><dt>招募说明书日期</dt><dd>2026-06-13</dd></div>
           </dl>
           <div class="source-row">
-            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607211827195290_1.pdf" target="_blank" rel="noopener noreferrer">定期报告 2026-06-30<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606131823534972_1.pdf" target="_blank" rel="noopener noreferrer">招募说明书<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606241823793418_1.pdf" target="_blank" rel="noopener noreferrer">人民币产品概要<span class="external" aria-hidden="true">↗</span></a>
             <a class="source-link" href="https://fund.eastmoney.com/000043.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
-            <a class="source-link" href="https://indexes.nasdaq.com/Index/History/XNDX" target="_blank" rel="noopener noreferrer">Nasdaq XNDX<span class="external" aria-hidden="true">↗</span></a>
-            <a class="source-link" href="https://www.safe.gov.cn/AppStructured/hlw/RMBQuery.do" target="_blank" rel="noopener noreferrer">美元兑人民币中间价<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607211827195290_1.pdf" target="_blank" rel="noopener noreferrer">定期报告 2026-06-30<span class="external" aria-hidden="true">↗</span></a><a class="source-link" href="https://indexes.nasdaq.com/Index/History/XNDX" target="_blank" rel="noopener noreferrer">Nasdaq XNDX<span class="external" aria-hidden="true">↗</span></a><a class="source-link" href="https://www.safe.gov.cn/AppStructured/hlw/RMBQuery.do" target="_blank" rel="noopener noreferrer">美元兑人民币中间价<span class="external" aria-hidden="true">↗</span></a>
           </div>
         </div>
-      </details>
-      <details class="fund-item" data-code="016701">
+      </details></section>
+      <section id="panel-global" class="ranking-list" role="tabpanel" aria-labelledby="tab-global" hidden>
+      <details class="fund-item" data-code="539002" data-list="global_supplement">
         <summary>
-          <span class="rank" aria-label="排名 2">2</span>
+          <span class="rank" aria-label="排名 1">1</span>
           <span class="fund-identity">
-            <strong>银华海外数字经济量化选股混合发起式(QDII)A</strong>
-            <span class="fund-code">016701</span>
+            <span class="fund-name-row"><strong>建信新兴市场混合(QDII)A</strong><span class="fund-code">539002</span></span>
+            <span class="benchmark-label">MSCI新兴市场指数 · 100%</span>
+            <span class="tags"><span class="tag ">主动</span><span class="tag ">股票</span><span class="tag ">多市场宽基</span></span>
           </span>
           <span class="summary-metrics">
-            <span class="summary-metric fit">
-              <span class="metric-label">纳指相关 / β</span>
-              <span class="metric-value">96.4% · 1.16</span>
-            </span>
-            <span class="summary-metric accent">
-              <span class="metric-label">美股下限</span>
-              <span class="metric-value">87.89%</span>
-            </span>
-            <span class="summary-metric positive">
-              <span class="metric-label">近三年</span>
-              <span class="metric-value">+98.09%</span>
-            </span>
-            <span class="summary-metric">
-              <span class="metric-label">直销</span>
-              <span class="metric-value quota">10万元</span>
-            </span>
-            <span class="summary-metric">
-              <span class="metric-label">代销</span>
-              <span class="metric-value quota">1,000元</span>
-            </span>
-          </span>
-          <span class="chevron" aria-hidden="true"></span>
-        </summary>
-        <div class="fund-detail">
-          <dl class="detail-grid">
-            <div><dt>成立日</dt><dd>2023-03-15</dd></div>
-            <div><dt>机构持有</dt><dd>42.11%</dd></div>
-            <div><dt>规模</dt><dd>25.85 亿元</dd></div>
-            <div><dt>规模报告期</dt><dd>2026-06-30</dd></div>
-            <div><dt>近一年收益</dt><dd class="positive-text">+26.97%</dd></div>
-            <div><dt>近一年最大回撤</dt><dd class="negative-text">-18.07%</dd></div>
-            <div><dt>近三年收益</dt><dd class="positive-text">+98.09%</dd></div>
-            <div><dt>近三年最大回撤</dt><dd class="negative-text">-25.86%</dd></div>
-            <div><dt>纳指100相关性</dt><dd>96.4%</dd></div>
-            <div><dt>纳指 Beta</dt><dd>1.16</dd></div>
-            <div><dt>年化跟踪误差</dt><dd>6.56%</dd></div>
-            <div><dt>相关性样本</dt><dd>151 周</dd></div>
-            <div><dt>美股可能上限</dt><dd>87.89%</dd></div>
-            <div><dt>未解析仓位</dt><dd>0.00%</dd></div>
-          </dl>
-          <div class="quota-grid" aria-label="申购额度">
-            <div><span>直销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607171827039710_1.pdf" target="_blank" rel="noopener noreferrer">10万元<span class="external" aria-hidden="true">↗</span></a></div>
-            <div><span>代销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607171827039710_1.pdf" target="_blank" rel="noopener noreferrer">1,000元<span class="external" aria-hidden="true">↗</span></a></div>
-          </div>
-          <dl class="rule-grid">
-            <div><dt>额度计算</dt><dd>A/C合并；直销/代销分别</dd></div>
-            <div><dt>净值区间</dt><dd>2023-08-18 至 2026-08-18</dd></div>
-            <div><dt>纳指相关区间</dt><dd>2023-08-18 至 2026-08-18</dd></div>
-          </dl>
-          <div class="source-row">
-            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607201827127790_1.pdf" target="_blank" rel="noopener noreferrer">定期报告 2026-06-30<span class="external" aria-hidden="true">↗</span></a>
-            <a class="source-link" href="https://fund.eastmoney.com/016701.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
-            <a class="source-link" href="https://indexes.nasdaq.com/Index/History/XNDX" target="_blank" rel="noopener noreferrer">Nasdaq XNDX<span class="external" aria-hidden="true">↗</span></a>
-            <a class="source-link" href="https://www.safe.gov.cn/AppStructured/hlw/RMBQuery.do" target="_blank" rel="noopener noreferrer">美元兑人民币中间价<span class="external" aria-hidden="true">↗</span></a>
-          </div>
-        </div>
-      </details>
-      <details class="fund-item" data-code="163813">
-        <summary>
-          <span class="rank" aria-label="排名 3">3</span>
-          <span class="fund-identity">
-            <strong>中银全球策略(QDII-FOF)A</strong>
-            <span class="fund-code">163813</span>
-          </span>
-          <span class="summary-metrics">
-            <span class="summary-metric fit">
-              <span class="metric-label">纳指相关 / β</span>
-              <span class="metric-value">96.1% · 0.94</span>
-            </span>
-            <span class="summary-metric accent">
-              <span class="metric-label">美股下限</span>
-              <span class="metric-value">69.81%</span>
-            </span>
-            <span class="summary-metric positive">
-              <span class="metric-label">近三年</span>
-              <span class="metric-value">+62.01%</span>
-            </span>
-            <span class="summary-metric">
-              <span class="metric-label">直销</span>
-              <span class="metric-value quota">500万元</span>
-            </span>
-            <span class="summary-metric">
-              <span class="metric-label">代销</span>
-              <span class="metric-value quota">500万元</span>
-            </span>
-          </span>
-          <span class="chevron" aria-hidden="true"></span>
-        </summary>
-        <div class="fund-detail">
-          <dl class="detail-grid">
-            <div><dt>成立日</dt><dd>2011-03-03</dd></div>
-            <div><dt>机构持有</dt><dd>24.74%</dd></div>
-            <div><dt>规模</dt><dd>5.73 亿元</dd></div>
-            <div><dt>规模报告期</dt><dd>2026-06-30</dd></div>
-            <div><dt>近一年收益</dt><dd class="positive-text">+13.67%</dd></div>
-            <div><dt>近一年最大回撤</dt><dd class="negative-text">-15.07%</dd></div>
-            <div><dt>近三年收益</dt><dd class="positive-text">+62.01%</dd></div>
-            <div><dt>近三年最大回撤</dt><dd class="negative-text">-21.83%</dd></div>
-            <div><dt>纳指100相关性</dt><dd>96.1%</dd></div>
-            <div><dt>纳指 Beta</dt><dd>0.94</dd></div>
-            <div><dt>年化跟踪误差</dt><dd>5.20%</dd></div>
-            <div><dt>相关性样本</dt><dd>151 周</dd></div>
-            <div><dt>美股可能上限</dt><dd>79.07%</dd></div>
-            <div><dt>未解析仓位</dt><dd>9.26%</dd></div>
-          </dl>
-          <div class="quota-grid" aria-label="申购额度">
-            <div><span>直销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202604301821795304_1.pdf" target="_blank" rel="noopener noreferrer">500万元<span class="external" aria-hidden="true">↗</span></a></div>
-            <div><span>代销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202604301821795304_1.pdf" target="_blank" rel="noopener noreferrer">500万元<span class="external" aria-hidden="true">↗</span></a></div>
-          </div>
-          <dl class="rule-grid">
-            <div><dt>额度计算</dt><dd>A/C分别；同一基金级限额</dd></div>
-            <div><dt>净值区间</dt><dd>2023-08-18 至 2026-08-18</dd></div>
-            <div><dt>纳指相关区间</dt><dd>2023-08-18 至 2026-08-18</dd></div>
-          </dl>
-          <div class="source-row">
-            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607211827181995_1.pdf" target="_blank" rel="noopener noreferrer">定期报告 2026-06-30<span class="external" aria-hidden="true">↗</span></a>
-            <a class="source-link" href="https://fund.eastmoney.com/163813.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
-            <a class="source-link" href="https://indexes.nasdaq.com/Index/History/XNDX" target="_blank" rel="noopener noreferrer">Nasdaq XNDX<span class="external" aria-hidden="true">↗</span></a>
-            <a class="source-link" href="https://www.safe.gov.cn/AppStructured/hlw/RMBQuery.do" target="_blank" rel="noopener noreferrer">美元兑人民币中间价<span class="external" aria-hidden="true">↗</span></a>
-          </div>
-        </div>
-      </details>
-      <details class="fund-item" data-code="017436">
-        <summary>
-          <span class="rank" aria-label="排名 4">4</span>
-          <span class="fund-identity">
-            <strong>华宝纳斯达克精选股票发起式(QDII)A</strong>
-            <span class="fund-code">017436</span>
-          </span>
-          <span class="summary-metrics">
-            <span class="summary-metric fit">
-              <span class="metric-label">纳指相关 / β</span>
-              <span class="metric-value">94.9% · 1.21</span>
-            </span>
-            <span class="summary-metric accent">
-              <span class="metric-label">美股下限</span>
-              <span class="metric-value">89.84%</span>
-            </span>
-            <span class="summary-metric positive">
-              <span class="metric-label">近三年</span>
-              <span class="metric-value">+89.50%</span>
-            </span>
-            <span class="summary-metric">
-              <span class="metric-label">直销</span>
-              <span class="metric-value quota">1,000元</span>
-            </span>
-            <span class="summary-metric">
-              <span class="metric-label">代销</span>
-              <span class="metric-value quota">1,000元</span>
-            </span>
-          </span>
-          <span class="chevron" aria-hidden="true"></span>
-        </summary>
-        <div class="fund-detail">
-          <dl class="detail-grid">
-            <div><dt>成立日</dt><dd>2023-03-02</dd></div>
-            <div><dt>机构持有</dt><dd>2.15%</dd></div>
-            <div><dt>规模</dt><dd>47.06 亿元</dd></div>
-            <div><dt>规模报告期</dt><dd>2026-06-30</dd></div>
-            <div><dt>近一年收益</dt><dd class="positive-text">+9.39%</dd></div>
-            <div><dt>近一年最大回撤</dt><dd class="negative-text">-20.31%</dd></div>
-            <div><dt>近三年收益</dt><dd class="positive-text">+89.50%</dd></div>
-            <div><dt>近三年最大回撤</dt><dd class="negative-text">-29.87%</dd></div>
-            <div><dt>纳指100相关性</dt><dd>94.9%</dd></div>
-            <div><dt>纳指 Beta</dt><dd>1.21</dd></div>
-            <div><dt>年化跟踪误差</dt><dd>8.48%</dd></div>
-            <div><dt>相关性样本</dt><dd>151 周</dd></div>
-            <div><dt>美股可能上限</dt><dd>89.84%</dd></div>
-            <div><dt>未解析仓位</dt><dd>0.00%</dd></div>
-          </dl>
-          <div class="quota-grid" aria-label="申购额度">
-            <div><span>直销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606221823717545_1.pdf" target="_blank" rel="noopener noreferrer">1,000元<span class="external" aria-hidden="true">↗</span></a></div>
-            <div><span>代销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606221823717545_1.pdf" target="_blank" rel="noopener noreferrer">1,000元<span class="external" aria-hidden="true">↗</span></a></div>
-          </div>
-          <dl class="rule-grid">
-            <div><dt>额度计算</dt><dd>A/C分别；同一基金级限额</dd></div>
-            <div><dt>净值区间</dt><dd>2023-08-18 至 2026-08-18</dd></div>
-            <div><dt>纳指相关区间</dt><dd>2023-08-18 至 2026-08-18</dd></div>
-          </dl>
-          <div class="source-row">
-            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607211827184076_1.pdf" target="_blank" rel="noopener noreferrer">定期报告 2026-06-30<span class="external" aria-hidden="true">↗</span></a>
-            <a class="source-link" href="https://fund.eastmoney.com/017436.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
-            <a class="source-link" href="https://indexes.nasdaq.com/Index/History/XNDX" target="_blank" rel="noopener noreferrer">Nasdaq XNDX<span class="external" aria-hidden="true">↗</span></a>
-            <a class="source-link" href="https://www.safe.gov.cn/AppStructured/hlw/RMBQuery.do" target="_blank" rel="noopener noreferrer">美元兑人民币中间价<span class="external" aria-hidden="true">↗</span></a>
-          </div>
-        </div>
-      </details>
-      <details class="fund-item" data-code="000041">
-        <summary>
-          <span class="rank" aria-label="排名 5">5</span>
-          <span class="fund-identity">
-            <strong>华夏全球股票(QDII)(人民币)</strong>
-            <span class="fund-code">000041</span>
-          </span>
-          <span class="summary-metrics">
-            <span class="summary-metric fit">
-              <span class="metric-label">纳指相关 / β</span>
-              <span class="metric-value">90.8% · 0.74</span>
-            </span>
-            <span class="summary-metric accent">
-              <span class="metric-label">美股下限</span>
-              <span class="metric-value">84.56%</span>
-            </span>
-            <span class="summary-metric positive">
-              <span class="metric-label">近三年</span>
-              <span class="metric-value">+55.72%</span>
-            </span>
-            <span class="summary-metric">
-              <span class="metric-label">直销</span>
-              <span class="metric-value quota">1万元</span>
-            </span>
-            <span class="summary-metric">
-              <span class="metric-label">代销</span>
-              <span class="metric-value quota">1万元</span>
-            </span>
-          </span>
-          <span class="chevron" aria-hidden="true"></span>
-        </summary>
-        <div class="fund-detail">
-          <dl class="detail-grid">
-            <div><dt>成立日</dt><dd>2007-10-09</dd></div>
-            <div><dt>机构持有</dt><dd>0.56%</dd></div>
-            <div><dt>规模</dt><dd>30.27 亿元</dd></div>
-            <div><dt>规模报告期</dt><dd>2026-06-30</dd></div>
-            <div><dt>近一年收益</dt><dd class="positive-text">+7.23%</dd></div>
-            <div><dt>近一年最大回撤</dt><dd class="negative-text">-18.10%</dd></div>
-            <div><dt>近三年收益</dt><dd class="positive-text">+55.72%</dd></div>
-            <div><dt>近三年最大回撤</dt><dd class="negative-text">-18.10%</dd></div>
-            <div><dt>纳指100相关性</dt><dd>90.8%</dd></div>
-            <div><dt>纳指 Beta</dt><dd>0.74</dd></div>
-            <div><dt>年化跟踪误差</dt><dd>8.04%</dd></div>
-            <div><dt>相关性样本</dt><dd>151 周</dd></div>
-            <div><dt>美股可能上限</dt><dd>88.76%</dd></div>
-            <div><dt>未解析仓位</dt><dd>4.20%</dd></div>
-          </dl>
-          <div class="quota-grid" aria-label="申购额度">
-            <div><span>直销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202604131821143683_1.pdf" target="_blank" rel="noopener noreferrer">1万元<span class="external" aria-hidden="true">↗</span></a></div>
-            <div><span>代销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202604131821143683_1.pdf" target="_blank" rel="noopener noreferrer">1万元<span class="external" aria-hidden="true">↗</span></a></div>
-          </div>
-          <dl class="rule-grid">
-            <div><dt>额度计算</dt><dd>不适用</dd></div>
-            <div><dt>净值区间</dt><dd>2023-08-18 至 2026-08-18</dd></div>
-            <div><dt>纳指相关区间</dt><dd>2023-08-18 至 2026-08-18</dd></div>
-          </dl>
-          <div class="source-row">
-            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607211827191891_1.pdf" target="_blank" rel="noopener noreferrer">定期报告 2026-06-30<span class="external" aria-hidden="true">↗</span></a>
-            <a class="source-link" href="https://fund.eastmoney.com/000041.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
-            <a class="source-link" href="https://indexes.nasdaq.com/Index/History/XNDX" target="_blank" rel="noopener noreferrer">Nasdaq XNDX<span class="external" aria-hidden="true">↗</span></a>
-            <a class="source-link" href="https://www.safe.gov.cn/AppStructured/hlw/RMBQuery.do" target="_blank" rel="noopener noreferrer">美元兑人民币中间价<span class="external" aria-hidden="true">↗</span></a>
-          </div>
-        </div>
-      </details>
-      <details class="fund-item" data-code="501226">
-        <summary>
-          <span class="rank" aria-label="排名 6">6</span>
-          <span class="fund-identity">
-            <strong>长城全球新能源车股票发起式(QDII)A</strong>
-            <span class="fund-code">501226</span>
-          </span>
-          <span class="summary-metrics">
-            <span class="summary-metric fit">
-              <span class="metric-label">纳指相关 / β</span>
-              <span class="metric-value">87.8% · 1.11</span>
-            </span>
-            <span class="summary-metric accent">
-              <span class="metric-label">美股下限</span>
-              <span class="metric-value">74.62%</span>
-            </span>
-            <span class="summary-metric positive">
-              <span class="metric-label">近三年</span>
-              <span class="metric-value">+142.18%</span>
-            </span>
-            <span class="summary-metric">
-              <span class="metric-label">直销</span>
-              <span class="metric-value quota">500元</span>
-            </span>
-            <span class="summary-metric">
-              <span class="metric-label">代销</span>
-              <span class="metric-value quota">500元</span>
-            </span>
-          </span>
-          <span class="chevron" aria-hidden="true"></span>
-        </summary>
-        <div class="fund-detail">
-          <dl class="detail-grid">
-            <div><dt>成立日</dt><dd>2023-04-21</dd></div>
-            <div><dt>机构持有</dt><dd>42.30%</dd></div>
-            <div><dt>规模</dt><dd>12.68 亿元</dd></div>
-            <div><dt>规模报告期</dt><dd>2026-06-30</dd></div>
-            <div><dt>近一年收益</dt><dd class="positive-text">+58.77%</dd></div>
-            <div><dt>近一年最大回撤</dt><dd class="negative-text">-24.09%</dd></div>
-            <div><dt>近三年收益</dt><dd class="positive-text">+142.18%</dd></div>
-            <div><dt>近三年最大回撤</dt><dd class="negative-text">-24.09%</dd></div>
-            <div><dt>纳指100相关性</dt><dd>87.8%</dd></div>
-            <div><dt>纳指 Beta</dt><dd>1.11</dd></div>
-            <div><dt>年化跟踪误差</dt><dd>11.58%</dd></div>
-            <div><dt>相关性样本</dt><dd>151 周</dd></div>
-            <div><dt>美股可能上限</dt><dd>74.62%</dd></div>
-            <div><dt>未解析仓位</dt><dd>0.00%</dd></div>
-          </dl>
-          <div class="quota-grid" aria-label="申购额度">
-            <div><span>直销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607231827294157_1.pdf" target="_blank" rel="noopener noreferrer">500元<span class="external" aria-hidden="true">↗</span></a></div>
-            <div><span>代销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607231827294157_1.pdf" target="_blank" rel="noopener noreferrer">500元<span class="external" aria-hidden="true">↗</span></a></div>
-          </div>
-          <dl class="rule-grid">
-            <div><dt>额度计算</dt><dd>A/C分别；同一基金级限额</dd></div>
-            <div><dt>净值区间</dt><dd>2023-08-18 至 2026-08-18</dd></div>
-            <div><dt>纳指相关区间</dt><dd>2023-08-18 至 2026-08-18</dd></div>
-          </dl>
-          <div class="source-row">
-            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607211827194530_1.pdf" target="_blank" rel="noopener noreferrer">定期报告 2026-06-30<span class="external" aria-hidden="true">↗</span></a>
-            <a class="source-link" href="https://fund.eastmoney.com/501226.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
-            <a class="source-link" href="https://indexes.nasdaq.com/Index/History/XNDX" target="_blank" rel="noopener noreferrer">Nasdaq XNDX<span class="external" aria-hidden="true">↗</span></a>
-            <a class="source-link" href="https://www.safe.gov.cn/AppStructured/hlw/RMBQuery.do" target="_blank" rel="noopener noreferrer">美元兑人民币中间价<span class="external" aria-hidden="true">↗</span></a>
-          </div>
-        </div>
-      </details>
-      <details class="fund-item" data-code="008253">
-        <summary>
-          <span class="rank" aria-label="排名 7">7</span>
-          <span class="fund-identity">
-            <strong>华宝致远混合(QDII)A</strong>
-            <span class="fund-code">008253</span>
-          </span>
-          <span class="summary-metrics">
-            <span class="summary-metric fit">
-              <span class="metric-label">纳指相关 / β</span>
-              <span class="metric-value">86.1% · 1.19</span>
-            </span>
-            <span class="summary-metric accent">
-              <span class="metric-label">美股下限</span>
-              <span class="metric-value">79.20%</span>
-            </span>
-            <span class="summary-metric positive">
-              <span class="metric-label">近三年</span>
-              <span class="metric-value">+117.72%</span>
-            </span>
-            <span class="summary-metric">
-              <span class="metric-label">直销</span>
-              <span class="metric-value quota">1,000元</span>
-            </span>
-            <span class="summary-metric">
-              <span class="metric-label">代销</span>
-              <span class="metric-value quota">1,000元</span>
-            </span>
-          </span>
-          <span class="chevron" aria-hidden="true"></span>
-        </summary>
-        <div class="fund-detail">
-          <dl class="detail-grid">
-            <div><dt>成立日</dt><dd>2019-11-27</dd></div>
-            <div><dt>机构持有</dt><dd>43.95%</dd></div>
-            <div><dt>规模</dt><dd>11.01 亿元</dd></div>
-            <div><dt>规模报告期</dt><dd>2026-06-30</dd></div>
-            <div><dt>近一年收益</dt><dd class="positive-text">+44.64%</dd></div>
-            <div><dt>近一年最大回撤</dt><dd class="negative-text">-30.93%</dd></div>
-            <div><dt>近三年收益</dt><dd class="positive-text">+117.72%</dd></div>
-            <div><dt>近三年最大回撤</dt><dd class="negative-text">-30.93%</dd></div>
-            <div><dt>纳指100相关性</dt><dd>86.1%</dd></div>
-            <div><dt>纳指 Beta</dt><dd>1.19</dd></div>
-            <div><dt>年化跟踪误差</dt><dd>13.80%</dd></div>
-            <div><dt>相关性样本</dt><dd>150 周</dd></div>
-            <div><dt>美股可能上限</dt><dd>84.94%</dd></div>
-            <div><dt>未解析仓位</dt><dd>5.74%</dd></div>
-          </dl>
-          <div class="quota-grid" aria-label="申购额度">
-            <div><span>直销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607211827182692_1.pdf" target="_blank" rel="noopener noreferrer">1,000元<span class="external" aria-hidden="true">↗</span></a></div>
-            <div><span>代销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607211827182692_1.pdf" target="_blank" rel="noopener noreferrer">1,000元<span class="external" aria-hidden="true">↗</span></a></div>
-          </div>
-          <dl class="rule-grid">
-            <div><dt>额度计算</dt><dd>A/C分别；同一基金级限额</dd></div>
-            <div><dt>净值区间</dt><dd>2023-08-18 至 2026-08-19</dd></div>
-            <div><dt>纳指相关区间</dt><dd>2023-08-25 至 2026-08-19</dd></div>
-          </dl>
-          <div class="source-row">
-            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607211827184101_1.pdf" target="_blank" rel="noopener noreferrer">定期报告 2026-06-30<span class="external" aria-hidden="true">↗</span></a>
-            <a class="source-link" href="https://fund.eastmoney.com/008253.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
-            <a class="source-link" href="https://indexes.nasdaq.com/Index/History/XNDX" target="_blank" rel="noopener noreferrer">Nasdaq XNDX<span class="external" aria-hidden="true">↗</span></a>
-            <a class="source-link" href="https://www.safe.gov.cn/AppStructured/hlw/RMBQuery.do" target="_blank" rel="noopener noreferrer">美元兑人民币中间价<span class="external" aria-hidden="true">↗</span></a>
-          </div>
-        </div>
-      </details>
-      <details class="fund-item" data-code="006373">
-        <summary>
-          <span class="rank" aria-label="排名 8">8</span>
-          <span class="fund-identity">
-            <strong>国富全球科技互联混合(QDII)人民币A</strong>
-            <span class="fund-code">006373</span>
-          </span>
-          <span class="summary-metrics">
-            <span class="summary-metric fit">
-              <span class="metric-label">纳指相关 / β</span>
-              <span class="metric-value">84.3% · 1.08</span>
-            </span>
-            <span class="summary-metric accent">
-              <span class="metric-label">美股下限</span>
-              <span class="metric-value">71.95%</span>
-            </span>
-            <span class="summary-metric positive">
-              <span class="metric-label">近三年</span>
-              <span class="metric-value">+194.88%</span>
-            </span>
-            <span class="summary-metric">
-              <span class="metric-label">直销</span>
-              <span class="metric-value quota">200元</span>
-            </span>
-            <span class="summary-metric">
-              <span class="metric-label">代销</span>
-              <span class="metric-value quota">200元</span>
-            </span>
-          </span>
-          <span class="chevron" aria-hidden="true"></span>
-        </summary>
-        <div class="fund-detail">
-          <dl class="detail-grid">
-            <div><dt>成立日</dt><dd>2018-11-20</dd></div>
-            <div><dt>机构持有</dt><dd>18.09%</dd></div>
-            <div><dt>规模</dt><dd>58.83 亿元</dd></div>
-            <div><dt>规模报告期</dt><dd>2026-06-30</dd></div>
-            <div><dt>近一年收益</dt><dd class="positive-text">+71.99%</dd></div>
-            <div><dt>近一年最大回撤</dt><dd class="negative-text">-29.72%</dd></div>
-            <div><dt>近三年收益</dt><dd class="positive-text">+194.88%</dd></div>
-            <div><dt>近三年最大回撤</dt><dd class="negative-text">-29.72%</dd></div>
-            <div><dt>纳指100相关性</dt><dd>84.3%</dd></div>
-            <div><dt>纳指 Beta</dt><dd>1.08</dd></div>
-            <div><dt>年化跟踪误差</dt><dd>13.04%</dd></div>
-            <div><dt>相关性样本</dt><dd>151 周</dd></div>
-            <div><dt>美股可能上限</dt><dd>71.95%</dd></div>
-            <div><dt>未解析仓位</dt><dd>0.00%</dd></div>
-          </dl>
-          <div class="quota-grid" aria-label="申购额度">
-            <div><span>直销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608131827923921_1.pdf" target="_blank" rel="noopener noreferrer">200元<span class="external" aria-hidden="true">↗</span></a></div>
-            <div><span>代销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608131827923921_1.pdf" target="_blank" rel="noopener noreferrer">200元<span class="external" aria-hidden="true">↗</span></a></div>
-          </div>
-          <dl class="rule-grid">
-            <div><dt>额度计算</dt><dd>A/C分别；同一基金级限额</dd></div>
-            <div><dt>净值区间</dt><dd>2023-08-18 至 2026-08-18</dd></div>
-            <div><dt>纳指相关区间</dt><dd>2023-08-18 至 2026-08-18</dd></div>
-          </dl>
-          <div class="source-row">
-            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607211827187137_1.pdf" target="_blank" rel="noopener noreferrer">定期报告 2026-06-30<span class="external" aria-hidden="true">↗</span></a>
-            <a class="source-link" href="https://fund.eastmoney.com/006373.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
-            <a class="source-link" href="https://indexes.nasdaq.com/Index/History/XNDX" target="_blank" rel="noopener noreferrer">Nasdaq XNDX<span class="external" aria-hidden="true">↗</span></a>
-            <a class="source-link" href="https://www.safe.gov.cn/AppStructured/hlw/RMBQuery.do" target="_blank" rel="noopener noreferrer">美元兑人民币中间价<span class="external" aria-hidden="true">↗</span></a>
-          </div>
-        </div>
-      </details>
-      <details class="fund-item" data-code="539002">
-        <summary>
-          <span class="rank" aria-label="排名 9">9</span>
-          <span class="fund-identity">
-            <strong>建信新兴市场混合(QDII)A</strong>
-            <span class="fund-code">539002</span>
-          </span>
-          <span class="summary-metrics">
-            <span class="summary-metric fit">
-              <span class="metric-label">纳指相关 / β</span>
-              <span class="metric-value">82.9% · 1.38</span>
-            </span>
-            <span class="summary-metric accent">
-              <span class="metric-label">美股下限</span>
-              <span class="metric-value">59.65%</span>
-            </span>
-            <span class="summary-metric positive">
-              <span class="metric-label">近三年</span>
-              <span class="metric-value">+225.17%</span>
-            </span>
-            <span class="summary-metric">
-              <span class="metric-label">直销</span>
-              <span class="metric-value quota">10万元</span>
-            </span>
-            <span class="summary-metric">
-              <span class="metric-label">代销</span>
-              <span class="metric-value quota">500元</span>
-            </span>
+
+            <span class="summary-metric fit"><span class="metric-label">收益回撤比</span><span class="metric-value">1.34</span></span>
+            <span class="summary-metric accent"><span class="metric-label">市场 / 资产</span><span class="metric-value small">新兴市场 · equity</span></span>
+            <span class="summary-metric positive"><span class="metric-label">近三年</span><span class="metric-value">+225.17%</span></span>
+            <span class="summary-metric"><span class="metric-label">直销</span><span class="metric-value quota">10万元</span></span>
           </span>
           <span class="chevron" aria-hidden="true"></span>
         </summary>
@@ -749,18 +225,20 @@
             <div><dt>成立日</dt><dd>2011-06-21</dd></div>
             <div><dt>机构持有</dt><dd>8.04%</dd></div>
             <div><dt>规模</dt><dd>20.57 亿元</dd></div>
-            <div><dt>规模报告期</dt><dd>2026-06-30</dd></div>
             <div><dt>近一年收益</dt><dd class="positive-text">+95.05%</dd></div>
-            <div><dt>近一年最大回撤</dt><dd class="negative-text">-33.19%</dd></div>
+            <div><dt>近一年回撤</dt><dd class="negative-text">-33.19%</dd></div>
             <div><dt>近三年收益</dt><dd class="positive-text">+225.17%</dd></div>
-            <div><dt>近三年最大回撤</dt><dd class="negative-text">-35.85%</dd></div>
-            <div><dt>纳指100相关性</dt><dd>82.9%</dd></div>
-            <div><dt>纳指 Beta</dt><dd>1.38</dd></div>
-            <div><dt>年化跟踪误差</dt><dd>18.89%</dd></div>
-            <div><dt>相关性样本</dt><dd>151 周</dd></div>
-            <div><dt>美股可能上限</dt><dd>59.65%</dd></div>
-            <div><dt>未解析仓位</dt><dd>0.00%</dd></div>
+            <div><dt>近三年回撤</dt><dd class="negative-text">-35.85%</dd></div>
+
+            <div><dt>三年年化收益</dt><dd class="positive-text">+48.10%</dd></div>
+            <div><dt>收益回撤比</dt><dd>1.34</dd></div>
+            <div><dt>市场</dt><dd>新兴市场</dd></div>
+            <div><dt>资产类别</dt><dd>equity</dd></div>
           </dl>
+          <section class="benchmark-detail" aria-label="合同基准">
+            <span>合同基准</span>
+            <strong>摩根士丹利资本国际新兴市场指数（ MSCI Emerging Markets Index （Net Total Return））</strong>
+          </section>
           <div class="quota-grid" aria-label="申购额度">
             <div><span>直销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608171828035437_1.pdf" target="_blank" rel="noopener noreferrer">10万元<span class="external" aria-hidden="true">↗</span></a></div>
             <div><span>代销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608171828035437_1.pdf" target="_blank" rel="noopener noreferrer">500元<span class="external" aria-hidden="true">↗</span></a></div>
@@ -768,89 +246,33 @@
           <dl class="rule-grid">
             <div><dt>额度计算</dt><dd>A/C分别；直销/代销分别</dd></div>
             <div><dt>净值区间</dt><dd>2023-08-18 至 2026-08-18</dd></div>
-            <div><dt>纳指相关区间</dt><dd>2023-08-18 至 2026-08-18</dd></div>
+            <div><dt>招募说明书日期</dt><dd>2026-06-26</dd></div>
           </dl>
           <div class="source-row">
-            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607201827128028_1.pdf" target="_blank" rel="noopener noreferrer">定期报告 2026-06-30<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606261823876094_1.pdf" target="_blank" rel="noopener noreferrer">招募说明书<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606261823876691_1.pdf" target="_blank" rel="noopener noreferrer">人民币产品概要<span class="external" aria-hidden="true">↗</span></a>
             <a class="source-link" href="https://fund.eastmoney.com/539002.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
-            <a class="source-link" href="https://indexes.nasdaq.com/Index/History/XNDX" target="_blank" rel="noopener noreferrer">Nasdaq XNDX<span class="external" aria-hidden="true">↗</span></a>
-            <a class="source-link" href="https://www.safe.gov.cn/AppStructured/hlw/RMBQuery.do" target="_blank" rel="noopener noreferrer">美元兑人民币中间价<span class="external" aria-hidden="true">↗</span></a>
-          </div>
-        </div>
-      </details>
-      <details class="fund-item" data-code="002891">
-        <summary>
-          <span class="rank" aria-label="排名 10">10</span>
-          <span class="fund-identity">
-            <strong>华夏移动互联混合人民币</strong>
-            <span class="fund-code">002891</span>
-          </span>
-          <span class="summary-metrics">
-            <span class="summary-metric fit">
-              <span class="metric-label">纳指相关 / β</span>
-              <span class="metric-value">70.2% · 1.03</span>
-            </span>
-            <span class="summary-metric accent">
-              <span class="metric-label">美股下限</span>
-              <span class="metric-value">63.23%</span>
-            </span>
-            <span class="summary-metric positive">
-              <span class="metric-label">近三年</span>
-              <span class="metric-value">+72.40%</span>
-            </span>
-            <span class="summary-metric">
-              <span class="metric-label">直销</span>
-              <span class="metric-value quota">1,500元</span>
-            </span>
-            <span class="summary-metric">
-              <span class="metric-label">代销</span>
-              <span class="metric-value quota">1,500元</span>
-            </span>
-          </span>
-          <span class="chevron" aria-hidden="true"></span>
-        </summary>
-        <div class="fund-detail">
-          <dl class="detail-grid">
-            <div><dt>成立日</dt><dd>2016-12-14</dd></div>
-            <div><dt>机构持有</dt><dd>0.79%</dd></div>
-            <div><dt>规模</dt><dd>40.69 亿元</dd></div>
-            <div><dt>规模报告期</dt><dd>2026-06-30</dd></div>
-            <div><dt>近一年收益</dt><dd class="positive-text">+93.79%</dd></div>
-            <div><dt>近一年最大回撤</dt><dd class="negative-text">-36.91%</dd></div>
-            <div><dt>近三年收益</dt><dd class="positive-text">+72.40%</dd></div>
-            <div><dt>近三年最大回撤</dt><dd class="negative-text">-36.91%</dd></div>
-            <div><dt>纳指100相关性</dt><dd>70.2%</dd></div>
-            <div><dt>纳指 Beta</dt><dd>1.03</dd></div>
-            <div><dt>年化跟踪误差</dt><dd>19.65%</dd></div>
-            <div><dt>相关性样本</dt><dd>151 周</dd></div>
-            <div><dt>美股可能上限</dt><dd>67.08%</dd></div>
-            <div><dt>未解析仓位</dt><dd>3.85%</dd></div>
-          </dl>
-          <div class="quota-grid" aria-label="申购额度">
-            <div><span>直销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608171828037522_1.pdf" target="_blank" rel="noopener noreferrer">1,500元<span class="external" aria-hidden="true">↗</span></a></div>
-            <div><span>代销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608171828037522_1.pdf" target="_blank" rel="noopener noreferrer">1,500元<span class="external" aria-hidden="true">↗</span></a></div>
-          </div>
-          <dl class="rule-grid">
-            <div><dt>额度计算</dt><dd>不适用</dd></div>
-            <div><dt>净值区间</dt><dd>2023-08-18 至 2026-08-18</dd></div>
-            <div><dt>纳指相关区间</dt><dd>2023-08-18 至 2026-08-18</dd></div>
-          </dl>
-          <div class="source-row">
-            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607211827191823_1.pdf" target="_blank" rel="noopener noreferrer">定期报告 2026-06-30<span class="external" aria-hidden="true">↗</span></a>
-            <a class="source-link" href="https://fund.eastmoney.com/002891.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
-            <a class="source-link" href="https://indexes.nasdaq.com/Index/History/XNDX" target="_blank" rel="noopener noreferrer">Nasdaq XNDX<span class="external" aria-hidden="true">↗</span></a>
-            <a class="source-link" href="https://www.safe.gov.cn/AppStructured/hlw/RMBQuery.do" target="_blank" rel="noopener noreferrer">美元兑人民币中间价<span class="external" aria-hidden="true">↗</span></a>
-          </div>
-        </div>
-      </details>
-      </section>
 
-    <details class="warnings">
-      <summary>数据警告 <span>43</span></summary>
-      <ul><li>跳过未完整披露的持有人报告期 2026-06-30：仅 1 只基金，低于上一完整报告期 2025-12-31（24419 只）的 95%。</li><li>008253 Direxion Daily Semiconductor Bull 3X ETF 无法按 2026-06-30 的可用数据穿透，其 2.98% 仓位仅计入可能上限。</li><li>008253 Roundhill Memo ry ETF 无法按 2026-06-30 的可用数据穿透，其 2.45% 仓位仅计入可能上限。</li><li>008253 iShares MSCI T aiwan ETF 无法按 2026-06-30 的可用数据穿透，其 0.24% 仓位仅计入可能上限。</li><li>008253 Janus Henderso n Global Adapt ive Multi-Asse t Fund 无法按 2026-06-30 的可用数据穿透，其 0.07% 仓位仅计入可能上限。</li><li>163813 V ANGUA RD TOT WORLD STK ETF 无法按 2026-06-30 的可用数据穿透，其 3.76% 仓位仅计入可能上限。</li><li>163813 前十大基金之外尚有 5.50% 基金仓位未披露，仅计入可能上限。</li><li>100055 南方港韩科技 无法按 2026-06-30 的可用数据穿透，其 0.77% 仓位仅计入可能上限。</li><li>000043 SPDR Gold Shares 无法按 2026-06-30 的可用数据穿透，其 0.11% 仓位仅计入可能上限。</li><li>000043 VanEck Gold Miners ETF/USA 无法按 2026-06-30 的可用数据穿透，其 0.08% 仓位仅计入可能上限。</li><li>000043 GraniteShares 2x Long NVDA Daily ETF 无法按 2026-06-30 的可用数据穿透，其 0.03% 仓位仅计入可能上限。</li><li>000043 Invesco Golden Dragon China ETF 无法按 2026-06-30 的可用数据穿透，其 0.01% 仓位仅计入可能上限。</li><li>270023 KraneShares Public-Private AI &amp; Technology ETF 无法按 2026-06-30 的可用数据穿透，其 0.11% 仓位仅计入可能上限。</li><li>017730 Harvest G2 Tech 50 ETF 无法按 2026-06-30 的可用数据穿透，其 0.09% 仓位仅计入可能上限。</li><li>501312 ARK Innovation ETF 无法按 2026-06-30 的可用数据穿透，其 18.48% 仓位仅计入可能上限。</li><li>501312 ARK Genomic Rev olution ETF 无法按 2026-06-30 的可用数据穿透，其 16.93% 仓位仅计入可能上限。</li><li>501312 ARK Autonomous Technology &amp; Ro botics ETF 无法按 2026-06-30 的可用数据穿透，其 10.15% 仓位仅计入可能上限。</li><li>501312 Global X Artifi cial Intelligen ce &amp; Technology ETF 无法按 2026-06-30 的可用数据穿透，其 6.32% 仓位仅计入可能上限。</li><li>501312 Global X Roboti cs &amp; Artificial Intelligence E TF 无法按 2026-06-30 的可用数据穿透，其 5.05% 仓位仅计入可能上限。</li><li>501312 ARK Space &amp; Def ense Innovation ETF 无法按 2026-06-30 的可用数据穿透，其 5.00% 仓位仅计入可能上限。</li><li>501312 State Street Te chnology Select Sector SPDR ET F 无法按 2026-06-30 的可用数据穿透，其 4.67% 仓位仅计入可能上限。</li><li>501312 iShares Semicon ductor ETF 无法按 2026-06-30 的可用数据穿透，其 3.33% 仓位仅计入可能上限。</li><li>501312 前十大基金之外尚有 7.13% 基金仓位未披露，仅计入可能上限。</li><li>501312 美股占比区间 7.66%-84.72% 跨越 50% 阈值，按保守规则排除。</li><li>320013 Aberdeen Standar d Physical Swiss Gold Shares ETF 无法按 2026-06-30 的可用数据穿透，其 16.61% 仓位仅计入可能上限。</li><li>320013 SPDR GOLD TRUST 无法按 2026-06-30 的可用数据穿透，其 15.60% 仓位仅计入可能上限。</li><li>320013 SWISSCANTO (CH) 无法按 2026-06-30 的可用数据穿透，其 10.37% 仓位仅计入可能上限。</li><li>320013 前十大基金之外尚有 0.01% 基金仓位未披露，仅计入可能上限。</li><li>002891 iShares MSCI South Korea ETF 无法按 2026-06-30 的可用数据穿透，其 2.03% 仓位仅计入可能上限。</li><li>002891 CSOP SK Hynix Daily 2x Leveraged 无法按 2026-06-30 的可用数据穿透，其 1.82% 仓位仅计入可能上限。</li><li>005698 Direxion Daily Semiconductor Bull 3X ETF 无法按 2026-06-30 的可用数据穿透，其 8.57% 仓位仅计入可能上限。</li><li>005698 CSOP SK Hynix Daily 2x Leveraged Product 无法按 2026-06-30 的可用数据穿透，其 1.01% 仓位仅计入可能上限。</li><li>000041 ProShares UltraPro QQQ 无法按 2026-06-30 的可用数据穿透，其 2.12% 仓位仅计入可能上限。</li><li>000041 iShares Expanded Tech-Software Sector ETF 无法按 2026-06-30 的可用数据穿透，其 0.82% 仓位仅计入可能上限。</li><li>000041 State Street Utilities Select Sector SPDR ETF 无法按 2026-06-30 的可用数据穿透，其 0.61% 仓位仅计入可能上限。</li><li>000041 State Street SPDR S&amp;P Metals &amp; Mining ETF 无法按 2026-06-30 的可用数据穿透，其 0.29% 仓位仅计入可能上限。</li><li>000041 iShares Semiconductor ETF 无法按 2026-06-30 的可用数据穿透，其 0.22% 仓位仅计入可能上限。</li><li>000041 2x Long VIX 无法按 2026-06-30 的可用数据穿透，其 0.14% 仓位仅计入可能上限。</li><li>016664 CSOP SK Hynix Dai ly 2x Leve raged Prod uct 无法按 2026-06-30 的可用数据穿透，其 7.44% 仓位仅计入可能上限。</li><li>016664 CSOP Sa msung Ele ctronics D aily 2x Le veraged Pr oduct 无法按 2026-06-30 的可用数据穿透，其 1.50% 仓位仅计入可能上限。</li><li>164212 CSOP SK Hynix Dai ly 2x Leve raged Prod uct 无法按 2026-06-30 的可用数据穿透，其 4.87% 仓位仅计入可能上限。</li><li>164212 CSOP Sa msung Ele ctronics D aily 2x Le veraged Pr oduct 无法按 2026-06-30 的可用数据穿透，其 1.90% 仓位仅计入可能上限。</li><li>164212 美股占比区间 44.19%-50.96% 跨越 50% 阈值，按保守规则排除。</li></ul>
-    </details>
+          </div>
+        </div>
+      </details></section>
+
+      <details class="warnings">
+        <summary>数据警告 <span>28</span></summary>
+        <ul><li>跳过未完整披露的持有人报告期 2026-06-30：仅 1 只基金，低于上一完整报告期 2025-12-31（24419 只）的 95%。</li><li>合同基准剔除 009108：performance benchmark is not in the recognized catalog</li><li>合同基准剔除 008253：performance benchmark contains multiple market benchmarks: 恒生指数、标普500指数</li><li>合同基准剔除 163813：dominant benchmark weight 60% is below 80%</li><li>合同基准剔除 006373：performance benchmark contains multiple market benchmarks: MSCI全球信息科技指数、中证海外中国互联网指数</li><li>合同基准剔除 100055：performance benchmark contains multiple market benchmarks: 中证海外中国互联网指数、纳斯达克100指数</li><li>合同基准剔除 012060：dominant benchmark weight 40% is below 80%</li><li>合同基准剔除 010644：dominant benchmark weight 45% is below 80%</li><li>合同基准剔除 270023：performance benchmark contains multiple market benchmarks: MSCI世界指数、恒生指数</li><li>合同基准剔除 017730：performance benchmark contains multiple market benchmarks: MSCI所有国家世界指数、沪深300指数</li><li>合同基准剔除 501312：performance benchmark contains multiple market benchmarks: 恒生科技指数、纳斯达克100指数</li><li>合同基准剔除 161815：performance benchmark is not in the recognized catalog</li><li>合同基准剔除 012535：Could not locate the current performance benchmark statement</li><li>合同基准剔除 002891：performance benchmark contains multiple market benchmarks: 中证境内及香港主题指数、中证海外中国互联网指数</li><li>合同基准剔除 005698：performance benchmark contains multiple market benchmarks: 中证境内及香港主题指数、中证香港美国上市中美科技指数</li><li>合同基准剔除 000041：performance benchmark contains multiple market benchmarks: MSCI所有国家世界指数、富时中国指数、标普500指数</li><li>合同基准剔除 016664：performance benchmark is not in the recognized catalog</li><li>合同基准剔除 005534：dominant benchmark weight 30% is below 80%</li><li>合同基准剔除 164212：dominant benchmark weight 60% is below 80%</li><li>000043 SPDR Gold Shares 无法按 2026-06-30 的可用数据穿透，其 0.11% 仓位仅计入可能上限。</li><li>000043 VanEck Gold Miners ETF/USA 无法按 2026-06-30 的可用数据穿透，其 0.08% 仓位仅计入可能上限。</li><li>000043 GraniteShares 2x Long NVDA Daily ETF 无法按 2026-06-30 的可用数据穿透，其 0.03% 仓位仅计入可能上限。</li><li>000043 Invesco Golden Dragon China ETF 无法按 2026-06-30 的可用数据穿透，其 0.01% 仓位仅计入可能上限。</li><li>270042 ProShares UltraPro QQQ 无法按 2026-06-30 的可用数据穿透，其 0.95% 仓位仅计入可能上限。</li><li>016452 的申购额度无法确定；引用前请核对关联公告。</li><li>额度剔除 016452：直销额度无法可靠解析。</li><li>美国主榜仅 2 只基金符合全部条件，未放宽门槛。</li><li>全球补充榜仅 1 只基金符合全部条件，未放宽门槛。</li></ul>
+      </details>
     </main>
     <footer>额度为基金管理人层面的单日单基金账户上限；代销平台可能设置更低限制。</footer>
   </div>
+  <script>
+    const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
+    tabs.forEach((tab) => tab.addEventListener('click', () => {
+      tabs.forEach((item) => {
+        const active = item === tab;
+        item.setAttribute('aria-selected', String(active));
+        document.getElementById(item.dataset.panel).hidden = !active;
+      });
+    }));
+  </script>
 </body>
 </html>

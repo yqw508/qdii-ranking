@@ -3,6 +3,34 @@
   "method": "Structural classification from official issuer product mandates; global funds require a dated numeric allocation.",
   "entries": [
     {
+      "aliases": ["纳指 ETF 汇添富", "纳指ETF汇添富"],
+      "category": "us_equity",
+      "us_equity_pct": 100,
+      "source_name": "汇添富纳斯达克100ETF联接基金招募说明书中的目标ETF与标的指数说明",
+      "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202608141827963362_1.pdf"
+    },
+    {
+      "aliases": ["大成纳斯达克100ETF（QDII）", "大成纳斯达克100ETF(QDII)", "大成纳斯达克100ETF"],
+      "category": "us_equity",
+      "us_equity_pct": 100,
+      "source_name": "大成纳斯达克100ETF联接基金招募说明书中的目标ETF与标的指数说明",
+      "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202510011753863690_1.pdf"
+    },
+    {
+      "aliases": ["华安纳斯达克100交易型开放式指数证券投资基金", "华安纳斯达克100交易型开放式指数证券投资", "华安纳斯达克100ETF"],
+      "category": "us_equity",
+      "us_equity_pct": 100,
+      "source_name": "华安纳斯达克100ETF联接基金招募说明书中的目标ETF与标的指数说明",
+      "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202509191746477335_1.pdf"
+    },
+    {
+      "aliases": ["广发纳斯达克100交易型开放式指数证券投资基金", "广发纳指100ETF"],
+      "category": "us_equity",
+      "us_equity_pct": 100,
+      "source_name": "广发纳斯达克100ETF联接基金招募说明书中的目标ETF与标的指数说明",
+      "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202606051823274925_1.pdf"
+    },
+    {
       "aliases": ["INVESCO QQQ TRUST SERIES 1"],
       "category": "us_equity",
       "us_equity_pct": 100,

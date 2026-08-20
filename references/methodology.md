@@ -2,129 +2,101 @@
 
 ## Data Sources
 
-- Fund universe: `https://fund.eastmoney.com/js/fundcode_search.js`
-- Holder-period summary and detail: `FundDataPortfolio_Interface.aspx`, `dt=11` and `dt=10`
-- Current scale and purchase state: `https://fund.eastmoney.com/{code}.html`
-- Inception date: `https://fund.eastmoney.com/{code}.html`
-- Net-worth trend: `https://fund.eastmoney.com/pingzhongdata/{code}.js`
-- Nasdaq-100 gross total-return history: `https://indexes.nasdaq.com/Index/History/XNDX`
-- Official USD/CNY central parity history: `https://www.safe.gov.cn/AppStructured/hlw/RMBQuery.do`
-- Announcement index: `https://api.fund.eastmoney.com/f10/JJGG`
-- Announcement PDF: `https://pdf.dfcfw.com/pdf/H2_{announcement_id}_1.pdf`
-- Official issuer product pages recorded in `us-equity-instruments.json` for underlying-fund
-  classification and dated global-fund allocations
+- Fund universe, current scale, inception, purchase state, holder data, NAV history, and announcement
+  index come from the public Eastmoney fund endpoints recorded in the generated JSON.
+- Current prospectuses, RMB product summaries, quota notices, and periodic reports use the official
+  manager disclosures mirrored by the announcement PDF endpoint. Selection never uses a document
+  published after the requested ranking date.
+- `contract-benchmarks.json` is the versioned benchmark catalog. It records aliases, market scope,
+  region, asset class, style, excluded targets, and ordinary/leveraged/inverse/volatility structure.
+- `us-equity-instruments.json` contains official-source classifications used for conservative
+  fund-of-funds look-through.
+- Nasdaq `XNDX` gross total-return history and SAFE USD/CNY central parity produce the CNY Nasdaq-100
+  benchmark used by the US main ranking.
 
-Treat these endpoints as public but undocumented. Stop the run when a ranking-critical response
-cannot be parsed. Never silently drop a failed page or fund.
+The public endpoints are not guaranteed APIs. A ranking-critical fetch or parse failure stops the run;
+the updater never silently drops a required evaluation.
 
-## Ranking Rules
+## Shared Eligibility
 
-1. Keep QDII RMB A shares. Treat an explicitly RMB-denominated primary share without an A/C suffix as
-   A-equivalent. Exclude USD, HKD, back-end fee shares, C/D shares, and standalone ETFs.
-2. Use the newest holder period whose fund count reaches 95% of the immediately preceding complete
-   half-year or year-end period. This prevents early disclosure data from being treated as complete.
-3. Exclude the `QDII-纯债` category and names containing `债` before ranking.
-4. Require current fund scale to be strictly greater than the configured threshold.
-5. Require the inception date to be strictly earlier than three years before the requested as-of date.
-6. Keep open and limited-purchase funds; remove suspended and unknown purchase states.
-7. Apply the established geographic exclusions `亚洲`, `中国`, and `港` before limiting the result.
-8. Calculate trailing performance for every base-qualified candidate using six bounded workers. Require
-   the three-year adjusted return to meet or exceed the configured threshold. Any failed candidate
-   calculation stops the update.
-9. For every performance-qualified candidate, parse the latest quarterly, semiannual, or annual report
-   disclosed on or before the requested as-of date. Require the conservatively confirmed US-equity
-   exposure to meet or exceed the configured threshold.
-10. Calculate the trailing three-year Nasdaq-100 fit for every candidate while parsing its net-worth
-    history. A missing fit blocks the update only when that fund also passes the performance and
-    US-equity filters, because it could otherwise enter the ranking.
-11. Rank all fully qualified candidates by Nasdaq-100 correlation descending. For equal serialized
-    correlations, prefer beta closest to 1, then confirmed US-equity exposure, institutional holding
-    ratio, and three-year adjusted return descending, followed by fund code ascending. Apply the
-    configured top count only after this full scan; resolve subscription quotas only for the final list.
+1. Keep purchasable OTC RMB A shares and an explicit RMB primary share without C/D markers. Exclude
+   RMB C/D, USD, HKD, back-end shares, and standalone ETFs; eligible feeder funds and LOFs remain.
+2. Use the newest holder half-year/year-end period whose fund count reaches 95% of the preceding
+   complete period. Skip a partially disclosed newer period with a visible warning.
+3. Require scale strictly above CNY 300 million, inception strictly over three years, and trailing
+   three-year adjusted return of at least 50%.
+4. Keep active and passive/index strategies. Exclude bond and commodity strategies.
+5. Parse the latest prospectus disclosed on or before the ranking date. Require one recognized market
+   benchmark with at least 80% weight. A missing weight is 100% only when the document names no other
+   benchmark. Permit at most 20% cash, deposit, reference-rate, or other low-risk benchmark; a second
+   market benchmark is a composite style and is excluded.
+6. Cross-check the newest eligible RMB product summary. An explicit index or weight conflict blocks
+   publication. A missing or unreadable summary does not override the prospectus and is reported.
+7. Exclude a principal benchmark targeting China, Hong Kong, or pan-Asia. A global or multi-market
+   benchmark is not excluded merely for containing a minority exposure to these markets.
+8. Resolve the manager-level direct-sale quota for every otherwise eligible candidate. Unlimited sale
+   qualifies; a known amount must be strictly greater than CNY 1,000. Unknown direct quota is excluded
+   with a warning. Agency quota is displayed but does not affect eligibility.
 
-## US-Equity Exposure
+## US Main Ranking
 
-- Count equities and depositary receipts listed in the United States. Do not count US bonds merely
-  because they trade in the United States.
-- Read direct US holdings from the report's country distribution as a percentage of fund net assets.
-- For fund-of-funds, read total fund investments and the top underlying funds. US-specific equity funds
-  contribute their full disclosed weight; fixed income, commodities, and non-US regional funds
-  contribute zero.
-- A global equity fund may use a numeric US allocation only when it comes from the official issuer, is
-  dated on or before the parent fund report date, and is no more than 120 days old. Structural US-only,
-  non-US, fixed-income, and commodity classifications do not expire but must retain an official source.
-- Unknown underlying funds and the positive residual between total fund investments and disclosed
-  top-fund weights contribute zero to the confirmed lower bound and their full weight to the possible
-  upper bound.
-- `confirmed_pct >= threshold` qualifies. `possible_pct < threshold` is excluded. An interval crossing
-  the threshold is also excluded and emits a warning; no midpoint is calculated.
-- Failure to read the selected periodic report or a critical holdings table stops the update. Failure to
-  classify an underlying fund does not stop the update because the conservative interval preserves the
-  uncertainty explicitly.
+- Accept US equity benchmarks and their leveraged or inverse variants. A US equity product failing the
+  US-exposure rule cannot move to the global supplement.
+- Read direct US equities from the latest eligible report's country table. For fund-of-funds, classify
+  disclosed underlying funds using official sources. Unknown positions contribute zero to the confirmed
+  lower bound and their full weight to the possible upper bound; an interval midpoint is never used.
+- Require confirmed US-equity exposure of at least 50%. An interval crossing 50% is conservatively
+  excluded and reported. A critical report or table parse failure stops the run.
+- Rank by three-year CNY Nasdaq-100 weekly-return correlation descending, then `abs(beta - 1)`, confirmed
+  US exposure, institutional holding, three-year return descending, and fund code ascending.
 
-Performance results, including Nasdaq-100 fit, are cached by fund code, as-of date, and the latest
-benchmark source dates. The rolling benchmark cache stores validated XNDX and USD/CNY daily history and
-is incrementally refreshed; a complete cache may be used when a source is temporarily unavailable, but
-stale or incomplete benchmark data stops the update. Fund-level exposure calculations are cached
-by fund code, announcement ID, report period, calculation-method version, and underlying-catalog
-fingerprint; threshold status is reapplied at runtime. Periodic report PDFs are cached by announcement
-ID. Every PDF cache hit is checked for a valid PDF and extractable text; a damaged entry is downloaded
-again. Underlying classifications are cached by normalized instrument name, parent report date, and
-catalog fingerprint. Damaged or incompatible calculated caches are rebuilt. Historical runs never use
-announcements, NAV observations, or numeric allocations dated after the requested as-of/report date.
+## Global Supplement Ranking
 
-## Performance Metrics
+- Accept remaining recognized non-US, global, multi-market, REIT, and volatility strategies. Do not
+  include candidates already in the US main ranking, bond/commodity strategies, or excluded target
+  markets.
+- Compute the three-year annualized return from the actual adjusted-NAV start/end dates. Divide it by
+  the absolute three-year maximum drawdown. A true zero drawdown stores `null`, displays `∞`, and sorts
+  before finite ratios.
+- Rank by return/drawdown ratio, three-year return, smaller absolute drawdown, institutional holding,
+  scale descending, and fund code ascending.
 
-- End the trailing period on the latest published NAV date on or before the requested as-of date.
-- Build separate one-year and three-year windows, starting from the latest published NAV date on or
-  before the same calendar date one or three years earlier.
-- Build an adjusted wealth index from consecutive unit NAVs. Add per-share cash distributions to the
-  ex-dividend NAV; for other explicitly marked net-worth events, use the source's daily adjusted return.
-- Trailing return is the adjusted wealth change from each window's start observation to the end.
-- Maximum drawdown is the largest peak-to-trough decline in that adjusted wealth index and is stored as
-  a non-positive percentage.
-- Preserve the actual start and end NAV observation dates for both windows. If a fund lacks a complete
-  window, keep that window's metrics null and emit a warning rather than annualizing partial history.
-- Convert the official XNDX gross total-return index to CNY by multiplying each USD index level by the
-  latest official USD/CNY central parity rate on or before that date. Neither source may be carried
-  forward more than seven calendar days, and future observations are never used.
-- For Nasdaq-100 fit, take the final adjusted fund wealth observation in each ISO week over the trailing
-  three years. Pair the benchmark to that fund observation date, and calculate returns only between
-  adjacent ISO weeks; never bridge a missing week.
-- Require at least 140 paired weekly returns spanning at least 1,000 days. Correlation is Pearson's
-  correlation coefficient, beta is sample covariance divided by benchmark sample variance, and annualized
-  tracking error is the sample standard deviation of weekly active returns multiplied by the square root
-  of 52.
+Each stage scans its complete candidate set before either list is truncated to ten. One list may be
+empty or shorter than ten without relaxing thresholds; both lists empty stops publication.
+
+## Performance And Nasdaq Fit
+
+- Use the latest NAV on or before the ranking date and the latest NAV on or before the corresponding
+  date one or three years earlier. Build adjusted wealth from consecutive NAVs, cash distributions, and
+  explicit source adjustment events. Maximum drawdown is peak-to-trough and stored as non-positive.
+- Convert XNDX to CNY by multiplying each USD index level by the latest USD/CNY central parity on or
+  before that date. Neither source may be carried forward more than seven days; future matching is
+  forbidden.
+- Take the final adjusted fund wealth observation in each ISO week over three years and form returns
+  only across adjacent ISO weeks. Require at least 140 paired returns spanning at least 1,000 days.
+- Correlation is Pearson correlation, beta is sample covariance divided by benchmark sample variance,
+  and tracking error is the sample standard deviation of weekly active returns times `sqrt(52)`.
 
 ## Quota Precedence
 
-Process relevant announcements chronologically and apply only transitions effective on or before the
-requested as-of date. A later effective transition overrides an earlier value for the same channel.
+Process relevant manager notices chronologically and apply transitions effective on or before the
+ranking date. A later transition overrides an earlier one for the same channel.
 
-- An explicit direct-sale amount updates only direct sale.
-- An explicit agency amount updates only agency sale.
-- A notice without a channel distinction updates both channels.
-- `全部销售机构累计` means the displayed channel values share one cross-channel ceiling and must not
-  be added together.
-- A notice that restores unrestricted large subscriptions sets both channels to `unlimited` only when
-  it contains no replacement ceiling.
-- An automatic future restoration inside a notice becomes a separate transition.
+- A direct-sale amount updates direct sale only; an agency amount updates agency sale only.
+- A notice without channel distinction updates both. `全部销售机构累计` is one shared ceiling and must
+  not be added across channels.
+- A restoration notice sets `unlimited` only when it contains no replacement ceiling. Future automatic
+  restoration is a separate transition.
+- Unreadable or ambiguous active notices make the affected quota unknown. Never infer a value.
 
-Use `unknown` when the PDF cannot be read, the wording is ambiguous, or a limited fund has no confirmed
-manager-level direct quota. Preserve the source link and tell the user to inspect it.
+## Cache And Output
 
-## Output Semantics
+NAV calculations, benchmark history, fund exposure, legal documents, periodic reports, and underlying
+classifications are cached with source dates and catalog fingerprints. PDF cache hits must still be valid
+PDFs with extractable text. Historical runs never consume a future NAV, benchmark point, allocation, or
+announcement.
 
-- `unlimited` means no active manager-level large-subscription ceiling was found. A distributor may
-  still enforce a lower transaction or payment limit.
-- `limited` is a per-day, per-fund-account ceiling and normally includes regular subscription and SIP.
-- `share_class_rule` records whether A and C are combined or separate.
-- `channel_rule` records whether direct and agency channels differ or share an all-channel ceiling.
-- Dates for holder data, inception, scale, performance observations, quota effectiveness, and the run
-  must always remain visible.
-- `nasdaq100_fit.correlation` is the primary ranking value. `beta`, annualized tracking error, observation
-  count, and actual dates preserve its audit trail. `us_equity_exposure.confirmed_pct` remains a required
-  eligibility threshold and downstream tie-breaker. `possible_pct`, `unresolved_pct`, components,
-  report date, announcement date, and source URL preserve the calculation audit trail.
-- `latest.html` is a self-contained mobile presentation generated from the same payload as JSON, CSV,
-  and Markdown. It does not replace JSON as the structured source of truth.
+JSON schema 8 is the structured source of truth. `records` contains the US main list,
+`global_supplement.records` contains the supplement, and `exclusion_summary` records reason counts and
+codes. CSV and Markdown combine both lists with an explicit list field. `latest.html` and
+`public/index.html` are generated from the same payload and must be byte-identical.

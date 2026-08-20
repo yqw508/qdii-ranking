@@ -176,6 +176,173 @@ class FundFilterTests(unittest.TestCase):
         self.assertEqual(["old"], [item["code"] for item in result])
 
 
+class ContractBenchmarkTests(unittest.TestCase):
+    def setUp(self):
+        self.catalog = ranking.ContractBenchmarkCatalog(
+            ranking.DEFAULT_CONTRACT_BENCHMARK_CATALOG
+        )
+        self.fund = {
+            "code": "000043",
+            "name": "嘉实美国成长股票人民币",
+            "fund_type": "QDII-普通股票",
+            "fund_page_url": "https://example.test/000043",
+        }
+
+    def test_index_rmb_a_is_accepted_but_c_and_standalone_etf_are_not(self):
+        self.assertTrue(
+            ranking.is_otc_share(
+                {
+                    "name": "建信纳斯达克100指数(QDII)A人民币",
+                    "fund_type": "指数型-海外股票",
+                }
+            )
+        )
+        self.assertFalse(
+            ranking.is_otc_share(
+                {
+                    "name": "建信纳斯达克100指数(QDII)C人民币",
+                    "fund_type": "指数型-海外股票",
+                }
+            )
+        )
+        self.assertFalse(
+            ranking.is_otc_share(
+                {
+                    "name": "纳斯达克100ETF人民币A",
+                    "fund_type": "指数型-海外股票",
+                }
+            )
+        )
+
+    def test_parses_single_dominant_benchmark_and_table_heading(self):
+        text = "业绩比较基准 95%×罗素1000 成长指数收益率+5%×活期存款利率 风险收益特征"
+        profile = ranking.parse_contract_benchmark(text, self.fund, self.catalog)
+        self.assertEqual("russell-1000-growth", profile["benchmark_id"])
+        self.assertEqual(95.0, profile["benchmark_weight_pct"])
+
+    def test_prefers_weighted_benchmark_over_earlier_target_index_description(self):
+        text = """
+        标的指数为纳斯达克100指数，相关章节介绍指数编制方法。
+        业绩比较基准 95%×纳斯达克100指数收益率+5%×活期存款利率 风险收益特征
+        """
+        profile = ranking.parse_contract_benchmark(text, self.fund, self.catalog)
+        self.assertEqual("nasdaq-100", profile["benchmark_id"])
+        self.assertEqual(95.0, profile["benchmark_weight_pct"])
+
+    def test_rejects_multiple_or_sub_eighty_percent_benchmark(self):
+        with self.assertRaisesRegex(ranking.DataError, "multiple market benchmarks"):
+            ranking.parse_contract_benchmark(
+                "本基金的业绩比较基准为80%×纳斯达克100指数收益率+20%×恒生指数收益率。",
+                self.fund,
+                self.catalog,
+            )
+        with self.assertRaisesRegex(ranking.DataError, "below 80"):
+            ranking.parse_contract_benchmark(
+                "本基金的业绩比较基准为60%×MSCI所有国家世界指数+40%×美国3月政府债券收益率。",
+                self.fund,
+                self.catalog,
+            )
+
+    def test_special_product_structures_are_explicit(self):
+        self.assertEqual(
+            "leveraged",
+            ranking.detect_product_structure("纳斯达克100两倍做多", "standard"),
+        )
+        self.assertEqual(
+            "inverse", ranking.detect_product_structure("标普500反向", "standard")
+        )
+        self.assertEqual(
+            "volatility", ranking.detect_product_structure("VIX指数", "standard")
+        )
+        self.assertEqual(
+            "standard",
+            ranking.detect_product_structure("风险章节说明基金不得形成杠杆", "standard"),
+        )
+
+    @patch.object(ranking, "_announcement_page")
+    def test_legal_document_selection_never_uses_future_or_wrong_share(self, page):
+        page.return_value = {
+            "TotalCount": 4,
+            "PageSize": 100,
+            "Data": [
+                {
+                    "TITLE": "某基金更新招募说明书",
+                    "PUBLISHDATEDesc": "2026-08-21",
+                    "ID": "future",
+                },
+                {
+                    "TITLE": "某基金更新招募说明书",
+                    "PUBLISHDATEDesc": "2026-08-19",
+                    "ID": "prospectus",
+                },
+                {
+                    "TITLE": "某基金(D类份额人民币)基金产品资料概要更新",
+                    "PUBLISHDATEDesc": "2026-08-20",
+                    "ID": "wrong-share",
+                },
+                {
+                    "TITLE": "某基金(A类份额)基金产品资料概要更新",
+                    "PUBLISHDATEDesc": "2026-08-18",
+                    "ID": "summary",
+                },
+            ],
+        }
+        prospectus, summary = ranking.fetch_latest_legal_documents(
+            object(), "000043", date(2026, 8, 20)
+        )
+        self.assertEqual("prospectus", prospectus.announcement_id)
+        self.assertEqual("summary", summary.announcement_id)
+
+    @patch.object(ranking, "fetch_latest_legal_documents")
+    def test_product_summary_conflict_blocks(self, documents):
+        prospectus = ranking.LegalDocument(
+            "p", "招募说明书", date(2026, 6, 1), "https://example.test/p.pdf", "prospectus"
+        )
+        summary = ranking.LegalDocument(
+            "s", "产品概要", date(2026, 6, 2), "https://example.test/s.pdf", "product_summary"
+        )
+        documents.return_value = prospectus, summary
+
+        class Cache:
+            def get_text(self, _client, document, _referer):
+                if document.document_type == "prospectus":
+                    return "本基金的业绩比较基准为95%×纳斯达克100指数收益率+5%×活期存款利率。"
+                return "业绩比较基准 95%×德国DAX指数收益率+5%×活期存款利率 风险收益特征"
+
+        with self.assertRaises(ranking.BenchmarkConflictError):
+            ranking.resolve_contract_benchmark(
+                object(), self.fund, date(2026, 8, 20), Cache(), self.catalog
+            )
+
+    def test_direct_limit_and_return_drawdown_boundaries(self):
+        self.assertFalse(
+            ranking.direct_limit_qualifies(
+                {"status": "limited", "amount_cny": 1000}, 1000
+            )
+        )
+        self.assertTrue(
+            ranking.direct_limit_qualifies(
+                {"status": "limited", "amount_cny": 1001}, 1000
+            )
+        )
+        self.assertTrue(
+            ranking.direct_limit_qualifies(
+                {"status": "unlimited", "amount_cny": None}, 1000
+            )
+        )
+        score, annualized = ranking.calculate_return_drawdown_ratio(
+            {
+                "code": "test",
+                "three_year_performance_start_date": "2023-08-18",
+                "three_year_performance_end_date": "2026-08-18",
+                "three_year_return_pct": 80.0,
+                "three_year_max_drawdown_pct": 0.0,
+            }
+        )
+        self.assertIsNone(score)
+        self.assertGreater(annualized, 0)
+
+
 class PerformanceTests(unittest.TestCase):
     @patch.object(ranking, "fetch_trailing_performance")
     def test_three_year_threshold_full_scan_includes_exact_match(self, fetch):
@@ -420,8 +587,25 @@ class HtmlOutputTests(unittest.TestCase):
         source = f"https://example.test/{code}/notice.pdf?kind=quota&channel=all"
         return {
             "rank": rank,
+            "ranking_list": "us_main",
             "code": code,
             "name": name,
+            "fund_type": "QDII-普通股票",
+            "management_style": "active",
+            "product_structure_tags": ["主动", "股票", "大盘成长"],
+            "contract_benchmark": {
+                "benchmark_name": "罗素1000成长指数",
+                "benchmark_text": "罗素1000成长指数收益率×95%+活期存款利率×5%",
+                "benchmark_weight_pct": 95.0,
+                "market_label": "美国",
+                "asset_class": "equity",
+                "style_label": "大盘成长",
+                "structure": "standard",
+                "management_style": "active",
+                "prospectus_published_date": "2026-06-01",
+                "source_url": f"https://example.test/{code}/prospectus.pdf",
+                "product_summary_source_url": f"https://example.test/{code}/summary.pdf",
+            },
             "fund_page_url": f"https://example.test/fund/{code}?a=1&b=2",
             "inception_date": "2018-01-02",
             "institution_holding_ratio_pct": 12.34,
@@ -462,6 +646,7 @@ class HtmlOutputTests(unittest.TestCase):
             },
             "share_class_rule": "A/C separate",
             "channel_rule": "direct and agency limits differ",
+            "quota_source_urls": [source],
         }
 
     def payload(self):
@@ -473,7 +658,10 @@ class HtmlOutputTests(unittest.TestCase):
                 "min_age_years": 3,
                 "min_three_year_return_pct": 50.0,
                 "min_us_equity_pct": 50.0,
+                "min_direct_limit_cny_exclusive": 1000,
+                "min_contract_benchmark_weight_pct": 80.0,
                 "base_candidates_total": 2,
+                "contract_candidates_scanned": 2,
             },
             "records": [
                 self.record(1, "539002", "建信新兴市场混合(QDII)A", 100000, 500),
@@ -486,6 +674,7 @@ class HtmlOutputTests(unittest.TestCase):
                     agency_status="unlimited",
                 ),
             ],
+            "global_supplement": {"records": []},
             "benchmark": {
                 "index_source_url": "https://example.test/xndx?a=1&b=2",
                 "fx_source_url": "https://example.test/usd-cny?a=1&b=2",
@@ -556,7 +745,7 @@ class HtmlOutputTests(unittest.TestCase):
             self.assertTrue(path.exists())
             self.assertTrue(published_path.exists())
             self.assertEqual(path.read_bytes(), published_path.read_bytes())
-            self.assertIn("QDII 纳指相关榜单", path.read_text(encoding="utf-8"))
+            self.assertIn("QDII 美国主榜与全球补充榜", path.read_text(encoding="utf-8"))
 
 
 class PeriodicReportTests(unittest.TestCase):
@@ -654,6 +843,29 @@ class PeriodicReportTests(unittest.TestCase):
         self.assertEqual(0.0, parsed["fund_investment_pct"])
         self.assertEqual([], parsed["fund_holdings"])
 
+    def test_sums_wrapped_multi_share_net_assets(self):
+        report_text = """
+        4.期末基金资产净值
+        人民币A类 1,000,000,00
+        0.00
+        人民币C类 500,000,00
+        0.00
+        5.期末基金份额净值 1.00
+        5.1 报告期末基金资产组合情况
+        1 权益投资 --
+        2 基金投资 1,350,000,000.00 90.00
+        9 合计 1,500,000,000.00 100.00
+        5.2 报告期末在各个国家（地区）证券市场的股票及存托凭证投资分布
+        合计 --
+        5.3 行业分类
+        5.9 报告期末按公允价值排序的前十名基金投资明细
+        1 纳指 ETF 汇添富 ETF基金 交易型开放式 汇添富基金 1,350,000,000.00 90.00
+        5.10 投资组合报告附注
+        """
+        parsed = ranking.parse_us_equity_report(report_text, "018966")
+        self.assertEqual(90.0, parsed["fund_investment_pct"])
+        self.assertEqual(90.0, parsed["fund_holdings"][0]["weight_pct"])
+
     def test_parses_etf_label_without_space_from_wrapped_pdf_table(self):
         text = """
         前十名基金投资明细
@@ -671,6 +883,28 @@ class PeriodicReportTests(unittest.TestCase):
         self.assertEqual(2, len(rows))
         self.assertEqual(7.44, rows[0]["weight_pct"])
         self.assertIn("CSOP SK Hynix", rows[0]["fund_name"])
+
+    def test_parses_qdii_label_from_domestic_target_etf_row(self):
+        text = """
+        前十名基金投资明细
+        序号 基金名称 基金类型 运作方式 管理人 公允价值 占基金资产净值比例
+        1
+        大成纳斯
+        达克
+        100ETF
+        （QDII）
+        QDII 交易型开
+        放式
+        大成基金
+        管理有限
+        公司
+        5,416,495,992.39 90.32
+        5.10 投资组合报告附注
+        """
+        rows = ranking.parse_fund_investment_rows(text, "000834")
+        self.assertEqual(1, len(rows))
+        self.assertEqual("大成纳斯 达克 100ETF （QDII）", rows[0]["fund_name"])
+        self.assertEqual(90.32, rows[0]["weight_pct"])
 
     def test_repairs_money_values_split_across_pdf_lines(self):
         cleaned = ranking.clean_report_text(
@@ -730,6 +964,29 @@ class UsEquityExposureTests(unittest.TestCase):
             date(2026, 7, 21),
             "https://example.test/report.pdf",
         )
+
+    def test_chinese_instrument_names_are_preserved_for_catalog_matching(self):
+        self.assertEqual(
+            "华安纳斯达克100交易型开放式指数证券投资",
+            ranking.normalize_instrument_name(
+                "华安纳斯 达克100 交易型开 放式指数 证券投资"
+            ),
+        )
+        self.assertNotEqual(
+            ranking.normalize_instrument_name("华安纳斯达克100ETF"),
+            ranking.normalize_instrument_name("大成纳斯达克100ETF"),
+        )
+        with TemporaryDirectory() as directory:
+            resolver = self.resolver(directory)
+            resolved = resolver.resolve(
+                "华安纳斯 达克100 交易型开 放式指数 证券投资",
+                date(2026, 6, 30),
+            )
+            gf_resolved = resolver.resolve("广发纳指 100ETF", date(2026, 6, 30))
+        self.assertIsNotNone(resolved)
+        self.assertEqual(100.0, resolved["us_equity_pct"])
+        self.assertIsNotNone(gf_resolved)
+        self.assertEqual(100.0, gf_resolved["us_equity_pct"])
 
     def test_163813_conservative_lower_bound_exceeds_fifty(self):
         holdings = [

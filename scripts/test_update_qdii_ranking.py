@@ -899,6 +899,23 @@ class UsEquityExposureTests(unittest.TestCase):
 
 
 class QuotaNoticeTests(unittest.TestCase):
+    def test_business_cap_title_is_selected(self):
+        title = "关于调整某基金人民币销售申购、定期定额申购业务上限的公告"
+        self.assertIsNotNone(ranking.NOTICE_TITLE_RE.search(title))
+
+    def test_rmb_sales_business_cap_applies_to_all_channels(self):
+        text = """
+        自2026年4月13日起调整人民币销售的申购、定期定额申购业务上限，
+        即单个投资者单日累计申购（含定期定额申购）申请华夏全球股票
+        （QDII）（人民币）（000041）的金额应不超过人民币1万元。
+        """
+        base = ranking.parse_quota_notice(
+            text, date(2026, 4, 13), "https://example.test/chinaamc.pdf"
+        )[0]
+        self.assertEqual(10000, base["global_amount_cny"])
+        self.assertIsNone(base["direct_amount_cny"])
+        self.assertIsNone(base["agency_amount_cny"])
+
     def test_table_limit_allows_space_before_unit(self):
         text = "限制申购金额 （单位：元） 1,000.00"
         base = ranking.parse_quota_notice(

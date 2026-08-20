@@ -569,11 +569,12 @@ def fetch_nasdaq100_history(
 def fetch_safe_usd_cny_history(
     client: HttpClient, start: date, as_of: date
 ) -> dict[date, float]:
-    url = f"{SAFE_USD_CNY_HISTORY_URL}?{urllib.parse.urlencode({
+    params = {
         'startDate': start.isoformat(),
         'endDate': as_of.isoformat(),
         'queryYN': 'true',
-    })}"
+    }
+    url = f"{SAFE_USD_CNY_HISTORY_URL}?{urllib.parse.urlencode(params)}"
     return parse_safe_usd_cny_history(client.get_text(url), as_of)
 
 

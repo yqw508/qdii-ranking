@@ -2,7 +2,7 @@ import unittest
 import json
 import threading
 import time
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
@@ -249,6 +249,115 @@ class PerformanceTests(unittest.TestCase):
         self.assertEqual(date(2026, 8, 18), points[0]["date"])
 
 
+class Nasdaq100FitTests(unittest.TestCase):
+    def test_parses_official_benchmark_sources(self):
+        timestamp = int(datetime(2026, 8, 18, tzinfo=timezone.utc).timestamp() * 1000)
+        xndx = ranking.parse_nasdaq100_history(
+            [{"x": timestamp, "y": 32123.45, "FPSymbol": "XNDX"}],
+            date(2026, 8, 19),
+        )
+        safe = ranking.parse_safe_usd_cny_history(
+            "<table><tr><td>2026-08-18</td><td>678.54</td></tr></table>",
+            date(2026, 8, 19),
+        )
+        self.assertEqual(32123.45, xndx[date(2026, 8, 18)])
+        self.assertAlmostEqual(6.7854, safe[date(2026, 8, 18)])
+
+    @staticmethod
+    def synthetic_series(weeks=160):
+        start = date(2023, 7, 3)
+        nav = 1.0
+        index = 1000.0
+        points = []
+        xndx = {}
+        fx = {}
+        benchmark_returns = (0.01, -0.005, 0.02, -0.012)
+        for offset in range(weeks):
+            observed = start + timedelta(days=offset * 7)
+            if offset:
+                benchmark_return = benchmark_returns[offset % len(benchmark_returns)]
+                index *= 1 + benchmark_return
+                nav *= 1 + 2 * benchmark_return
+            points.append(
+                {
+                    "date": observed,
+                    "nav": nav,
+                    "equity_return_pct": None,
+                    "unit_money": "",
+                }
+            )
+            xndx[observed] = index
+            fx[observed] = 1.0
+        return points, ranking.Nasdaq100Benchmark(xndx, fx)
+
+    def test_calculates_weekly_correlation_beta_and_tracking_error(self):
+        points, benchmark = self.synthetic_series()
+        result = ranking.calculate_nasdaq100_fit(
+            points, "example", points[-1]["date"], benchmark
+        )
+        self.assertEqual(1.0, result["correlation"])
+        self.assertAlmostEqual(2.0, result["beta"], places=4)
+        self.assertGreater(result["tracking_error_pct"], 0)
+        self.assertGreaterEqual(result["observations"], 140)
+        self.assertGreaterEqual(
+            (date.fromisoformat(result["end_date"]) - date.fromisoformat(result["start_date"])).days,
+            1000,
+        )
+
+    def test_rejects_insufficient_weekly_observations(self):
+        points, benchmark = self.synthetic_series(20)
+        with self.assertRaisesRegex(ranking.DataError, "only 19 valid"):
+            ranking.calculate_nasdaq100_fit(
+                points, "example", points[-1]["date"], benchmark
+            )
+
+    def test_does_not_use_future_or_stale_benchmark_values(self):
+        observed = date(2026, 8, 20)
+        series = {
+            observed - timedelta(days=8): 1.0,
+            observed + timedelta(days=1): 2.0,
+        }
+        self.assertIsNone(
+            ranking.latest_series_value(series, sorted(series), observed)
+        )
+
+
+class Nasdaq100BenchmarkCacheTests(unittest.TestCase):
+    @staticmethod
+    def source_points(as_of):
+        start = ranking.years_ago(as_of, 3) - timedelta(days=21)
+        dates = [start + timedelta(days=offset) for offset in range((as_of - start).days + 1)]
+        return (
+            {observed: 1000.0 + index for index, observed in enumerate(dates)},
+            {observed: 6.8 for observed in dates},
+        )
+
+    @patch.object(ranking, "fetch_safe_usd_cny_history")
+    @patch.object(ranking, "fetch_nasdaq100_history")
+    def test_populates_cache_and_uses_complete_cache_on_source_failure(
+        self, fetch_xndx, fetch_fx
+    ):
+        as_of = date(2026, 8, 20)
+        xndx, fx = self.source_points(as_of)
+        fetch_xndx.return_value = xndx
+        fetch_fx.return_value = fx
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "benchmark.json"
+            first_cache = ranking.Nasdaq100BenchmarkCache(path)
+            benchmark, warnings = first_cache.get(object(), as_of)
+            self.assertEqual([], warnings)
+            self.assertEqual(as_of, max(benchmark.xndx_levels))
+            self.assertTrue(path.is_file())
+
+            fetch_xndx.side_effect = ranking.DataError("offline")
+            fetch_fx.side_effect = ranking.DataError("offline")
+            second_cache = ranking.Nasdaq100BenchmarkCache(path)
+            cached, warnings = second_cache.get(object(), as_of)
+            self.assertEqual(2, len(warnings))
+            self.assertEqual(2, second_cache.stats()["fallbacks"])
+            self.assertEqual(benchmark.xndx_levels, cached.xndx_levels)
+
+
 class PerformanceCacheTests(unittest.TestCase):
     @staticmethod
     def result():
@@ -262,6 +371,15 @@ class PerformanceCacheTests(unittest.TestCase):
             "three_year_max_drawdown_pct": -20.0,
             "three_year_performance_start_date": "2023-08-19",
             "three_year_performance_end_date": "2026-08-19",
+            "nasdaq100_fit": {
+                "correlation": 0.95,
+                "beta": 1.01,
+                "tracking_error_pct": 5.0,
+                "observations": 154,
+                "start_date": "2023-08-19",
+                "end_date": "2026-08-19",
+            },
+            "nasdaq100_fit_error": None,
         }
 
     @patch.object(ranking, "fetch_trailing_performance")
@@ -269,16 +387,20 @@ class PerformanceCacheTests(unittest.TestCase):
         fetch.return_value = (self.result(), ["cached warning"])
         fund = {"code": "000001", "fund_page_url": "https://example.test/fund"}
         as_of = date(2026, 8, 19)
+        benchmark = ranking.Nasdaq100Benchmark(
+            {date(2023, 8, 1): 100.0, as_of: 200.0},
+            {date(2023, 8, 1): 7.0, as_of: 6.8},
+        )
         with TemporaryDirectory() as directory:
             root = Path(directory)
             cache = ranking.PerformanceResultCache(root)
-            self.assertEqual(self.result(), cache.get(object(), fund, as_of)[0])
-            self.assertEqual(self.result(), cache.get(object(), fund, as_of)[0])
+            self.assertEqual(self.result(), cache.get(object(), fund, as_of, benchmark)[0])
+            self.assertEqual(self.result(), cache.get(object(), fund, as_of, benchmark)[0])
             path = root / as_of.isoformat() / "000001.json"
             payload = json.loads(path.read_text(encoding="utf-8"))
             payload["performance"]["three_year_performance_end_date"] = "2026-08-20"
             path.write_text(json.dumps(payload), encoding="utf-8")
-            self.assertEqual(self.result(), cache.get(object(), fund, as_of)[0])
+            self.assertEqual(self.result(), cache.get(object(), fund, as_of, benchmark)[0])
         self.assertEqual(2, fetch.call_count)
         self.assertEqual(
             {"hits": 1, "misses": 2, "corrupt_rebuilds": 1}, cache.stats()
@@ -313,6 +435,14 @@ class HtmlOutputTests(unittest.TestCase):
             "three_year_max_drawdown_pct": -23.45,
             "three_year_performance_start_date": "2023-08-18",
             "three_year_performance_end_date": "2026-08-18",
+            "nasdaq100_fit": {
+                "correlation": 0.9123,
+                "beta": 0.8765,
+                "tracking_error_pct": 8.76,
+                "observations": 154,
+                "start_date": "2023-08-18",
+                "end_date": "2026-08-18",
+            },
             "us_equity_exposure": {
                 "confirmed_pct": 65.43,
                 "possible_pct": 72.1,
@@ -356,6 +486,12 @@ class HtmlOutputTests(unittest.TestCase):
                     agency_status="unlimited",
                 ),
             ],
+            "benchmark": {
+                "index_source_url": "https://example.test/xndx?a=1&b=2",
+                "fx_source_url": "https://example.test/usd-cny?a=1&b=2",
+                "index_latest_date": "2026-08-19",
+                "fx_latest_date": "2026-08-19",
+            },
             "warnings": ["未知标的 <需要核实>"],
         }
 
@@ -372,6 +508,9 @@ class HtmlOutputTests(unittest.TestCase):
         self.assertIn("10万元", document)
         self.assertIn("500元", document)
         self.assertIn("正常开放", document)
+        self.assertIn("91.2% · 0.88", document)
+        self.assertIn("8.76%", document)
+        self.assertIn("154 周", document)
         self.assertIn("a=1&amp;b=2", document)
         self.assertIn('target="_blank" rel="noopener noreferrer"', document)
         self.assertNotIn("<script src=", document)
@@ -417,7 +556,7 @@ class HtmlOutputTests(unittest.TestCase):
             self.assertTrue(path.exists())
             self.assertTrue(published_path.exists())
             self.assertEqual(path.read_bytes(), published_path.read_bytes())
-            self.assertIn("QDII 美股含量榜单", path.read_text(encoding="utf-8"))
+            self.assertIn("QDII 纳指相关榜单", path.read_text(encoding="utf-8"))
 
 
 class PeriodicReportTests(unittest.TestCase):
@@ -797,13 +936,13 @@ class UsEquityExposureTests(unittest.TestCase):
 
     @patch.object(ranking, "fetch_us_equity_exposure")
     @patch.object(ranking, "fetch_trailing_performance")
-    def test_full_scan_does_not_stop_at_top_and_ranks_by_exposure(
+    def test_full_scan_does_not_stop_at_top_and_ranks_by_correlation(
         self, performance, exposure
     ):
         concurrency = {"active": 0, "maximum": 0}
         lock = threading.Lock()
 
-        def performance_result(_client, fund, _as_of):
+        def performance_result(_client, fund, _as_of, _benchmark):
             code = int(fund["code"])
             with lock:
                 concurrency["active"] += 1
@@ -813,7 +952,14 @@ class UsEquityExposureTests(unittest.TestCase):
             time.sleep(0.02)
             with lock:
                 concurrency["active"] -= 1
-            return {"three_year_return_pct": 60.0 + code}, [f"performance {code}"]
+            return {
+                "three_year_return_pct": 60.0 + code,
+                "nasdaq100_fit": {
+                    "correlation": 0.80 + code / 1000,
+                    "beta": 1.0,
+                },
+                "nasdaq100_fit_error": None,
+            }, [f"performance {code}"]
 
         def exposure_result(_client, fund, *_args):
             code = int(fund["code"])
@@ -863,12 +1009,51 @@ class UsEquityExposureTests(unittest.TestCase):
 
     @patch.object(ranking, "fetch_us_equity_exposure")
     @patch.object(ranking, "fetch_trailing_performance")
+    def test_qualified_fund_without_nasdaq_fit_blocks_ranking(
+        self, performance, exposure
+    ):
+        performance.return_value = (
+            {
+                "three_year_return_pct": 60.0,
+                "nasdaq100_fit": None,
+                "nasdaq100_fit_error": "insufficient observations",
+            },
+            [],
+        )
+        exposure.return_value = (
+            {"status": "qualified", "confirmed_pct": 80.0},
+            [],
+        )
+        with self.assertRaisesRegex(ranking.DataError, "qualified fund 000001"):
+            ranking.filter_performance_and_us_exposure_full_scan(
+                object(),
+                [{"code": "000001", "institution_holding_ratio_pct": 1.0}],
+                date(2026, 8, 19),
+                50,
+                50,
+                10,
+                object(),
+                object(),
+            )
+
+    @patch.object(ranking, "fetch_us_equity_exposure")
+    @patch.object(ranking, "fetch_trailing_performance")
     def test_us_exposure_tie_breakers_are_deterministic(self, performance, exposure):
         performance_by_code = {"001": 100.0, "002": 90.0, "003": 90.0, "004": 80.0}
         exposure_by_code = {"001": 71.0, "002": 70.0, "003": 70.0, "004": 70.0}
         institution_by_code = {"001": 10.0, "002": 20.0, "003": 20.0, "004": 20.0}
-        performance.side_effect = lambda _client, fund, _as_of: (
-            {"three_year_return_pct": performance_by_code[fund["code"]]},
+        fit_by_code = {
+            "001": {"correlation": 0.96, "beta": 1.25},
+            "002": {"correlation": 0.95, "beta": 1.25},
+            "003": {"correlation": 0.95, "beta": 1.0},
+            "004": {"correlation": 0.95, "beta": 1.5},
+        }
+        performance.side_effect = lambda _client, fund, _as_of, _benchmark: (
+            {
+                "three_year_return_pct": performance_by_code[fund["code"]],
+                "nasdaq100_fit": fit_by_code[fund["code"]],
+                "nasdaq100_fit_error": None,
+            },
             [],
         )
         exposure.side_effect = lambda _client, fund, *_args: (
@@ -895,7 +1080,7 @@ class UsEquityExposureTests(unittest.TestCase):
             object(),
             object(),
         )
-        self.assertEqual(["001", "002", "003", "004"], [item["code"] for item in selected])
+        self.assertEqual(["001", "003", "002", "004"], [item["code"] for item in selected])
 
 
 class QuotaNoticeTests(unittest.TestCase):

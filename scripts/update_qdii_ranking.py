@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import bisect
 import csv
 import hashlib
 import html
@@ -11,6 +12,7 @@ import io
 import json
 import math
 import re
+import statistics
 import sys
 import time
 import urllib.error
@@ -37,6 +39,9 @@ ANNOUNCEMENT_API_URL = "https://api.fund.eastmoney.com/f10/JJGG"
 FUND_PAGE_URL = "https://fund.eastmoney.com/{code}.html"
 PERFORMANCE_DATA_URL = "https://fund.eastmoney.com/pingzhongdata/{code}.js?v={cache_buster}"
 ANNOUNCEMENT_PDF_URL = "https://pdf.dfcfw.com/pdf/H2_{announcement_id}_1.pdf"
+NASDAQ100_HISTORY_PAGE_URL = "https://indexes.nasdaq.com/Index/History/XNDX"
+NASDAQ100_HISTORY_DATA_URL = "https://indexes.nasdaq.com/Index/HistoryChartData"
+SAFE_USD_CNY_HISTORY_URL = "https://www.safe.gov.cn/AppStructured/hlw/RMBQuery.do"
 DEFAULT_EXCLUDE_KEYWORDS = ["债", "亚洲", "中国", "港"]
 DEFAULT_US_EQUITY_CATALOG = Path(__file__).resolve().parents[1] / "references" / "us-equity-instruments.json"
 USER_AGENT = (
@@ -45,7 +50,13 @@ USER_AGENT = (
 )
 SHANGHAI_TZ = timezone(timedelta(hours=8))
 PERFORMANCE_WORKERS = 6
-PERFORMANCE_CACHE_SCHEMA_VERSION = 1
+PERFORMANCE_CACHE_SCHEMA_VERSION = 2
+BENCHMARK_CACHE_SCHEMA_VERSION = 1
+BENCHMARK_WINDOW_YEARS = 3
+BENCHMARK_HISTORY_BUFFER_DAYS = 14
+BENCHMARK_MAX_STALENESS_DAYS = 7
+NASDAQ100_MIN_OBSERVATIONS = 140
+NASDAQ100_MIN_SPAN_DAYS = 1000
 FUND_EXPOSURE_CACHE_SCHEMA_VERSION = 1
 US_EQUITY_METHOD_VERSION = 1
 NOTICE_TITLE_RE = re.compile(
@@ -94,6 +105,38 @@ class HttpClient:
         except json.JSONDecodeError as exc:
             raise DataError(f"Invalid JSON from {url}: {exc}") from exc
 
+    def post_form_json(
+        self, url: str, fields: dict[str, str], referer: str | None = None
+    ) -> Any:
+        headers = {
+            "User-Agent": USER_AGENT,
+            "Accept": "application/json, text/javascript, */*; q=0.01",
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        }
+        if referer:
+            headers["Referer"] = referer
+        request = urllib.request.Request(
+            url,
+            data=urllib.parse.urlencode(fields).encode("ascii"),
+            headers=headers,
+            method="POST",
+        )
+        last_error: Exception | None = None
+        for attempt in range(self.retries):
+            try:
+                with urllib.request.urlopen(request, timeout=self.timeout) as response:
+                    return json.loads(response.read().decode("utf-8-sig", errors="replace"))
+            except (
+                json.JSONDecodeError,
+                urllib.error.HTTPError,
+                urllib.error.URLError,
+                TimeoutError,
+            ) as exc:
+                last_error = exc
+                if attempt + 1 < self.retries:
+                    time.sleep(0.5 * (2**attempt))
+        raise DataError(f"Failed to fetch {url}: {last_error}")
+
 
 @dataclass(frozen=True)
 class HolderPeriod:
@@ -109,6 +152,33 @@ class PeriodicReport:
     report_date: date
     published_date: date
     source_url: str
+
+
+@dataclass(frozen=True)
+class Nasdaq100Benchmark:
+    xndx_levels: dict[date, float]
+    usd_cny_rates: dict[date, float]
+
+    def metadata(self) -> dict[str, Any]:
+        xndx_dates = sorted(self.xndx_levels)
+        fx_dates = sorted(self.usd_cny_rates)
+        return {
+            "symbol": "XNDX",
+            "name": "NASDAQ-100 Total Return",
+            "return_type": "gross_total_return",
+            "currency": "CNY",
+            "window_years": BENCHMARK_WINDOW_YEARS,
+            "frequency": "weekly",
+            "max_source_staleness_days": BENCHMARK_MAX_STALENESS_DAYS,
+            "min_observations": NASDAQ100_MIN_OBSERVATIONS,
+            "min_span_days": NASDAQ100_MIN_SPAN_DAYS,
+            "index_source_url": NASDAQ100_HISTORY_PAGE_URL,
+            "fx_source_url": SAFE_USD_CNY_HISTORY_URL,
+            "index_start_date": xndx_dates[0].isoformat(),
+            "index_latest_date": xndx_dates[-1].isoformat(),
+            "fx_start_date": fx_dates[0].isoformat(),
+            "fx_latest_date": fx_dates[-1].isoformat(),
+        }
 
 
 def parse_date(value: str) -> date:
@@ -398,6 +468,211 @@ def filter_and_rank(
     return eligible[:top]
 
 
+def parse_nasdaq100_history(payload: Any, as_of: date) -> dict[date, float]:
+    if not isinstance(payload, list):
+        raise DataError("Nasdaq XNDX history response is not a list")
+    points: dict[date, float] = {}
+    for item in payload:
+        if not isinstance(item, dict):
+            raise DataError("Nasdaq XNDX history contains a non-object row")
+        try:
+            observed = datetime.fromtimestamp(float(item["x"]) / 1000, timezone.utc).date()
+            value = float(item["y"])
+        except (KeyError, TypeError, ValueError, OSError) as exc:
+            raise DataError(f"Invalid Nasdaq XNDX history row: {exc}") from exc
+        if observed > as_of:
+            continue
+        if not math.isfinite(value) or value <= 0:
+            raise DataError(f"Invalid Nasdaq XNDX value on {observed}")
+        previous = points.get(observed)
+        if previous is not None and not math.isclose(previous, value, rel_tol=0, abs_tol=1e-9):
+            raise DataError(f"Conflicting Nasdaq XNDX values on {observed}")
+        points[observed] = value
+    if not points:
+        raise DataError("Nasdaq XNDX history response contains no usable points")
+    return points
+
+
+def parse_safe_usd_cny_history(payload: str, as_of: date) -> dict[date, float]:
+    points: dict[date, float] = {}
+    for row in re.findall(r"<tr[^>]*>(.*?)</tr>", payload, re.S | re.I):
+        cells = [
+            html.unescape(re.sub(r"<[^>]+>", "", cell)).strip()
+            for cell in re.findall(r"<td[^>]*>(.*?)</td>", row, re.S | re.I)
+        ]
+        if len(cells) < 2 or re.fullmatch(r"\d{4}-\d{2}-\d{2}", cells[0]) is None:
+            continue
+        try:
+            observed = parse_date(cells[0])
+            # SAFE quotes CNY per 100 USD for this direct currency pair.
+            value = float(cells[1].replace(",", "")) / 100
+        except ValueError as exc:
+            raise DataError(f"Invalid SAFE USD/CNY history row for {cells[0]}") from exc
+        if observed > as_of:
+            continue
+        if not math.isfinite(value) or value <= 0:
+            raise DataError(f"Invalid SAFE USD/CNY value on {observed}")
+        previous = points.get(observed)
+        if previous is not None and not math.isclose(previous, value, rel_tol=0, abs_tol=1e-9):
+            raise DataError(f"Conflicting SAFE USD/CNY values on {observed}")
+        points[observed] = value
+    if not points:
+        raise DataError("SAFE USD/CNY history response contains no usable points")
+    return points
+
+
+def fetch_nasdaq100_history(
+    client: HttpClient, start: date, as_of: date
+) -> dict[date, float]:
+    payload = client.post_form_json(
+        NASDAQ100_HISTORY_DATA_URL,
+        {
+            "id": "XNDX",
+            "startDate": f"{start.isoformat()}T00:00:00.000",
+            "endDate": f"{as_of.isoformat()}T00:00:00.000",
+        },
+        referer=NASDAQ100_HISTORY_PAGE_URL,
+    )
+    return parse_nasdaq100_history(payload, as_of)
+
+
+def fetch_safe_usd_cny_history(
+    client: HttpClient, start: date, as_of: date
+) -> dict[date, float]:
+    url = f"{SAFE_USD_CNY_HISTORY_URL}?{urllib.parse.urlencode({
+        'startDate': start.isoformat(),
+        'endDate': as_of.isoformat(),
+        'queryYN': 'true',
+    })}"
+    return parse_safe_usd_cny_history(client.get_text(url), as_of)
+
+
+class Nasdaq100BenchmarkCache:
+    def __init__(self, path: Path) -> None:
+        self.path = path
+        self.cache_hits = 0
+        self.fetches = 0
+        self.fallbacks = 0
+
+    @staticmethod
+    def _decode_series(payload: Any, value_field: str) -> dict[date, float]:
+        if not isinstance(payload, list):
+            raise DataError("Benchmark cache series is not a list")
+        points: dict[date, float] = {}
+        for item in payload:
+            if not isinstance(item, dict) or set(item) != {"date", value_field}:
+                raise DataError("Benchmark cache row is invalid")
+            observed = parse_date(str(item["date"]))
+            value = float(item[value_field])
+            if not math.isfinite(value) or value <= 0 or observed in points:
+                raise DataError("Benchmark cache contains an invalid or duplicate point")
+            points[observed] = value
+        return points
+
+    def _load(self) -> tuple[dict[date, float], dict[date, float]]:
+        if not self.path.exists():
+            return {}, {}
+        try:
+            payload = json.loads(self.path.read_text(encoding="utf-8"))
+            if payload.get("schema_version") != BENCHMARK_CACHE_SCHEMA_VERSION:
+                raise DataError("Benchmark cache schema is incompatible")
+            xndx = self._decode_series(payload.get("xndx"), "value")
+            fx = self._decode_series(payload.get("usd_cny"), "rate")
+            if not xndx or not fx:
+                raise DataError("Benchmark cache is empty")
+            self.cache_hits += 1
+            return xndx, fx
+        except (DataError, OSError, ValueError, json.JSONDecodeError):
+            return {}, {}
+
+    def _save(self, xndx: dict[date, float], fx: dict[date, float]) -> None:
+        write_json(
+            self.path,
+            {
+                "schema_version": BENCHMARK_CACHE_SCHEMA_VERSION,
+                "benchmark": "XNDX_CNY",
+                "xndx": [
+                    {"date": observed.isoformat(), "value": xndx[observed]}
+                    for observed in sorted(xndx)
+                ],
+                "usd_cny": [
+                    {"date": observed.isoformat(), "rate": fx[observed]}
+                    for observed in sorted(fx)
+                ],
+            },
+        )
+
+    @staticmethod
+    def _validate_coverage(
+        series: dict[date, float], label: str, required_start: date, as_of: date
+    ) -> None:
+        if not series or min(series) > required_start + timedelta(
+            days=BENCHMARK_MAX_STALENESS_DAYS
+        ):
+            raise DataError(f"{label} history does not cover the required three-year window")
+        latest = max(observed for observed in series if observed <= as_of)
+        if (as_of - latest).days > BENCHMARK_MAX_STALENESS_DAYS:
+            raise DataError(f"{label} history is stale as of {as_of}: latest {latest}")
+
+    def get(self, client: HttpClient, as_of: date) -> tuple[Nasdaq100Benchmark, list[str]]:
+        required_start = years_ago(as_of, BENCHMARK_WINDOW_YEARS) - timedelta(
+            days=BENCHMARK_HISTORY_BUFFER_DAYS
+        )
+        xndx, fx = self._load()
+        xndx = {observed: value for observed, value in xndx.items() if observed <= as_of}
+        fx = {observed: value for observed, value in fx.items() if observed <= as_of}
+        warnings: list[str] = []
+        cache_start = required_start - timedelta(days=BENCHMARK_MAX_STALENESS_DAYS)
+        if (
+            not xndx
+            or not fx
+            or min(xndx) > required_start + timedelta(days=BENCHMARK_MAX_STALENESS_DAYS)
+            or min(fx) > required_start + timedelta(days=BENCHMARK_MAX_STALENESS_DAYS)
+        ):
+            fetch_start = cache_start
+        else:
+            fetch_start = max(cache_start, min(max(xndx), max(fx)) - timedelta(days=7))
+
+        sources = (
+            ("Nasdaq XNDX", xndx, fetch_nasdaq100_history),
+            ("SAFE USD/CNY", fx, fetch_safe_usd_cny_history),
+        )
+        for label, series, fetcher in sources:
+            try:
+                series.update(fetcher(client, fetch_start, as_of))
+                self.fetches += 1
+            except DataError:
+                if not series:
+                    raise
+                self.fallbacks += 1
+                warnings.append(
+                    f"纳指100基准更新失败，使用完整缓存：{label} 最新数据 "
+                    f"{max(observed for observed in series if observed <= as_of).isoformat()}。"
+                )
+
+        xndx = {
+            observed: value
+            for observed, value in xndx.items()
+            if cache_start <= observed <= as_of
+        }
+        fx = {
+            observed: value
+            for observed, value in fx.items()
+            if cache_start <= observed <= as_of
+        }
+        self._validate_coverage(xndx, "Nasdaq XNDX", required_start, as_of)
+        self._validate_coverage(fx, "SAFE USD/CNY", required_start, as_of)
+        self._save(xndx, fx)
+        return Nasdaq100Benchmark(xndx, fx), warnings
+
+    def stats(self) -> dict[str, int]:
+        return {
+            "cache_hits": self.cache_hits,
+            "fetches": self.fetches,
+            "fallbacks": self.fallbacks,
+        }
+
+
 def parse_performance_page(payload: str, code: str) -> list[dict[str, Any]]:
     match = re.search(r"var\s+Data_netWorthTrend\s*=\s*(\[.*?\]);", payload, re.S)
     if not match:
@@ -455,6 +730,122 @@ def adjusted_daily_factor(
     return factor
 
 
+def build_adjusted_wealth_series(
+    points: list[dict[str, Any]], code: str, as_of: date
+) -> list[tuple[date, float]]:
+    available = [point for point in points if point["date"] <= as_of]
+    if not available:
+        raise DataError(f"No net-worth history on or before {as_of} for fund {code}")
+    wealth = 1.0
+    series = [(available[0]["date"], wealth)]
+    for previous, current in zip(available, available[1:]):
+        wealth *= adjusted_daily_factor(previous, current, code)
+        if not math.isfinite(wealth) or wealth <= 0:
+            raise DataError(f"Invalid adjusted wealth for fund {code} on {current['date']}")
+        series.append((current["date"], wealth))
+    return series
+
+
+def latest_series_value(
+    series: dict[date, float], ordered_dates: list[date], observed: date
+) -> tuple[date, float] | None:
+    index = bisect.bisect_right(ordered_dates, observed) - 1
+    if index < 0:
+        return None
+    source_date = ordered_dates[index]
+    if (observed - source_date).days > BENCHMARK_MAX_STALENESS_DAYS:
+        return None
+    return source_date, series[source_date]
+
+
+def calculate_nasdaq100_fit(
+    points: list[dict[str, Any]],
+    code: str,
+    as_of: date,
+    benchmark: Nasdaq100Benchmark,
+) -> dict[str, Any]:
+    wealth_series = build_adjusted_wealth_series(points, code, as_of)
+    end_date = wealth_series[-1][0]
+    target_start = years_ago(end_date, BENCHMARK_WINDOW_YEARS)
+    weekly: dict[date, tuple[date, float]] = {}
+    for observed, wealth in wealth_series:
+        if observed < target_start:
+            continue
+        week_start = observed - timedelta(days=observed.weekday())
+        weekly[week_start] = (observed, wealth)
+
+    xndx_dates = sorted(benchmark.xndx_levels)
+    fx_dates = sorted(benchmark.usd_cny_rates)
+    aligned: list[tuple[date, date, float, float]] = []
+    for week_start in sorted(weekly):
+        observed, wealth = weekly[week_start]
+        xndx = latest_series_value(benchmark.xndx_levels, xndx_dates, observed)
+        fx = latest_series_value(benchmark.usd_cny_rates, fx_dates, observed)
+        if xndx is None or fx is None:
+            continue
+        benchmark_level = xndx[1] * fx[1]
+        if not math.isfinite(benchmark_level) or benchmark_level <= 0:
+            raise DataError(f"Invalid CNY XNDX benchmark level for {code} on {observed}")
+        aligned.append((week_start, observed, wealth, benchmark_level))
+
+    fund_returns: list[float] = []
+    benchmark_returns: list[float] = []
+    interval_dates: list[tuple[date, date]] = []
+    for previous, current in zip(aligned, aligned[1:]):
+        if (current[0] - previous[0]).days != 7:
+            continue
+        fund_return = current[2] / previous[2] - 1
+        benchmark_return = current[3] / previous[3] - 1
+        if not math.isfinite(fund_return) or not math.isfinite(benchmark_return):
+            raise DataError(f"Non-finite weekly return for fund {code}")
+        fund_returns.append(fund_return)
+        benchmark_returns.append(benchmark_return)
+        interval_dates.append((previous[1], current[1]))
+
+    observations = len(fund_returns)
+    if observations < NASDAQ100_MIN_OBSERVATIONS:
+        raise DataError(
+            f"Fund {code} has only {observations} valid Nasdaq-100 weekly observations; "
+            f"requires {NASDAQ100_MIN_OBSERVATIONS}"
+        )
+    start_date = interval_dates[0][0]
+    fit_end_date = interval_dates[-1][1]
+    span_days = (fit_end_date - start_date).days
+    if span_days < NASDAQ100_MIN_SPAN_DAYS:
+        raise DataError(
+            f"Fund {code} Nasdaq-100 fit spans only {span_days} days; "
+            f"requires {NASDAQ100_MIN_SPAN_DAYS}"
+        )
+
+    fund_mean = statistics.mean(fund_returns)
+    benchmark_mean = statistics.mean(benchmark_returns)
+    covariance = sum(
+        (fund_return - fund_mean) * (benchmark_return - benchmark_mean)
+        for fund_return, benchmark_return in zip(fund_returns, benchmark_returns)
+    ) / (observations - 1)
+    fund_variance = statistics.variance(fund_returns)
+    benchmark_variance = statistics.variance(benchmark_returns)
+    if fund_variance <= 0 or benchmark_variance <= 0:
+        raise DataError(f"Fund {code} Nasdaq-100 fit has zero return variance")
+    correlation = covariance / math.sqrt(fund_variance * benchmark_variance)
+    correlation = min(1.0, max(-1.0, correlation))
+    beta = covariance / benchmark_variance
+    tracking_error_pct = statistics.stdev(
+        fund_return - benchmark_return
+        for fund_return, benchmark_return in zip(fund_returns, benchmark_returns)
+    ) * math.sqrt(52) * 100
+    if not all(math.isfinite(value) for value in (correlation, beta, tracking_error_pct)):
+        raise DataError(f"Fund {code} Nasdaq-100 fit contains a non-finite metric")
+    return {
+        "correlation": round(correlation, 4),
+        "beta": round(beta, 4),
+        "tracking_error_pct": round(tracking_error_pct, 2),
+        "observations": observations,
+        "start_date": start_date.isoformat(),
+        "end_date": fit_end_date.isoformat(),
+    }
+
+
 def calculate_trailing_performance(
     points: list[dict[str, Any]], code: str, as_of: date, years: int
 ) -> dict[str, Any] | None:
@@ -486,7 +877,10 @@ def calculate_trailing_performance(
 
 
 def fetch_trailing_performance(
-    client: HttpClient, fund: dict[str, Any], as_of: date
+    client: HttpClient,
+    fund: dict[str, Any],
+    as_of: date,
+    benchmark: Nasdaq100Benchmark | None = None,
 ) -> tuple[dict[str, Any], list[str]]:
     code = fund["code"]
     url = PERFORMANCE_DATA_URL.format(code=code, cache_buster=as_of.strftime("%Y%m%d"))
@@ -520,6 +914,15 @@ def fetch_trailing_performance(
                 f"{prefix}_performance_end_date": performance["end_date"],
             }
         )
+    if benchmark is not None:
+        try:
+            output["nasdaq100_fit"] = calculate_nasdaq100_fit(
+                points, code, as_of, benchmark
+            )
+            output["nasdaq100_fit_error"] = None
+        except DataError as exc:
+            output["nasdaq100_fit"] = None
+            output["nasdaq100_fit_error"] = str(exc)
     return output, warnings
 
 
@@ -533,12 +936,20 @@ class PerformanceResultCache:
 
     @staticmethod
     def _validate(
-        payload: dict[str, Any], code: str, as_of: date
+        payload: dict[str, Any],
+        code: str,
+        as_of: date,
+        benchmark: Nasdaq100Benchmark,
     ) -> tuple[dict[str, Any], list[str]]:
+        benchmark_identity = {
+            "index_latest_date": max(benchmark.xndx_levels).isoformat(),
+            "fx_latest_date": max(benchmark.usd_cny_rates).isoformat(),
+        }
         if (
             payload.get("schema_version") != PERFORMANCE_CACHE_SCHEMA_VERSION
             or payload.get("code") != code
             or payload.get("as_of") != as_of.isoformat()
+            or payload.get("benchmark") != benchmark_identity
         ):
             raise DataError("Cached performance identity does not match the request")
         performance = payload.get("performance")
@@ -555,12 +966,14 @@ class PerformanceResultCache:
             "three_year_max_drawdown_pct",
             "three_year_performance_start_date",
             "three_year_performance_end_date",
+            "nasdaq100_fit",
+            "nasdaq100_fit_error",
         }
         if not required_fields.issubset(performance):
             raise DataError("Cached performance fields are incomplete")
         if not all(isinstance(warning, str) for warning in warnings):
             raise DataError("Cached performance warnings are invalid")
-        for field in required_fields:
+        for field in required_fields - {"nasdaq100_fit", "nasdaq100_fit_error"}:
             value = performance[field]
             if field.endswith("_date"):
                 if value is not None and parse_date(str(value)) > as_of:
@@ -569,17 +982,48 @@ class PerformanceResultCache:
                 value, (int, float)
             ):
                 raise DataError("Cached performance metric is invalid")
+        fit = performance["nasdaq100_fit"]
+        fit_error = performance["nasdaq100_fit_error"]
+        if fit is None:
+            if not isinstance(fit_error, str) or not fit_error:
+                raise DataError("Cached Nasdaq-100 fit error is missing")
+        else:
+            if fit_error is not None or not isinstance(fit, dict):
+                raise DataError("Cached Nasdaq-100 fit payload is invalid")
+            expected_fit_fields = {
+                "correlation",
+                "beta",
+                "tracking_error_pct",
+                "observations",
+                "start_date",
+                "end_date",
+            }
+            if set(fit) != expected_fit_fields:
+                raise DataError("Cached Nasdaq-100 fit fields are incomplete")
+            for field in ("correlation", "beta", "tracking_error_pct"):
+                value = fit[field]
+                if not isinstance(value, (int, float)) or not math.isfinite(float(value)):
+                    raise DataError("Cached Nasdaq-100 fit metric is invalid")
+            if not isinstance(fit["observations"], int) or fit["observations"] < 0:
+                raise DataError("Cached Nasdaq-100 observation count is invalid")
+            for field in ("start_date", "end_date"):
+                if parse_date(str(fit[field])) > as_of:
+                    raise DataError("Cached Nasdaq-100 fit contains a future observation")
         return dict(performance), list(warnings)
 
     def get(
-        self, client: HttpClient, fund: dict[str, Any], as_of: date
+        self,
+        client: HttpClient,
+        fund: dict[str, Any],
+        as_of: date,
+        benchmark: Nasdaq100Benchmark,
     ) -> tuple[dict[str, Any], list[str]]:
         code = fund["code"]
         path = self.directory / as_of.isoformat() / f"{code}.json"
         if path.exists():
             try:
                 payload = json.loads(path.read_text(encoding="utf-8"))
-                result = self._validate(payload, code, as_of)
+                result = self._validate(payload, code, as_of, benchmark)
                 with self._stats_lock:
                     self.hits += 1
                 return result
@@ -588,13 +1032,17 @@ class PerformanceResultCache:
                     self.corrupt_rebuilds += 1
         with self._stats_lock:
             self.misses += 1
-        performance, warnings = fetch_trailing_performance(client, fund, as_of)
+        performance, warnings = fetch_trailing_performance(client, fund, as_of, benchmark)
         write_json(
             path,
             {
                 "schema_version": PERFORMANCE_CACHE_SCHEMA_VERSION,
                 "code": code,
                 "as_of": as_of.isoformat(),
+                "benchmark": {
+                    "index_latest_date": max(benchmark.xndx_levels).isoformat(),
+                    "fx_latest_date": max(benchmark.usd_cny_rates).isoformat(),
+                },
                 "performance": performance,
                 "warnings": warnings,
             },
@@ -643,6 +1091,7 @@ def filter_performance_and_us_exposure_full_scan(
     performance_cache: PerformanceResultCache | None = None,
     exposure_cache: FundExposureResultCache | None = None,
     performance_workers: int = PERFORMANCE_WORKERS,
+    benchmark: Nasdaq100Benchmark | None = None,
 ) -> tuple[list[dict[str, Any]], list[str], int, int, int, int]:
     warnings: list[str] = []
     performance_results: list[tuple[dict[str, Any], list[str]] | None] = [
@@ -653,8 +1102,10 @@ def filter_performance_and_us_exposure_full_scan(
         fund: dict[str, Any],
     ) -> tuple[dict[str, Any], list[str]]:
         if performance_cache is not None:
-            return performance_cache.get(client, fund, as_of)
-        return fetch_trailing_performance(client, fund, as_of)
+            if benchmark is None:
+                raise DataError("Nasdaq-100 benchmark is required with the performance cache")
+            return performance_cache.get(client, fund, as_of, benchmark)
+        return fetch_trailing_performance(client, fund, as_of, benchmark)
 
     if candidates:
         with ThreadPoolExecutor(
@@ -692,11 +1143,18 @@ def filter_performance_and_us_exposure_full_scan(
         warnings.extend(f"{fund['code']} {warning}" for warning in exposure_warnings)
         if exposure["status"] != "qualified":
             continue
+        if not isinstance(fund.get("nasdaq100_fit"), dict):
+            detail = fund.get("nasdaq100_fit_error") or "unknown calculation error"
+            raise DataError(
+                f"Nasdaq-100 fit is unavailable for qualified fund {fund['code']}: {detail}"
+            )
         exposure_qualified.append(
             {**fund, "us_equity_exposure": exposure}
         )
     exposure_qualified.sort(
         key=lambda item: (
+            -item["nasdaq100_fit"]["correlation"],
+            abs(item["nasdaq100_fit"]["beta"] - 1),
             -item["us_equity_exposure"]["confirmed_pct"],
             -item.get("institution_holding_ratio_pct", 0),
             -item["three_year_return_pct"],
@@ -1673,6 +2131,14 @@ def format_percentage(value: float | None, show_sign: bool = False) -> str:
     return f"{value:+.2f}%" if show_sign else f"{value:.2f}%"
 
 
+def format_correlation(value: float) -> str:
+    return f"{value * 100:.1f}%"
+
+
+def format_beta(value: float) -> str:
+    return f"{value:.2f}"
+
+
 def summarize_periods(records: list[dict[str, Any]], prefix: str) -> str:
     periods = sorted(
         {
@@ -1715,6 +2181,12 @@ def write_csv(path: Path, records: list[dict[str, Any]]) -> None:
         "three_year_max_drawdown_pct",
         "three_year_performance_start_date",
         "three_year_performance_end_date",
+        "nasdaq100_correlation",
+        "nasdaq100_beta",
+        "nasdaq100_tracking_error_pct",
+        "nasdaq100_observations",
+        "nasdaq100_start_date",
+        "nasdaq100_end_date",
         "us_equity_confirmed_pct",
         "us_equity_possible_pct",
         "us_equity_status",
@@ -1738,6 +2210,14 @@ def write_csv(path: Path, records: list[dict[str, Any]]) -> None:
             writer.writerow(
                 {
                     **{field: item.get(field) for field in fields},
+                    "nasdaq100_correlation": item["nasdaq100_fit"]["correlation"],
+                    "nasdaq100_beta": item["nasdaq100_fit"]["beta"],
+                    "nasdaq100_tracking_error_pct": item["nasdaq100_fit"][
+                        "tracking_error_pct"
+                    ],
+                    "nasdaq100_observations": item["nasdaq100_fit"]["observations"],
+                    "nasdaq100_start_date": item["nasdaq100_fit"]["start_date"],
+                    "nasdaq100_end_date": item["nasdaq100_fit"]["end_date"],
                     "us_equity_confirmed_pct": item["us_equity_exposure"]["confirmed_pct"],
                     "us_equity_possible_pct": item["us_equity_exposure"]["possible_pct"],
                     "us_equity_status": item["us_equity_exposure"]["status"],
@@ -1757,7 +2237,7 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
         sorted({item["scale_report_date"] for item in records})
     )
     lines = [
-        "# QDII 美股含量榜单",
+        "# QDII 纳指相关榜单",
         "",
         f"- 更新日期：{payload['run_date']}",
         f"- 机构持仓报告期：{payload['holder_report_date']}",
@@ -1771,7 +2251,7 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
         f"美股占比确认下限 >= {payload['filters']['min_us_equity_pct']:g}%；"
         f"名称排除 {'、'.join(payload['filters']['exclude_keywords']) or '无'}；"
         "人民币 A 类或无 C/D 标记的人民币主份额；场外可申购",
-        "- 排名规则：美股确认下限降序；同值时依次按机构持仓、近三年收益和基金代码排序",
+        "- 排名规则：纳指100相关性降序；同值时依次按 Beta 接近 1、美股确认下限、机构持仓、近三年收益和基金代码排序",
         f"- 全量筛选：基础候选 {payload['filters']['base_candidates_total']} 只；"
         f"业绩扫描 {payload['filters']['performance_candidates_scanned']} 只；"
         f"业绩达标及美股扫描 {payload['filters']['us_equity_candidates_scanned']} 只；"
@@ -1781,8 +2261,8 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
         f"报告缓存命中 {payload['cache']['periodic_reports']['hits']} 次、"
         f"下载 {payload['cache']['periodic_reports']['downloads']} 次",
         "",
-        "| 排名 | 基金 | 成立日 | 机构持有 | 规模 | 近一年涨幅 | 近一年最大回撤 | 近三年涨幅 | 近三年最大回撤 | 美股占比确认下限 | 直销额度 | 代销额度 | 计算规则 |",
-        "|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|",
+        "| 排名 | 基金 | 成立日 | 机构持有 | 规模 | 近一年涨幅 | 近一年最大回撤 | 近三年涨幅 | 近三年最大回撤 | 纳指相关性 | Beta | 美股占比确认下限 | 直销额度 | 代销额度 | 计算规则 |",
+        "|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|",
     ]
     for item in payload["records"]:
         source = item["quota_source_urls"][-1] if item["quota_source_urls"] else item["fund_page_url"]
@@ -1795,6 +2275,8 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
             f"{format_percentage(item['one_year_max_drawdown_pct'])} | "
             f"{format_percentage(item['three_year_return_pct'], show_sign=True)} | "
             f"{format_percentage(item['three_year_max_drawdown_pct'])} | "
+            f"{format_correlation(item['nasdaq100_fit']['correlation'])} | "
+            f"{format_beta(item['nasdaq100_fit']['beta'])} | "
             f"[{format_percentage(item['us_equity_exposure']['confirmed_pct'])}]"
             f"({item['us_equity_exposure']['source_url']}) | "
             f"{format_limit(item['direct_limit'])} | {format_limit(item['agency_limit'])} | {rule} |"
@@ -1840,6 +2322,7 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
     cards: list[str] = []
     for item in records:
         exposure = item["us_equity_exposure"]
+        fit = item["nasdaq100_fit"]
         direct_text = format_limit(item["direct_limit"])
         agency_text = format_limit(item["agency_limit"])
         direct_link = html_source_link(direct_text, item["direct_limit"].get("source_url"))
@@ -1848,6 +2331,12 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
             f"定期报告 {exposure['report_date']}", exposure.get("source_url")
         )
         fund_link = html_source_link("基金主页", item["fund_page_url"])
+        index_link = html_source_link(
+            "Nasdaq XNDX", payload["benchmark"]["index_source_url"]
+        )
+        fx_link = html_source_link(
+            "美元兑人民币中间价", payload["benchmark"]["fx_source_url"]
+        )
         cards.append(
             f"""
       <details class="fund-item" data-code="{html.escape(item['code'], quote=True)}">
@@ -1858,6 +2347,10 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
             <span class="fund-code">{html.escape(item['code'])}</span>
           </span>
           <span class="summary-metrics">
+            <span class="summary-metric fit">
+              <span class="metric-label">纳指相关 / β</span>
+              <span class="metric-value">{format_correlation(fit['correlation'])} · {format_beta(fit['beta'])}</span>
+            </span>
             <span class="summary-metric accent">
               <span class="metric-label">美股下限</span>
               <span class="metric-value">{format_percentage(exposure['confirmed_pct'])}</span>
@@ -1887,6 +2380,10 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
             <div><dt>近一年最大回撤</dt><dd class="negative-text">{format_percentage(item['one_year_max_drawdown_pct'])}</dd></div>
             <div><dt>近三年收益</dt><dd class="positive-text">{format_percentage(item['three_year_return_pct'], show_sign=True)}</dd></div>
             <div><dt>近三年最大回撤</dt><dd class="negative-text">{format_percentage(item['three_year_max_drawdown_pct'])}</dd></div>
+            <div><dt>纳指100相关性</dt><dd>{format_correlation(fit['correlation'])}</dd></div>
+            <div><dt>纳指 Beta</dt><dd>{format_beta(fit['beta'])}</dd></div>
+            <div><dt>年化跟踪误差</dt><dd>{format_percentage(fit['tracking_error_pct'])}</dd></div>
+            <div><dt>相关性样本</dt><dd>{fit['observations']} 周</dd></div>
             <div><dt>美股可能上限</dt><dd>{format_percentage(exposure['possible_pct'])}</dd></div>
             <div><dt>未解析仓位</dt><dd>{format_percentage(exposure['unresolved_pct'])}</dd></div>
           </dl>
@@ -1897,10 +2394,13 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
           <dl class="rule-grid">
             <div><dt>额度计算</dt><dd>{html.escape(format_rule(item['share_class_rule'], item['channel_rule']))}</dd></div>
             <div><dt>净值区间</dt><dd>{html.escape(item['three_year_performance_start_date'])} 至 {html.escape(item['three_year_performance_end_date'])}</dd></div>
+            <div><dt>纳指相关区间</dt><dd>{html.escape(fit['start_date'])} 至 {html.escape(fit['end_date'])}</dd></div>
           </dl>
           <div class="source-row">
             {report_link}
             {fund_link}
+            {index_link}
+            {fx_link}
           </div>
         </div>
       </details>"""
@@ -1923,7 +2423,7 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light">
-  <title>QDII 美股含量榜单 · {html.escape(payload['run_date'])}</title>
+  <title>QDII 纳指相关榜单 · {html.escape(payload['run_date'])}</title>
   <style>
     :root {{
       color-scheme: light;
@@ -2035,6 +2535,7 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
       background: #f7f8fa;
     }}
     .summary-metric.accent {{ border-color: var(--accent); background: var(--accent-soft); }}
+    .summary-metric.fit {{ grid-column: span 2; border-color: var(--link); background: #eef4fb; }}
     .summary-metric.positive {{ border-color: var(--positive); }}
     .metric-value {{ font-weight: 750; font-variant-numeric: tabular-nums; white-space: nowrap; }}
     .metric-value.quota {{ font-size: 14px; }}
@@ -2078,8 +2579,9 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
     @media (min-width: 820px) {{
       .page {{ padding-top: 28px; }}
       .meta-grid {{ grid-template-columns: repeat(4, minmax(0, 1fr)); }}
-      .fund-item summary {{ grid-template-columns: 38px minmax(220px, 1fr) minmax(390px, 430px) 18px; gap: 12px; padding: 14px 16px; }}
-      .summary-metrics {{ grid-column: 3; grid-row: 1; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 0; }}
+      .fund-item summary {{ grid-template-columns: 38px minmax(210px, 1fr) minmax(455px, 500px) 18px; gap: 12px; padding: 14px 16px; }}
+      .summary-metrics {{ grid-column: 3; grid-row: 1; grid-template-columns: repeat(5, minmax(0, 1fr)); margin-top: 0; }}
+      .summary-metric.fit {{ grid-column: span 1; }}
       .summary-metric {{ padding-inline: 8px; }}
       .chevron {{ grid-column: 4; }}
       .fund-detail {{ padding: 18px 66px 20px; }}
@@ -2093,7 +2595,7 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
   <div class="page">
     <header class="page-header">
       <div class="title-row">
-        <h1>QDII 美股含量榜单</h1>
+        <h1>QDII 纳指相关榜单</h1>
         <time class="run-date" datetime="{html.escape(payload['run_date'], quote=True)}">{html.escape(payload['run_date'])}</time>
       </div>
       <p class="filter-line">{filter_html}</p>
@@ -2101,12 +2603,13 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
         <div><dt>机构持仓报告期</dt><dd>{html.escape(payload['holder_report_date'])}</dd></div>
         <div><dt>规模报告期</dt><dd>{html.escape(scale_dates)}</dd></div>
         <div><dt>近一年净值区间</dt><dd>{html.escape(summarize_periods(records, 'one_year'))}</dd></div>
+        <div><dt>纳指基准更新</dt><dd>XNDX {html.escape(payload['benchmark']['index_latest_date'])} · 汇率 {html.escape(payload['benchmark']['fx_latest_date'])}</dd></div>
         <div><dt>全量扫描</dt><dd>{filters.get('base_candidates_total', len(records))} 只基础候选</dd></div>
         <div><dt>数据警告</dt><dd>{len(payload['warnings'])} 项</dd></div>
       </dl>
     </header>
     <main>
-      <section class="ranking-list" aria-label="美股含量基金榜单">
+      <section class="ranking-list" aria-label="纳指相关基金榜单">
         {''.join(cards)}
       </section>
       {warning_section}
@@ -2146,6 +2649,11 @@ def build_payload(args: argparse.Namespace, client: HttpClient) -> dict[str, Any
     resolver = LookthroughResolver(
         args.us_equity_catalog.resolve(), cache_root / "us-equity-lookthrough.json"
     )
+    benchmark_cache = Nasdaq100BenchmarkCache(
+        cache_root / "benchmarks" / "nasdaq100-cny.json"
+    )
+    benchmark, benchmark_warnings = benchmark_cache.get(client, as_of)
+    warnings.extend(benchmark_warnings)
     performance_cache = PerformanceResultCache(cache_root / "performance")
     exposure_cache = FundExposureResultCache(cache_root / "fund-us-equity-exposures")
     (
@@ -2166,6 +2674,7 @@ def build_payload(args: argparse.Namespace, client: HttpClient) -> dict[str, Any
         resolver,
         performance_cache,
         exposure_cache,
+        benchmark=benchmark,
     )
     warnings.extend(performance_warnings)
     records: list[dict[str, Any]] = []
@@ -2195,6 +2704,7 @@ def build_payload(args: argparse.Namespace, client: HttpClient) -> dict[str, Any
                 "three_year_max_drawdown_pct": fund["three_year_max_drawdown_pct"],
                 "three_year_performance_start_date": fund["three_year_performance_start_date"],
                 "three_year_performance_end_date": fund["three_year_performance_end_date"],
+                "nasdaq100_fit": fund["nasdaq100_fit"],
                 "us_equity_exposure": fund["us_equity_exposure"],
                 **quota,
             }
@@ -2204,7 +2714,7 @@ def build_payload(args: argparse.Namespace, client: HttpClient) -> dict[str, Any
             f"仅 {len(records)} 只基金符合全部条件；已向下补位但候选池仍不足 {args.top} 只。"
         )
     return {
-        "schema_version": 6,
+        "schema_version": 7,
         "run_date": as_of.isoformat(),
         "generated_at": datetime.now(SHANGHAI_TZ).isoformat(timespec="seconds"),
         "holder_report_date": selected.report_date,
@@ -2225,6 +2735,7 @@ def build_payload(args: argparse.Namespace, client: HttpClient) -> dict[str, Any
                 and us_equity_scanned_count == performance_qualified_count
             ),
             "ranking_method": (
+                "nasdaq100_correlation desc, abs(nasdaq100_beta - 1) asc, "
                 "us_equity_confirmed_pct desc, institution_holding_ratio_pct desc, "
                 "three_year_return_pct desc, code asc"
             ),
@@ -2237,17 +2748,21 @@ def build_payload(args: argparse.Namespace, client: HttpClient) -> dict[str, Any
             "purchasable_only": True,
         },
         "cache": {
+            "nasdaq100_benchmark": benchmark_cache.stats(),
             "performance": performance_cache.stats(),
             "fund_us_equity_exposures": exposure_cache.stats(),
             "periodic_reports": report_cache.stats(),
             "underlying_exposures": resolver.stats(),
         },
+        "benchmark": benchmark.metadata(),
         "records": records,
         "warnings": list(dict.fromkeys(warnings)),
         "sources": {
             "fund_list": FUND_LIST_URL,
             "holder_data": HOLDER_API_URL,
             "performance": PERFORMANCE_DATA_URL,
+            "nasdaq100_total_return": NASDAQ100_HISTORY_PAGE_URL,
+            "usd_cny": SAFE_USD_CNY_HISTORY_URL,
             "announcements": ANNOUNCEMENT_API_URL,
             "periodic_reports": ANNOUNCEMENT_API_URL,
             "us_equity_instrument_catalog": str(args.us_equity_catalog.resolve()),

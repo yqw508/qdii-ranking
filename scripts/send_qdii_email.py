@@ -34,6 +34,14 @@ def format_percentage(value: Any, show_sign: bool = False) -> str:
     return f"{number:+.2f}%" if show_sign else f"{number:.2f}%"
 
 
+def format_correlation(value: Any) -> str:
+    return f"{float(value) * 100:.1f}%"
+
+
+def format_beta(value: Any) -> str:
+    return f"{float(value):.2f}"
+
+
 def format_limit(limit: Mapping[str, Any]) -> str:
     status = limit.get("status")
     if status == "unlimited":
@@ -86,7 +94,7 @@ def material_notes(payload: Mapping[str, Any]) -> list[str]:
     for warning in payload.get("warnings", []):
         if warning.startswith("跳过未完整披露的持有人报告期") or (
             "美股占比区间" in warning and "按保守规则排除" in warning
-        ):
+        ) or warning.startswith("纳指100基准更新失败，使用完整缓存："):
             notes.append(warning)
     for record in payload["records"]:
         exposure = record["us_equity_exposure"]
@@ -102,13 +110,15 @@ def material_notes(payload: Mapping[str, Any]) -> list[str]:
 
 def success_plain_text(payload: Mapping[str, Any], page_url: str) -> str:
     lines = [
-        f"QDII 美股含量榜单已于 {payload['run_date']} 更新并发布。",
+        f"QDII 纳指相关榜单已于 {payload['run_date']} 更新并发布。",
         "",
-        "排名  基金代码  基金名称  美股下限  近三年收益  直销/代销额度",
+        "排名  基金代码  基金名称  纳指相关/Beta  美股下限  近三年收益  直销/代销额度",
     ]
     for record in payload["records"]:
         lines.append(
             f"{record['rank']:>2}  {record['code']}  {record['name']}  "
+            f"{format_correlation(record['nasdaq100_fit']['correlation'])}/"
+            f"{format_beta(record['nasdaq100_fit']['beta'])}  "
             f"{format_percentage(record['us_equity_exposure']['confirmed_pct'])}  "
             f"{format_percentage(record['three_year_return_pct'], show_sign=True)}  "
             f"{format_limit(record['direct_limit'])}/{format_limit(record['agency_limit'])}"
@@ -123,11 +133,13 @@ def success_plain_text(payload: Mapping[str, Any], page_url: str) -> str:
 def success_html(payload: Mapping[str, Any], page_url: str) -> str:
     rows: list[str] = []
     for record in payload["records"]:
+        fit = record["nasdaq100_fit"]
         rows.append(
             "<tr>"
             f"<td>{record['rank']}</td>"
             f"<td><strong>{html.escape(record['name'])}</strong>"
             f"<br><span>{html.escape(record['code'])}</span></td>"
+            f"<td>{format_correlation(fit['correlation'])}<br>β {format_beta(fit['beta'])}</td>"
             f"<td>{format_percentage(record['us_equity_exposure']['confirmed_pct'])}</td>"
             f"<td>{format_percentage(record['three_year_return_pct'], show_sign=True)}</td>"
             f"<td>{float(record['scale_billion_cny']):.2f} 亿元</td>"
@@ -147,12 +159,13 @@ def success_html(payload: Mapping[str, Any], page_url: str) -> str:
 <html lang="zh-CN">
 <head><meta charset="utf-8"></head>
 <body style="font-family:Arial,'Microsoft YaHei',sans-serif;color:#202124;line-height:1.5">
-  <h1 style="font-size:20px;margin:0 0 8px">QDII 美股含量榜单</h1>
+  <h1 style="font-size:20px;margin:0 0 8px">QDII 纳指相关榜单</h1>
   <p style="margin:0 0 16px">{html.escape(payload['run_date'])} 已更新并发布。</p>
   <table style="border-collapse:collapse;width:100%;font-size:13px">
     <thead><tr>
       <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">排名</th>
       <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">基金</th>
+      <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">纳指相关 / Beta</th>
       <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">美股下限</th>
       <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">近三年</th>
       <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">规模</th>

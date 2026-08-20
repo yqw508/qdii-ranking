@@ -20,8 +20,12 @@
   increase the possible upper bound; never use an interval midpoint.
 - Evaluate performance for every base-qualified candidate and US exposure for every
   performance-qualified candidate. Do not stop after finding ten funds.
-- Rank by confirmed US-equity exposure descending, then institutional holding descending, trailing
-  three-year return descending, and fund code ascending. Output the first ten without relaxing filters.
+- Calculate the three-year weekly correlation and beta against the official Nasdaq-100 total-return
+  index converted to CNY for every candidate during the performance scan. Every US-exposure-qualified
+  candidate must have a complete fit result.
+- Rank by Nasdaq-100 correlation descending, then beta distance from 1 ascending, confirmed US-equity
+  exposure descending, institutional holding descending, trailing three-year return descending, and
+  fund code ascending. Output the first ten without relaxing filters.
 - Keep the 95% holder-period completeness rule. Do not use a partially disclosed newer period unless
   the user explicitly requests it.
 - Never infer an unknown subscription quota. Use parsed manager announcements, preserve channel and

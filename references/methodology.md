@@ -7,6 +7,8 @@
 - Current scale and purchase state: `https://fund.eastmoney.com/{code}.html`
 - Inception date: `https://fund.eastmoney.com/{code}.html`
 - Net-worth trend: `https://fund.eastmoney.com/pingzhongdata/{code}.js`
+- Nasdaq-100 gross total-return history: `https://indexes.nasdaq.com/Index/History/XNDX`
+- Official USD/CNY central parity history: `https://www.safe.gov.cn/AppStructured/hlw/RMBQuery.do`
 - Announcement index: `https://api.fund.eastmoney.com/f10/JJGG`
 - Announcement PDF: `https://pdf.dfcfw.com/pdf/H2_{announcement_id}_1.pdf`
 - Official issuer product pages recorded in `us-equity-instruments.json` for underlying-fund
@@ -32,8 +34,12 @@ cannot be parsed. Never silently drop a failed page or fund.
 9. For every performance-qualified candidate, parse the latest quarterly, semiannual, or annual report
    disclosed on or before the requested as-of date. Require the conservatively confirmed US-equity
    exposure to meet or exceed the configured threshold.
-10. Rank all fully qualified candidates by confirmed US-equity exposure descending, institutional
-    holding ratio descending, three-year adjusted return descending, and fund code ascending. Apply the
+10. Calculate the trailing three-year Nasdaq-100 fit for every candidate while parsing its net-worth
+    history. A missing fit blocks the update only when that fund also passes the performance and
+    US-equity filters, because it could otherwise enter the ranking.
+11. Rank all fully qualified candidates by Nasdaq-100 correlation descending. For equal serialized
+    correlations, prefer beta closest to 1, then confirmed US-equity exposure, institutional holding
+    ratio, and three-year adjusted return descending, followed by fund code ascending. Apply the
     configured top count only after this full scan; resolve subscription quotas only for the final list.
 
 ## US-Equity Exposure
@@ -56,7 +62,10 @@ cannot be parsed. Never silently drop a failed page or fund.
   classify an underlying fund does not stop the update because the conservative interval preserves the
   uncertainty explicitly.
 
-Performance results are cached by fund code and as-of date. Fund-level exposure calculations are cached
+Performance results, including Nasdaq-100 fit, are cached by fund code, as-of date, and the latest
+benchmark source dates. The rolling benchmark cache stores validated XNDX and USD/CNY daily history and
+is incrementally refreshed; a complete cache may be used when a source is temporarily unavailable, but
+stale or incomplete benchmark data stops the update. Fund-level exposure calculations are cached
 by fund code, announcement ID, report period, calculation-method version, and underlying-catalog
 fingerprint; threshold status is reapplied at runtime. Periodic report PDFs are cached by announcement
 ID. Every PDF cache hit is checked for a valid PDF and extractable text; a damaged entry is downloaded
@@ -76,6 +85,16 @@ announcements, NAV observations, or numeric allocations dated after the requeste
   a non-positive percentage.
 - Preserve the actual start and end NAV observation dates for both windows. If a fund lacks a complete
   window, keep that window's metrics null and emit a warning rather than annualizing partial history.
+- Convert the official XNDX gross total-return index to CNY by multiplying each USD index level by the
+  latest official USD/CNY central parity rate on or before that date. Neither source may be carried
+  forward more than seven calendar days, and future observations are never used.
+- For Nasdaq-100 fit, take the final adjusted fund wealth observation in each ISO week over the trailing
+  three years. Pair the benchmark to that fund observation date, and calculate returns only between
+  adjacent ISO weeks; never bridge a missing week.
+- Require at least 140 paired weekly returns spanning at least 1,000 days. Correlation is Pearson's
+  correlation coefficient, beta is sample covariance divided by benchmark sample variance, and annualized
+  tracking error is the sample standard deviation of weekly active returns multiplied by the square root
+  of 52.
 
 ## Quota Precedence
 
@@ -103,7 +122,9 @@ manager-level direct quota. Preserve the source link and tell the user to inspec
 - `channel_rule` records whether direct and agency channels differ or share an all-channel ceiling.
 - Dates for holder data, inception, scale, performance observations, quota effectiveness, and the run
   must always remain visible.
-- `us_equity_exposure.confirmed_pct` is the ranking value. `possible_pct`, `unresolved_pct`, components,
+- `nasdaq100_fit.correlation` is the primary ranking value. `beta`, annualized tracking error, observation
+  count, and actual dates preserve its audit trail. `us_equity_exposure.confirmed_pct` remains a required
+  eligibility threshold and downstream tie-breaker. `possible_pct`, `unresolved_pct`, components,
   report date, announcement date, and source URL preserve the calculation audit trail.
 - `latest.html` is a self-contained mobile presentation generated from the same payload as JSON, CSV,
   and Markdown. It does not replace JSON as the structured source of truth.

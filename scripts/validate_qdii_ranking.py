@@ -27,6 +27,13 @@ EXPECTED_FILTERS = {
     "min_us_equity_pct": 50.0,
 }
 EXPECTED_EXCLUDE_KEYWORDS = {"债", "亚洲", "中国", "港"}
+EXPECTED_RANKING_METHOD = (
+    "nasdaq100_correlation desc, abs(nasdaq100_beta - 1) asc, "
+    "us_equity_confirmed_pct desc, institution_holding_ratio_pct desc, "
+    "three_year_return_pct desc, code asc"
+)
+NASDAQ100_MIN_OBSERVATIONS = 140
+NASDAQ100_MIN_SPAN_DAYS = 1000
 MARKDOWN_ROW_RE = re.compile(
     r"^\|\s*(\d+)\s*\|\s*\[(.+)\s+(\d{6})\]\([^)]+\)\s*\|"
 )
@@ -103,6 +110,14 @@ def format_percentage(value: Any, show_sign: bool = False) -> str:
     return f"{number:+.2f}%" if show_sign else f"{number:.2f}%"
 
 
+def format_correlation(value: Any) -> str:
+    return f"{as_number(value, 'correlation') * 100:.1f}%"
+
+
+def format_beta(value: Any) -> str:
+    return f"{as_number(value, 'beta'):.2f}"
+
+
 def format_limit(limit: dict[str, Any]) -> str:
     status = limit.get("status")
     if status == "unlimited":
@@ -126,6 +141,8 @@ def is_reportable_warning(warning: str) -> bool:
     if "前十大基金之外尚有" in warning and "仅计入可能上限" in warning:
         return True
     if "美股占比区间" in warning and "按保守规则排除" in warning:
+        return True
+    if warning.startswith("纳指100基准更新失败，使用完整缓存："):
         return True
     return False
 
@@ -162,6 +179,10 @@ def validate_filters(filters: Any) -> None:
     require(filters.get("purchasable_only") is True, "purchasable_only must be true")
     require(filters.get("full_scan_completed") is True, "Full scan was not completed")
     require(
+        filters.get("ranking_method") == EXPECTED_RANKING_METHOD,
+        "Ranking method is not the Nasdaq-100 correlation rule",
+    )
+    require(
         filters.get("performance_candidates_scanned")
         == filters.get("base_candidates_total"),
         "Performance scan count does not match the base candidate count",
@@ -176,6 +197,40 @@ def validate_filters(filters: Any) -> None:
         and filters["us_equity_qualified_count"] >= EXPECTED_FILTERS["top"],
         "Fewer than ten funds qualified for US-equity exposure",
     )
+
+
+def validate_benchmark(benchmark: Any, run_date: date) -> None:
+    require(isinstance(benchmark, dict), "benchmark must be an object")
+    require(benchmark.get("symbol") == "XNDX", "Unexpected benchmark symbol")
+    require(
+        benchmark.get("return_type") == "gross_total_return",
+        "Unexpected benchmark return type",
+    )
+    require(benchmark.get("currency") == "CNY", "Benchmark must be CNY converted")
+    require(benchmark.get("window_years") == 3, "Unexpected benchmark window")
+    require(benchmark.get("frequency") == "weekly", "Unexpected benchmark frequency")
+    require(
+        benchmark.get("max_source_staleness_days") == 7,
+        "Unexpected benchmark staleness rule",
+    )
+    require(
+        benchmark.get("min_observations") == NASDAQ100_MIN_OBSERVATIONS,
+        "Unexpected benchmark observation rule",
+    )
+    require(
+        benchmark.get("min_span_days") == NASDAQ100_MIN_SPAN_DAYS,
+        "Unexpected benchmark span rule",
+    )
+    for field in ("index_source_url", "fx_source_url"):
+        require(bool(benchmark.get(field)), f"Benchmark {field} is missing")
+    for prefix in ("index", "fx"):
+        start = parse_date(benchmark[f"{prefix}_start_date"])
+        latest = parse_date(benchmark[f"{prefix}_latest_date"])
+        require(start <= latest <= run_date, f"Benchmark {prefix} dates are invalid")
+        require(
+            (run_date - latest).days <= 7,
+            f"Benchmark {prefix} source is stale",
+        )
 
 
 def validate_limit(limit: Any, code: str, channel: str) -> None:
@@ -246,6 +301,41 @@ def validate_records(payload: dict[str, Any]) -> list[dict[str, Any]]:
         ):
             as_number(record.get(field), f"{code} {field}")
 
+        fit = record.get("nasdaq100_fit")
+        require(isinstance(fit, dict), f"{code} has no Nasdaq-100 fit")
+        correlation = as_number(fit.get("correlation"), f"{code} correlation")
+        beta = as_number(fit.get("beta"), f"{code} beta")
+        tracking_error = as_number(
+            fit.get("tracking_error_pct"), f"{code} tracking error"
+        )
+        require(-1 <= correlation <= 1, f"{code} correlation is outside [-1, 1]")
+        require(tracking_error >= 0, f"{code} tracking error is negative")
+        require(math.isfinite(beta), f"{code} beta must be finite")
+        require(
+            correlation == round(correlation, 4) and beta == round(beta, 4),
+            f"{code} correlation or beta exceeds four decimal places",
+        )
+        require(
+            tracking_error == round(tracking_error, 2),
+            f"{code} tracking error exceeds two decimal places",
+        )
+        observations = fit.get("observations")
+        require(
+            isinstance(observations, int)
+            and observations >= NASDAQ100_MIN_OBSERVATIONS,
+            f"{code} has insufficient Nasdaq-100 observations",
+        )
+        fit_start = parse_date(str(fit.get("start_date")))
+        fit_end = parse_date(str(fit.get("end_date")))
+        require(
+            fit_start <= fit_end <= run_date,
+            f"{code} Nasdaq-100 fit dates are invalid",
+        )
+        require(
+            (fit_end - fit_start).days >= NASDAQ100_MIN_SPAN_DAYS,
+            f"{code} Nasdaq-100 fit span is too short",
+        )
+
         exposure = record.get("us_equity_exposure")
         require(isinstance(exposure, dict), f"{code} has no US-equity exposure")
         confirmed = as_number(exposure.get("confirmed_pct"), f"{code} confirmed exposure")
@@ -287,6 +377,8 @@ def validate_records(payload: dict[str, Any]) -> list[dict[str, Any]]:
     expected_order = sorted(
         records,
         key=lambda item: (
+            -float(item["nasdaq100_fit"]["correlation"]),
+            abs(float(item["nasdaq100_fit"]["beta"]) - 1),
             -float(item["us_equity_exposure"]["confirmed_pct"]),
             -float(item["institution_holding_ratio_pct"]),
             -float(item["three_year_return_pct"]),
@@ -295,7 +387,7 @@ def validate_records(payload: dict[str, Any]) -> list[dict[str, Any]]:
     )
     require(
         [item["code"] for item in records] == [item["code"] for item in expected_order],
-        "Ranking order does not match the established sort rule",
+        "Ranking order does not match the Nasdaq-100 correlation sort rule",
     )
     return records
 
@@ -343,6 +435,27 @@ def validate_csv(path: Path, records: list[dict[str, Any]]) -> None:
                 math.isclose(float(row[csv_field]), float(record[json_field]), abs_tol=1e-9),
                 f"CSV {csv_field} differs for {code}",
             )
+        fit = record["nasdaq100_fit"]
+        for csv_field, fit_field in (
+            ("nasdaq100_correlation", "correlation"),
+            ("nasdaq100_beta", "beta"),
+            ("nasdaq100_tracking_error_pct", "tracking_error_pct"),
+        ):
+            require(
+                math.isclose(
+                    float(row[csv_field]), float(fit[fit_field]), abs_tol=1e-9
+                ),
+                f"CSV {csv_field} differs for {code}",
+            )
+        require(
+            row["nasdaq100_observations"] == str(fit["observations"]),
+            f"CSV Nasdaq-100 observations differ for {code}",
+        )
+        require(
+            row["nasdaq100_start_date"] == fit["start_date"]
+            and row["nasdaq100_end_date"] == fit["end_date"],
+            f"CSV Nasdaq-100 dates differ for {code}",
+        )
         exposure = record["us_equity_exposure"]
         require(
             math.isclose(
@@ -397,6 +510,8 @@ def validate_markdown(path: Path, payload: dict[str, Any], records: list[dict[st
             format_percentage(record["one_year_max_drawdown_pct"]),
             format_percentage(record["three_year_return_pct"], show_sign=True),
             format_percentage(record["three_year_max_drawdown_pct"]),
+            format_correlation(record["nasdaq100_fit"]["correlation"]),
+            format_beta(record["nasdaq100_fit"]["beta"]),
             format_percentage(record["us_equity_exposure"]["confirmed_pct"]),
             format_limit(record["direct_limit"]),
             format_limit(record["agency_limit"]),
@@ -433,6 +548,12 @@ def validate_html_document(
             format_percentage(record["us_equity_exposure"]["confirmed_pct"]),
             format_percentage(record["three_year_return_pct"], show_sign=True),
             format_percentage(record["three_year_max_drawdown_pct"]),
+            format_correlation(record["nasdaq100_fit"]["correlation"]),
+            format_beta(record["nasdaq100_fit"]["beta"]),
+            format_percentage(record["nasdaq100_fit"]["tracking_error_pct"]),
+            f"{record['nasdaq100_fit']['observations']} 周",
+            record["nasdaq100_fit"]["start_date"],
+            record["nasdaq100_fit"]["end_date"],
             format_limit(record["direct_limit"]),
             format_limit(record["agency_limit"]),
         )
@@ -443,13 +564,14 @@ def validate_local_artifacts(
     output_dir: Path, publish_dir: Path, expected_date: str
 ) -> tuple[dict[str, Any], list[str]]:
     payload = load_payload(output_dir / "latest.json")
-    require(payload.get("schema_version") == 6, "Unexpected JSON schema version")
+    require(payload.get("schema_version") == 7, "Unexpected JSON schema version")
     require(payload.get("run_date") == expected_date, "Ranking date is not today's Shanghai date")
     require(
         str(payload.get("generated_at", ""))[:10] == expected_date,
         "Generation timestamp does not match the ranking date",
     )
     validate_filters(payload.get("filters"))
+    validate_benchmark(payload.get("benchmark"), parse_date(expected_date))
     records = validate_records(payload)
     reportable, blocking = classify_warnings(payload.get("warnings"))
     require(not blocking, "Blocking warnings: " + " | ".join(blocking))

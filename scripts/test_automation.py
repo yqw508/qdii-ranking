@@ -39,6 +39,14 @@ def make_record(rank):
         "three_year_max_drawdown_pct": -20.0 - rank,
         "three_year_performance_start_date": "2023-08-18",
         "three_year_performance_end_date": "2026-08-18",
+        "nasdaq100_fit": {
+            "correlation": round(1.0 - rank / 100, 4),
+            "beta": round(1.0 + rank / 100, 4),
+            "tracking_error_pct": 4.0 + rank,
+            "observations": 154,
+            "start_date": "2023-08-18",
+            "end_date": "2026-08-18",
+        },
         "us_equity_exposure": {
             "confirmed_pct": confirmed,
             "possible_pct": possible,
@@ -75,7 +83,7 @@ def make_record(rank):
 
 def make_payload():
     return {
-        "schema_version": 6,
+        "schema_version": 7,
         "run_date": RUN_DATE,
         "generated_at": "2026-08-20T09:08:00+08:00",
         "holder_report_date": "2025-12-31",
@@ -92,7 +100,7 @@ def make_payload():
             "us_equity_candidates_scanned": 27,
             "us_equity_qualified_count": 11,
             "full_scan_completed": True,
-            "ranking_method": "established",
+            "ranking_method": validator.EXPECTED_RANKING_METHOD,
             "us_equity_method": "conservative confirmed lower bound",
             "exclude_keywords": ["债", "亚洲", "中国", "港"],
             "pre_rank_exclude_keywords": ["债"],
@@ -102,6 +110,7 @@ def make_payload():
             "purchasable_only": True,
         },
         "cache": {
+            "nasdaq100_benchmark": {"cache_hits": 1, "fetches": 2, "fallbacks": 0},
             "performance": {"hits": 42, "misses": 0, "corrupt_rebuilds": 0},
             "fund_us_equity_exposures": {
                 "hits": 27,
@@ -114,6 +123,23 @@ def make_payload():
                 "corrupt_redownloads": 0,
             },
             "underlying_exposures": {"hits": 0, "misses": 0},
+        },
+        "benchmark": {
+            "symbol": "XNDX",
+            "name": "NASDAQ-100 Total Return",
+            "return_type": "gross_total_return",
+            "currency": "CNY",
+            "window_years": 3,
+            "frequency": "weekly",
+            "max_source_staleness_days": 7,
+            "min_observations": 140,
+            "min_span_days": 1000,
+            "index_source_url": "https://example.test/xndx",
+            "fx_source_url": "https://example.test/usd-cny",
+            "index_start_date": "2023-08-06",
+            "index_latest_date": "2026-08-19",
+            "fx_start_date": "2023-08-06",
+            "fx_latest_date": "2026-08-19",
         },
         "records": [make_record(rank) for rank in range(1, 11)],
         "warnings": [
@@ -165,8 +191,14 @@ class RankingValidatorTests(unittest.TestCase):
 
     def test_rejects_incorrect_order(self):
         payload = make_payload()
-        payload["records"][0]["us_equity_exposure"]["confirmed_pct"] = 80.0
+        payload["records"][0]["nasdaq100_fit"]["correlation"] = 0.5
         with self.assertRaisesRegex(validator.ValidationError, "sort rule"):
+            self.validate(payload)
+
+    def test_rejects_missing_or_incomplete_nasdaq_fit(self):
+        payload = make_payload()
+        payload["records"][0]["nasdaq100_fit"]["observations"] = 139
+        with self.assertRaisesRegex(validator.ValidationError, "insufficient Nasdaq-100"):
             self.validate(payload)
 
     def test_rejects_unknown_quota(self):
@@ -198,6 +230,12 @@ class RankingValidatorTests(unittest.TestCase):
         with self.assertRaisesRegex(validator.ValidationError, "Shanghai date"):
             self.validate(expected_date="2026-08-21")
 
+    def test_rejects_stale_benchmark(self):
+        payload = make_payload()
+        payload["benchmark"]["index_latest_date"] = "2026-08-01"
+        with self.assertRaisesRegex(validator.ValidationError, "source is stale"):
+            self.validate(payload)
+
     def test_rejects_generated_html_difference(self):
         with TemporaryDirectory() as directory:
             output_dir, publish_dir = write_artifacts(Path(directory), make_payload())
@@ -212,6 +250,17 @@ class RankingValidatorTests(unittest.TestCase):
             content = path.read_text(encoding="utf-8-sig").replace("99.0", "98.0", 1)
             path.write_text(content, encoding="utf-8-sig")
             with self.assertRaisesRegex(validator.ValidationError, "confirmed exposure"):
+                validator.validate_local_artifacts(output_dir, publish_dir, RUN_DATE)
+
+    def test_rejects_csv_nasdaq_metric_difference(self):
+        with TemporaryDirectory() as directory:
+            output_dir, publish_dir = write_artifacts(Path(directory), make_payload())
+            path = output_dir / "latest.csv"
+            content = path.read_text(encoding="utf-8-sig").replace(
+                ",0.99,1.01,", ",0.5,1.01,", 1
+            )
+            path.write_text(content, encoding="utf-8-sig")
+            with self.assertRaisesRegex(validator.ValidationError, "nasdaq100_correlation"):
                 validator.validate_local_artifacts(output_dir, publish_dir, RUN_DATE)
 
 
@@ -250,6 +299,9 @@ class RankingEmailTests(unittest.TestCase):
 
     def test_success_email_contains_table_link_and_material_notes(self):
         payload = make_payload()
+        payload["warnings"].append(
+            "纳指100基准更新失败，使用完整缓存：Nasdaq XNDX 最新数据 2026-08-19。"
+        )
         sender, _, recipients = mailer.smtp_configuration(self.environ)
         message = mailer.build_success_message(
             payload,
@@ -262,9 +314,12 @@ class RankingEmailTests(unittest.TestCase):
         self.assertEqual("[QDII榜单] 2026-08-20 更新成功", message["Subject"])
         self.assertIn("000001", plain)
         self.assertIn("99.00%-99.50%", plain)
+        self.assertIn("99.0%/1.01", plain)
+        self.assertIn("使用完整缓存", plain)
         self.assertIn("https://example.test/?v=2026-08-20", plain)
         self.assertIn("<table", html_body)
         self.assertIn("10万元", html_body)
+        self.assertIn("99.0%", html_body)
 
     def test_failure_email_contains_stage_and_run_link(self):
         message = mailer.build_failure_message(

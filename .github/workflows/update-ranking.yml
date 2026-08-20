@@ -164,7 +164,7 @@ jobs:
             --json > >(tee "$deploy_log") 2>&1 &
           deploy_pid=$!
 
-          for second in {1..600}; do
+          for second in {1..180}; do
             if grep -Fq '"totalDuration":' "$deploy_log" && \
                grep -Fq '"url": "https://qdii-ranking-web-run-cool-d2gy0iw957219659c.webapps.tcloudbase.com/' "$deploy_log"; then
               if kill -0 "$deploy_pid" 2>/dev/null; then
@@ -189,7 +189,7 @@ jobs:
 
           kill "$deploy_pid" 2>/dev/null || true
           wait "$deploy_pid" 2>/dev/null || true
-          echo "::error::CloudBase deploy did not finish within 10 minutes"
+          echo "::error::CloudBase deploy did not finish within 3 minutes"
           exit 1
 
       - name: Verify deployed page

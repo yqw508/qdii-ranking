@@ -72,7 +72,9 @@ Optional flags:
   unresolved underlying positions instead of presenting them as point estimates.
 - For mobile delivery, use the HTTPS deployment of `public/index.html`. It uses a compact summary with
   expandable fund details and contains no external runtime assets; only source-document links require
-  network access. Keep `latest.html` as the identical local copy.
+  network access. Keep `latest.html` as the identical local copy. CloudBase default domains show a
+  mandatory first-visit risk notice; use an ICP-filed custom domain when the WeChat link must open the
+  ranking without that intermediate confirmation.
 
 ## Troubleshoot
 

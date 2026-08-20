@@ -1,0 +1,237 @@
+name: Update QDII ranking
+
+on:
+  schedule:
+    - cron: "7 1 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: qdii-ranking-production
+  cancel-in-progress: false
+
+env:
+  PYTHONUNBUFFERED: "1"
+  OUTPUT_DIR: output/qdii-ranking
+  PUBLISH_DIR: public
+  PAGE_BASE_URL: https://qdii-ranking-web-run-cool-d2gy0iw957219659c.webapps.tcloudbase.com/
+
+jobs:
+  update-publish-notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Validate required secrets
+        id: configuration
+        shell: bash
+        env:
+          QQ_SMTP_USER: ${{ secrets.QQ_SMTP_USER }}
+          QQ_SMTP_AUTH_CODE: ${{ secrets.QQ_SMTP_AUTH_CODE }}
+          TCB_SECRET_ID: ${{ secrets.TCB_SECRET_ID }}
+          TCB_SECRET_KEY: ${{ secrets.TCB_SECRET_KEY }}
+        run: |
+          missing=()
+          for name in QQ_SMTP_USER QQ_SMTP_AUTH_CODE TCB_SECRET_ID TCB_SECRET_KEY; do
+            if [[ -z "${!name}" ]]; then
+              missing+=("$name")
+            fi
+          done
+          if (( ${#missing[@]} > 0 )); then
+            echo "::error::Missing required repository secrets: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Restore ranking cache
+        uses: actions/cache@v4
+        with:
+          path: output/qdii-ranking/cache
+          key: qdii-ranking-${{ runner.os }}-${{ hashFiles('scripts/update_qdii_ranking.py', 'references/us-equity-instruments.json') }}-${{ github.run_id }}
+          restore-keys: |
+            qdii-ranking-${{ runner.os }}-${{ hashFiles('scripts/update_qdii_ranking.py', 'references/us-equity-instruments.json') }}-
+
+      - name: Install Python dependencies
+        id: dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements.txt
+
+      - name: Refresh ranking
+        id: update
+        shell: bash
+        run: |
+          for attempt in 1 2; do
+            echo "Ranking refresh attempt ${attempt}/2"
+            if python scripts/update_qdii_ranking.py \
+              --output-dir "$OUTPUT_DIR" \
+              --publish-dir "$PUBLISH_DIR"; then
+              exit 0
+            fi
+            if [[ "$attempt" == "1" ]]; then
+              echo "Refresh failed; retrying in 120 seconds"
+              sleep 120
+            fi
+          done
+          exit 1
+
+      - name: Read ranking date
+        id: ranking_date
+        shell: bash
+        run: |
+          RUN_DATE=$(python -c "import json; print(json.load(open('$OUTPUT_DIR/latest.json', encoding='utf-8'))['run_date'])")
+          echo "RUN_DATE=$RUN_DATE" >> "$GITHUB_ENV"
+          echo "PAGE_URL=${PAGE_BASE_URL}?v=${RUN_DATE}" >> "$GITHUB_ENV"
+
+      - name: Validate generated artifacts
+        id: validation
+        run: >-
+          python scripts/validate_qdii_ranking.py
+          --output-dir "$OUTPUT_DIR"
+          --publish-dir "$PUBLISH_DIR"
+          --expected-date "$RUN_DATE"
+
+      - name: Run unit tests
+        id: tests
+        run: python -m unittest discover -s scripts -p "test_*.py"
+
+      - name: Commit generated page
+        id: git_publish
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- public/index.html
+          if git diff --cached --quiet; then
+            echo "Generated page is unchanged; no commit needed"
+          else
+            git commit -m "chore: update QDII ranking for ${RUN_DATE}"
+            git push origin HEAD:main
+          fi
+
+      - name: Install CloudBase CLI
+        id: cloudbase_cli
+        run: npm install --global @cloudbase/cli@3.7.3
+
+      - name: Log in to CloudBase
+        id: cloudbase_login
+        env:
+          TCB_SECRET_ID: ${{ secrets.TCB_SECRET_ID }}
+          TCB_SECRET_KEY: ${{ secrets.TCB_SECRET_KEY }}
+        run: tcb login --apiKeyId "$TCB_SECRET_ID" --apiKey "$TCB_SECRET_KEY"
+
+      - name: Deploy static application
+        id: deployment
+        run: >-
+          tcb app deploy qdii-ranking-web
+          --env-id run-cool-d2gy0iw957219659c
+          --framework static
+          --output-dir public
+          --deploy-path /qdii
+          --cwd .
+          --force
+          --json
+
+      - name: Verify deployed page
+        id: deployed_validation
+        shell: bash
+        run: |
+          VERIFY_URL="${PAGE_URL}&run=${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          python scripts/validate_qdii_ranking.py \
+            --output-dir "$OUTPUT_DIR" \
+            --publish-dir "$PUBLISH_DIR" \
+            --expected-date "$RUN_DATE" \
+            --deployed-url "$VERIFY_URL" \
+            --attempts 18 \
+            --delay-seconds 10
+
+      - name: Send success email
+        id: success_notification
+        env:
+          QQ_SMTP_USER: ${{ secrets.QQ_SMTP_USER }}
+          QQ_SMTP_AUTH_CODE: ${{ secrets.QQ_SMTP_AUTH_CODE }}
+          QQ_MAIL_TO: ${{ secrets.QQ_MAIL_TO }}
+        run: >-
+          python scripts/send_qdii_email.py
+          --status success
+          --data "$OUTPUT_DIR/latest.json"
+          --url "$PAGE_URL"
+
+      - name: Send failure email
+        if: ${{ failure() }}
+        continue-on-error: true
+        shell: bash
+        env:
+          QQ_SMTP_USER: ${{ secrets.QQ_SMTP_USER }}
+          QQ_SMTP_AUTH_CODE: ${{ secrets.QQ_SMTP_AUTH_CODE }}
+          QQ_MAIL_TO: ${{ secrets.QQ_MAIL_TO }}
+          CONFIGURATION_OUTCOME: ${{ steps.configuration.outcome }}
+          DEPENDENCIES_OUTCOME: ${{ steps.dependencies.outcome }}
+          UPDATE_OUTCOME: ${{ steps.update.outcome }}
+          DATE_OUTCOME: ${{ steps.ranking_date.outcome }}
+          VALIDATION_OUTCOME: ${{ steps.validation.outcome }}
+          TESTS_OUTCOME: ${{ steps.tests.outcome }}
+          GIT_OUTCOME: ${{ steps.git_publish.outcome }}
+          CLI_OUTCOME: ${{ steps.cloudbase_cli.outcome }}
+          LOGIN_OUTCOME: ${{ steps.cloudbase_login.outcome }}
+          DEPLOY_OUTCOME: ${{ steps.deployment.outcome }}
+          REMOTE_OUTCOME: ${{ steps.deployed_validation.outcome }}
+          SUCCESS_MAIL_OUTCOME: ${{ steps.success_notification.outcome }}
+        run: |
+          outcomes="configuration=${CONFIGURATION_OUTCOME}, dependencies=${DEPENDENCIES_OUTCOME}, update=${UPDATE_OUTCOME}, date=${DATE_OUTCOME}, validation=${VALIDATION_OUTCOME}, tests=${TESTS_OUTCOME}, git=${GIT_OUTCOME}, cli=${CLI_OUTCOME}, login=${LOGIN_OUTCOME}, deploy=${DEPLOY_OUTCOME}, remote=${REMOTE_OUTCOME}, success_email=${SUCCESS_MAIL_OUTCOME}"
+          stage="unknown"
+          for item in \
+            "configuration:${CONFIGURATION_OUTCOME}" \
+            "dependencies:${DEPENDENCIES_OUTCOME}" \
+            "refresh:${UPDATE_OUTCOME}" \
+            "ranking-date:${DATE_OUTCOME}" \
+            "validation:${VALIDATION_OUTCOME}" \
+            "tests:${TESTS_OUTCOME}" \
+            "git-push:${GIT_OUTCOME}" \
+            "cloudbase-cli:${CLI_OUTCOME}" \
+            "cloudbase-login:${LOGIN_OUTCOME}" \
+            "deployment:${DEPLOY_OUTCOME}" \
+            "remote-validation:${REMOTE_OUTCOME}" \
+            "success-email:${SUCCESS_MAIL_OUTCOME}"; do
+            if [[ "${item#*:}" == "failure" ]]; then
+              stage="${item%%:*}"
+              break
+            fi
+          done
+          publication_state="not-published"
+          if [[ "${GIT_OUTCOME}" == "success" ]]; then
+            publication_state="repository-updated"
+          fi
+          if [[ "${DEPLOY_OUTCOME}" == "success" ]]; then
+            publication_state="deployment-unverified"
+          fi
+          if [[ "${REMOTE_OUTCOME}" == "success" ]]; then
+            publication_state="published"
+          fi
+          args=(
+            --status failure
+            --failure-stage "$stage"
+            --failure-detail "$outcomes"
+            --publication-state "$publication_state"
+            --run-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          )
+          if [[ -n "${RUN_DATE:-}" ]]; then
+            args+=(--date "$RUN_DATE")
+          fi
+          python3 scripts/send_qdii_email.py "${args[@]}"

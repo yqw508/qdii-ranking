@@ -17,6 +17,7 @@ env:
   OUTPUT_DIR: output/qdii-ranking
   PUBLISH_DIR: public
   PAGE_BASE_URL: https://qdii-ranking-web-run-cool-d2gy0iw957219659c.webapps.tcloudbase.com/
+  TCB_OWNER_APP_ID: "1432808015"
 
 jobs:
   update-publish-notify:
@@ -25,19 +26,19 @@ jobs:
 
     steps:
       - name: Check out main
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: main
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
           cache: pip
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: "20"
 
@@ -62,7 +63,7 @@ jobs:
           fi
 
       - name: Restore ranking cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: output/qdii-ranking/cache
           key: qdii-ranking-${{ runner.os }}-${{ hashFiles('scripts/update_qdii_ranking.py', 'references/us-equity-instruments.json') }}-${{ github.run_id }}
@@ -131,10 +132,19 @@ jobs:
 
       - name: Log in to CloudBase
         id: cloudbase_login
+        shell: bash
         env:
           TCB_SECRET_ID: ${{ secrets.TCB_SECRET_ID }}
           TCB_SECRET_KEY: ${{ secrets.TCB_SECRET_KEY }}
-        run: tcb login --apiKeyId "$TCB_SECRET_ID" --apiKey "$TCB_SECRET_KEY"
+        run: |
+          tcb login --apiKeyId "$TCB_SECRET_ID" --apiKey "$TCB_SECRET_KEY"
+          account_output=$(tcb api cam GetUserAppId --api-version 2019-01-16 --json 2>&1)
+          account_app_id=$(printf '%s' "$account_output" | python -c 'import json, sys; text=sys.stdin.read(); start=text.find("{"); data=json.JSONDecoder().raw_decode(text[start:])[0]; print(data["data"]["AppId"])')
+          if [[ "$account_app_id" != "$TCB_OWNER_APP_ID" ]]; then
+            echo "::error::TCB credentials belong to AppID ${account_app_id}; expected ${TCB_OWNER_APP_ID} for run-cool-d2gy0iw957219659c"
+            exit 1
+          fi
+          echo "Verified CloudBase account AppID ${account_app_id}"
 
       - name: Deploy static application
         id: deployment

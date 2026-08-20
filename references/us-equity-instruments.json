@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "method": "Structural classification from official issuer product mandates; global funds require a dated numeric allocation.",
+  "entries": [
+    {
+      "aliases": ["INVESCO QQQ TRUST SERIES 1"],
+      "category": "us_equity",
+      "us_equity_pct": 100,
+      "source_name": "Invesco QQQ official product page",
+      "source_url": "https://www.invesco.com/qqq-etf/en/home.html"
+    },
+    {
+      "aliases": ["INVESCO SEMICONDUCTORS ETF"],
+      "category": "us_equity",
+      "us_equity_pct": 100,
+      "source_name": "Invesco PSI official product page",
+      "source_url": "https://www.invesco.com/us/financial-products/etfs/product-detail?audienceType=Investor&ticker=PSI"
+    },
+    {
+      "aliases": ["PWR S&P 500 EQ WGT TECH"],
+      "category": "us_equity",
+      "us_equity_pct": 100,
+      "source_name": "Invesco RSPT official product page",
+      "source_url": "https://www.invesco.com/us/financial-products/etfs/product-detail?audienceType=Investor&ticker=RSPT"
+    },
+    {
+      "aliases": ["INVESCO NASDAQ 100 ETF"],
+      "category": "us_equity",
+      "us_equity_pct": 100,
+      "source_name": "Invesco QQQM official product page",
+      "source_url": "https://www.invesco.com/us/financial-products/etfs/product-detail?audienceType=Investor&ticker=QQQM"
+    },
+    {
+      "aliases": ["VANECK SEMICONDUCTOR ETF"],
+      "category": "us_equity",
+      "us_equity_pct": 100,
+      "source_name": "VanEck SMH official product page",
+      "source_url": "https://www.vaneck.com/us/en/investments/semiconductor-etf-smh/"
+    },
+    {
+      "aliases": ["FIRST TRUST NASDQ 100 TECH I", "FIRST TRUST NASDAQ 100 TECH"],
+      "category": "us_equity",
+      "us_equity_pct": 100,
+      "source_name": "First Trust QTEC official product page",
+      "source_url": "https://www.ftportfolios.com/Retail/Etf/EtfSummary.aspx?Ticker=QTEC"
+    },
+    {
+      "aliases": ["TECHNOLOGY SELECT SECT SPDR"],
+      "category": "us_equity",
+      "us_equity_pct": 100,
+      "source_name": "State Street XLK official product page",
+      "source_url": "https://www.ssga.com/us/en/intermediary/etfs/technology-select-sector-spdr-fund-xlk"
+    },
+    {
+      "aliases": ["ENERGY SELECT SECTOR SPDR"],
+      "category": "us_equity",
+      "us_equity_pct": 100,
+      "source_name": "State Street XLE official product page",
+      "source_url": "https://www.ssga.com/us/en/intermediary/etfs/energy-select-sector-spdr-fund-xle"
+    },
+    {
+      "aliases": ["SPDR S&P BIOTECH ETF"],
+      "category": "us_equity",
+      "us_equity_pct": 100,
+      "source_name": "State Street XBI official product page",
+      "source_url": "https://www.ssga.com/us/en/intermediary/etfs/spdr-sp-biotech-etf-xbi"
+    },
+    {
+      "aliases": ["VANGUARD S&P 500 ETF"],
+      "category": "us_equity",
+      "us_equity_pct": 100,
+      "source_name": "Vanguard VOO official product page",
+      "source_url": "https://investor.vanguard.com/investment-products/etfs/profile/voo"
+    },
+    {
+      "aliases": ["SPDR BBG BARC 1-3 MONTH TBIL", "SPDR BLOOMBERG 1-3 MONTH T-BILL"],
+      "category": "fixed_income",
+      "us_equity_pct": 0,
+      "source_name": "State Street BIL official product page",
+      "source_url": "https://www.ssga.com/us/en/intermediary/etfs/spdr-bloomberg-1-3-month-t-bill-etf-bil"
+    },
+    {
+      "aliases": ["FRK FTSE KOREA UCITS ETF", "FRANKLIN FTSE KOREA UCITS ETF"],
+      "category": "non_us_equity",
+      "us_equity_pct": 0,
+      "source_name": "Franklin FTSE Korea UCITS ETF official product page",
+      "source_url": "https://www.franklintempleton.lu/our-funds/price-and-performance/products/27869/SINGLCLASS/franklin-ftse-korea-ucits-etf/IE00BHZRR030"
+    },
+    {
+      "aliases": ["CSETF GOLD"],
+      "category": "commodity",
+      "us_equity_pct": 0,
+      "source_name": "iShares Gold ETF (CH) official product page",
+      "source_url": "https://www.ishares.com/ch/professionals/en/products/261149/ishares-gold-ch-fund"
+    },
+    {
+      "aliases": ["UBS GOLD ETF"],
+      "category": "commodity",
+      "us_equity_pct": 0,
+      "source_name": "UBS Fund Management official product-name notice",
+      "source_url": "https://www.ubs.com/content/news/en/2025/03/12/notice-to-shareholders/_jcr_content/root/contentarea/mainpar/gridcontrol/col_1/linklistnewlook_copy/link.1767675788.file/PS9jb250ZW50L2RhbS9hc3NldHMvbmV3cy8yMDI1LzAzLzEyL25vdGljZS10by1zaGFyZWhvbGRlcnMucGRm/notice-to-shareholders.pdf"
+    },
+    {
+      "aliases": ["ISHARES GOLD TRUST", "ISHARES GOLD TRU"],
+      "category": "commodity",
+      "us_equity_pct": 0,
+      "source_name": "iShares Gold Trust official product page",
+      "source_url": "https://www.ishares.com/us/products/239561/ishares-gold-trust"
+    }
+  ]
+}

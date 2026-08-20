@@ -1,0 +1,8 @@
+output/
+tmp/
+agents/
+__pycache__/
+*.py[cod]
+*.tmp
+.DS_Store
+Thumbs.db

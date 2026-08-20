@@ -1,0 +1,12 @@
+{
+  "version": "2.0",
+  "envId": "run-cool-d2gy0iw957219659c",
+  "app": {
+    "serviceName": "qdii-ranking-web",
+    "framework": "static",
+    "installCommand": "",
+    "buildCommand": "",
+    "outputDir": "public",
+    "deployPath": "/qdii"
+  }
+}

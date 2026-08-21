@@ -26,6 +26,8 @@ EXPECTED_FILTERS = {
     "min_scale_billion_cny": 3.0,
     "min_age_years": 3,
     "min_three_year_return_pct": 50.0,
+    "min_five_year_return_pct_if_available": 80.0,
+    "min_ten_year_return_pct_if_available": 220.0,
     "min_us_equity_pct": 50.0,
     "min_direct_limit_cny_inclusive": 200,
 }
@@ -514,13 +516,18 @@ def validate_records(
                     f"{code} incomplete {prefix} window has dates",
                 )
             else:
-                as_number(value, f"{code} {prefix} return")
+                numeric_value = as_number(value, f"{code} {prefix} return")
                 start = parse_date(str(start_value))
                 end = parse_date(str(end_value))
                 require(start <= end <= run_date, f"{code} {prefix} dates are invalid")
                 require(
                     start <= years_ago(end, years),
                     f"{code} {prefix} window is incomplete",
+                )
+                threshold_key = f"min_{prefix}_return_pct_if_available"
+                require(
+                    numeric_value >= EXPECTED_FILTERS[threshold_key],
+                    f"{code} does not meet the conditional {prefix} return threshold",
                 )
         validate_contract_benchmark(record.get("contract_benchmark"), record, run_date)
         validate_holding_cost(record.get("holding_cost"), code, run_date)

@@ -25,7 +25,9 @@ the updater never silently drops a required evaluation.
 2. Use the newest holder half-year/year-end period whose fund count reaches 95% of the preceding
    complete period. Skip a partially disclosed newer period with a visible warning.
 3. Require scale strictly above CNY 300 million, inception strictly over three years, and trailing
-   three-year adjusted return of at least 50%.
+   three-year adjusted return of at least 50%. If a complete five-year adjusted return exists, require
+   at least 80%. If a complete ten-year adjusted return exists, require at least 220%. A missing long
+   window bypasses only its own conditional threshold; an available value must pass.
 4. Keep active and passive/index strategies. Exclude bond and commodity strategies.
 5. Parse the latest prospectus disclosed on or before the ranking date and keep recognized, composite,
    unrecognized, or unreadable status plus all recognized benchmark components. Benchmark purity,
@@ -95,6 +97,8 @@ ranking date. A later transition overrides an earlier one for the same channel.
 - A restoration notice sets `unlimited` only when it contains no replacement ceiling. Future automatic
   restoration is a separate transition.
 - Unreadable or ambiguous active notices make the affected quota unknown. Never infer a value.
+- A notice selected as quota-relevant by its title must produce at least one effective transition. If
+  it does not, mark the quota unresolved instead of retaining an older announcement state.
 
 ## Cache And Output
 

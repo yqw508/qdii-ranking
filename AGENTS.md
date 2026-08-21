@@ -17,8 +17,10 @@
 - Keep purchasable China-offered OTC RMB A shares, including an explicit RMB primary share without a
   C/D marker. Exclude RMB C/D, USD, HKD, back-end, and standalone ETF shares.
 - Require scale strictly above CNY 300 million, inception strictly more than three years before the
-  ranking date, trailing three-year adjusted return of at least 50%, and a known direct-sale quota of
-  at least CNY 200. Unlimited direct sale and exactly CNY 200 both qualify.
+  ranking date, and trailing three-year adjusted return of at least 50%. When a complete five-year
+  return exists, require at least 80%; when a complete ten-year return exists, require at least 220%.
+  Missing five- or ten-year history bypasses only that corresponding threshold. Require a known
+  direct-sale quota of at least CNY 200; unlimited direct sale and exactly CNY 200 both qualify.
 - Parse the latest prospectus benchmark for display. Keep recognized, composite, unrecognized, and
   unreadable states. Benchmark identity, market, country/region, asset class, structure, weight,
   conflicts, and parse status must never exclude or route a fund. Cross-check the latest RMB product
@@ -39,7 +41,9 @@
   that stage. Apply the ten-fund limit only after full scans. Either list may contain 0-10 funds; both
   lists empty blocks publication.
 - Keep the 95% holder-period completeness rule. Never infer an unknown subscription quota; preserve
-  manager-announcement channel and share aggregation rules and report exclusions as warnings.
+  manager-announcement channel and share aggregation rules and report exclusions as warnings. A quota
+  notice selected by title but yielding no effective transition makes the quota unresolved; never keep
+  an older limit in that case.
 - Calculate five- and ten-year adjusted returns from the existing NAV history when complete. Parse the
   official annualized comprehensive fund operating expense from the latest RMB product summary. These
   fields are display-only; missing history or fee data is reported but does not affect eligibility or

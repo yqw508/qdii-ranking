@@ -63,6 +63,8 @@ NASDAQ100_MIN_SPAN_DAYS = 1000
 FUND_EXPOSURE_CACHE_SCHEMA_VERSION = 1
 US_EQUITY_METHOD_VERSION = 1
 DEFAULT_MIN_DIRECT_LIMIT_CNY = 200
+DEFAULT_MIN_FIVE_YEAR_RETURN_PCT = 80.0
+DEFAULT_MIN_TEN_YEAR_RETURN_PCT = 220.0
 EXCLUDED_FUND_TYPES = {"QDII-纯债", "QDII-混合债", "QDII-商品"}
 NOTICE_TITLE_RE = re.compile(
     r"大额申购|申购.{0,20}(?:限额|业务上限)|(?:限额|业务上限).{0,20}申购|恢复.{0,12}申购"
@@ -1108,6 +1110,8 @@ def filter_performance_full_scan(
     as_of: date,
     min_three_year_return_pct: float,
     top: int,
+    min_five_year_return_pct: float = DEFAULT_MIN_FIVE_YEAR_RETURN_PCT,
+    min_ten_year_return_pct: float = DEFAULT_MIN_TEN_YEAR_RETURN_PCT,
 ) -> tuple[list[dict[str, Any]], list[str], int]:
     selected: list[dict[str, Any]] = []
     warnings: list[str] = []
@@ -1116,8 +1120,12 @@ def filter_performance_full_scan(
         scanned += 1
         performance, performance_warnings = fetch_trailing_performance(client, fund, as_of)
         warnings.extend(performance_warnings)
-        three_year_return = performance["three_year_return_pct"]
-        if three_year_return is None or three_year_return < min_three_year_return_pct:
+        if performance_threshold_failures(
+            performance,
+            min_three_year_return_pct,
+            min_five_year_return_pct,
+            min_ten_year_return_pct,
+        ):
             continue
         selected.append({**fund, **performance})
     return selected[:top], warnings, scanned
@@ -1136,6 +1144,8 @@ def filter_performance_and_us_exposure_full_scan(
     exposure_cache: FundExposureResultCache | None = None,
     performance_workers: int = PERFORMANCE_WORKERS,
     benchmark: Nasdaq100Benchmark | None = None,
+    min_five_year_return_pct: float = DEFAULT_MIN_FIVE_YEAR_RETURN_PCT,
+    min_ten_year_return_pct: float = DEFAULT_MIN_TEN_YEAR_RETURN_PCT,
 ) -> tuple[list[dict[str, Any]], list[str], int, int, int, int]:
     warnings: list[str] = []
     performance_results: list[tuple[dict[str, Any], list[str]] | None] = [
@@ -1168,8 +1178,12 @@ def filter_performance_and_us_exposure_full_scan(
             raise DataError(f"Performance was not evaluated for fund {fund['code']}")
         performance, performance_warnings = result
         warnings.extend(performance_warnings)
-        three_year_return = performance["three_year_return_pct"]
-        if three_year_return is None or three_year_return < min_three_year_return_pct:
+        if performance_threshold_failures(
+            performance,
+            min_three_year_return_pct,
+            min_five_year_return_pct,
+            min_ten_year_return_pct,
+        ):
             continue
         performance_qualified.append({**fund, **performance})
 
@@ -1215,6 +1229,40 @@ def filter_performance_and_us_exposure_full_scan(
     )
 
 
+def performance_threshold_failures(
+    performance: dict[str, Any],
+    min_three_year_return_pct: float,
+    min_five_year_return_pct: float,
+    min_ten_year_return_pct: float,
+) -> list[tuple[str, str]]:
+    failures: list[tuple[str, str]] = []
+    three_year = performance.get("three_year_return_pct")
+    five_year = performance.get("five_year_return_pct")
+    ten_year = performance.get("ten_year_return_pct")
+    if three_year is None or float(three_year) < min_three_year_return_pct:
+        failures.append(
+            (
+                "three_year_return_below_threshold",
+                f"近三年收益低于 {min_three_year_return_pct:g}%",
+            )
+        )
+    if five_year is not None and float(five_year) < min_five_year_return_pct:
+        failures.append(
+            (
+                "five_year_return_below_threshold",
+                f"有完整五年历史且近五年收益低于 {min_five_year_return_pct:g}%",
+            )
+        )
+    if ten_year is not None and float(ten_year) < min_ten_year_return_pct:
+        failures.append(
+            (
+                "ten_year_return_below_threshold",
+                f"有完整十年历史且近十年收益低于 {min_ten_year_return_pct:g}%",
+            )
+        )
+    return failures
+
+
 def evaluate_performance_full_scan(
     client: HttpClient,
     candidates: list[dict[str, Any]],
@@ -1222,8 +1270,15 @@ def evaluate_performance_full_scan(
     min_three_year_return_pct: float,
     performance_cache: PerformanceResultCache,
     benchmark: Nasdaq100Benchmark,
+    min_five_year_return_pct: float = DEFAULT_MIN_FIVE_YEAR_RETURN_PCT,
+    min_ten_year_return_pct: float = DEFAULT_MIN_TEN_YEAR_RETURN_PCT,
     performance_workers: int = PERFORMANCE_WORKERS,
-) -> tuple[list[dict[str, Any]], list[str], int]:
+) -> tuple[
+    list[dict[str, Any]],
+    list[str],
+    int,
+    dict[str, list[tuple[str, str]]],
+]:
     results: list[tuple[dict[str, Any], list[str]] | None] = [None] * len(candidates)
 
     def evaluate(fund: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
@@ -1241,17 +1296,24 @@ def evaluate_performance_full_scan(
                 results[futures[future]] = future.result()
 
     qualified: list[dict[str, Any]] = []
+    rejected: dict[str, list[tuple[str, str]]] = {}
     warnings: list[str] = []
     for fund, result in zip(candidates, results):
         if result is None:
             raise DataError(f"Performance was not evaluated for fund {fund['code']}")
         performance, performance_warnings = result
         warnings.extend(performance_warnings)
-        value = performance.get("three_year_return_pct")
-        if value is None or float(value) < min_three_year_return_pct:
+        failures = performance_threshold_failures(
+            performance,
+            min_three_year_return_pct,
+            min_five_year_return_pct,
+            min_ten_year_return_pct,
+        )
+        if failures:
+            rejected[fund["code"]] = failures
             continue
         qualified.append({**fund, **performance})
-    return qualified, warnings, len(candidates)
+    return qualified, warnings, len(candidates), rejected
 
 
 def direct_limit_qualifies(limit: dict[str, Any], threshold_cny: int) -> bool:
@@ -1315,7 +1377,11 @@ def ranking_list_for_exposure(
 
 def normalize_notice_text(text: str) -> str:
     text = text.replace("\u3000", " ").replace("\xa0", " ")
-    return re.sub(r"\s+", " ", text).strip()
+    text = re.sub(r"\s+", " ", text).strip()
+    # Some announcement PDFs extract every Chinese character and numeric
+    # punctuation as separate text runs. Rejoin those runs before matching.
+    text = re.sub(r"(?<=[\u4e00-\u9fff])\s+(?=[\u4e00-\u9fff])", "", text)
+    return re.sub(r"(?<=\d)\s*([,.])\s*(?=\d)", r"\1", text)
 
 
 def parse_cny_amount(value: str, unit: str) -> int:
@@ -1369,10 +1435,10 @@ def extract_global_amount(text: str) -> int | None:
         r"(?:[（(]\s*单\s*位\s*[：:]\s*(?:人民币\s*)?元\s*[）)])?\s*([\d,.]+)",
         r"调整\s*申购\s*(?:[（(]\s*含\s*定期定额投资\s*[）)])?\s*金额\s*"
         r"(?:[（(]\s*单\s*位\s*[：:]\s*人民币\s*元\s*[）)])?\s*([\d,.]+)",
-        r"(?:累计申购|申购金额)[^。；]{0,180}?(?:不超过|不得超过|上限调整为)\s*"
-        r"(?:人民币\s*)?([\d,.]+)\s*(万元|元)",
+        r"(?:累计申购|申购金额)[^。；]{0,180}?(?:不超过|不得超过|不应超过|上限调整为)\s*"
+        r"(?:人民币\s*)?([\d,.]+)\s*(?:人民币\s*)?(万元|元)",
         r"超过\s*([\d,.]+)\s*(万元|元)[^。；]{0,50}?(?:申购|大额申购)",
-        r"业务限额为\s*([\d,.]+)\s*(万元|元)",
+        r"(?:金额累计限额|业务限额)为\s*([\d,.]+)\s*(?:人民币\s*)?(万元|元)",
     ]
     for index, pattern in enumerate(patterns):
         match = re.search(pattern, text)
@@ -2622,6 +2688,7 @@ def resolve_quota(
     all_channels_combined = False
     applied_sources: set[str] = set()
     transitions: list[dict[str, Any]] = []
+    latest_unparsed_notice_date: date | None = None
     notices = fetch_announcements(client, fund["code"], as_of)
     for notice in notices:
         try:
@@ -2639,9 +2706,30 @@ def resolve_quota(
                 text = document_cache.get_text(
                     client, document, fund["fund_page_url"]
                 )
-            transitions.extend(parse_quota_notice(text, notice["published"], notice["url"]))
+            parsed_transitions = parse_quota_notice(
+                text, notice["published"], notice["url"]
+            )
+            if not parsed_transitions:
+                raise DataError("quota notice produced no effective limit transition")
+            transitions.extend(parsed_transitions)
         except DataError as exc:
             warnings.append(f"{fund['code']} quota notice could not be parsed: {exc}")
+            if (
+                latest_unparsed_notice_date is None
+                or notice["published"] > latest_unparsed_notice_date
+            ):
+                latest_unparsed_notice_date = notice["published"]
+
+    if latest_unparsed_notice_date is not None:
+        # A newer unreadable limit notice invalidates page state and older
+        # transitions. A later readable notice can establish a fresh state.
+        direct = new_limit_state()
+        agency = new_limit_state()
+        transitions = [
+            item
+            for item in transitions
+            if parse_date(str(item["published_date"])) > latest_unparsed_notice_date
+        ]
 
     transitions.sort(key=lambda item: (item["effective_date"], item["published_date"]))
     for transition in transitions:
@@ -2951,12 +3039,14 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
         f"- 筛选条件：规模 > {payload['filters']['min_scale_billion_cny']:g} 亿元；"
         f"成立超过 {payload['filters']['min_age_years']} 年；"
         f"近三年复权收益 >= {payload['filters']['min_three_year_return_pct']:g}%；"
+        f"有完整五年历史时近五年收益 >= {payload['filters']['min_five_year_return_pct_if_available']:g}%；"
+        f"有完整十年历史时近十年收益 >= {payload['filters']['min_ten_year_return_pct_if_available']:g}%；"
         f"直销额度 >= {payload['filters']['min_direct_limit_cny_inclusive']:,} 元；"
         "业绩基准仅展示、不参与筛选或分榜；"
         f"名称排除 {'、'.join(payload['filters']['exclude_keywords']) or '无'}；"
         "人民币 A 类或无 C/D 标记的人民币主份额；场外可申购",
         f"- 美国主榜：美股确认下限 >= {payload['filters']['min_us_equity_pct']:g}%；按纳指100相关性、Beta 接近 1、美股确认下限、机构持仓、近三年收益和基金代码排序",
-        "- 全球补充榜：排除债券、商品及中国/香港/泛亚洲目标；按三年年化收益回撤比、三年收益、较小回撤、机构持仓、规模和代码排序",
+        "- 全球补充榜：排除债券、商品及基金名称地域关键词；按三年年化收益回撤比、三年收益、较小回撤、机构持仓、规模和代码排序",
         f"- 全量筛选：基础候选 {payload['filters']['base_candidates_total']} 只；"
         f"业绩扫描 {payload['filters']['performance_candidates_scanned']} 只；"
         f"合同扫描 {payload['filters']['contract_candidates_scanned']} 只；"
@@ -3062,6 +3152,8 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
         f"规模 > {filters['min_scale_billion_cny']:g} 亿元",
         f"成立 > {filters['min_age_years']} 年",
         f"三年收益 ≥ {filters['min_three_year_return_pct']:g}%",
+        f"五年有数据 ≥ {filters['min_five_year_return_pct_if_available']:g}%",
+        f"十年有数据 ≥ {filters['min_ten_year_return_pct_if_available']:g}%",
         f"直销 ≥ {filters['min_direct_limit_cny_inclusive']:,} 元",
         "业绩基准仅展示",
     )
@@ -3432,7 +3524,12 @@ def build_payload(args: argparse.Namespace, client: HttpClient) -> dict[str, Any
     performance_cache = PerformanceResultCache(cache_root / "performance")
     exposure_cache = FundExposureResultCache(cache_root / "fund-us-equity-exposures")
 
-    performance_qualified, performance_warnings, performance_scanned_count = (
+    (
+        performance_qualified,
+        performance_warnings,
+        performance_scanned_count,
+        performance_rejections,
+    ) = (
         evaluate_performance_full_scan(
             client,
             preliminary,
@@ -3440,17 +3537,14 @@ def build_payload(args: argparse.Namespace, client: HttpClient) -> dict[str, Any
             args.min_three_year_return_pct,
             performance_cache,
             benchmark,
+            min_five_year_return_pct=args.min_five_year_return_pct,
+            min_ten_year_return_pct=args.min_ten_year_return_pct,
         )
     )
     warnings.extend(performance_warnings)
-    performance_codes = {fund["code"] for fund in performance_qualified}
-    for fund in preliminary:
-        if fund["code"] not in performance_codes:
-            record_exclusion(
-                "three_year_return_below_threshold",
-                "近三年收益低于 50%",
-                fund["code"],
-            )
+    for code, failures in performance_rejections.items():
+        for reason, label in failures:
+            record_exclusion(reason, label, code)
 
     classified_candidates: list[dict[str, Any]] = []
     for fund in performance_qualified:
@@ -3586,6 +3680,8 @@ def build_payload(args: argparse.Namespace, client: HttpClient) -> dict[str, Any
             "min_scale_billion_cny": args.min_scale,
             "min_age_years": args.min_age_years,
             "min_three_year_return_pct": args.min_three_year_return_pct,
+            "min_five_year_return_pct_if_available": args.min_five_year_return_pct,
+            "min_ten_year_return_pct_if_available": args.min_ten_year_return_pct,
             "min_us_equity_pct": args.min_us_equity_pct,
             "min_direct_limit_cny_inclusive": args.min_direct_limit_cny,
             "base_candidates_total": len(preliminary),
@@ -3671,6 +3767,18 @@ def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
         help="Minimum trailing three-year adjusted return percentage",
     )
     parser.add_argument(
+        "--min-five-year-return-pct",
+        type=float,
+        default=DEFAULT_MIN_FIVE_YEAR_RETURN_PCT,
+        help="Minimum five-year adjusted return when a complete five-year window exists",
+    )
+    parser.add_argument(
+        "--min-ten-year-return-pct",
+        type=float,
+        default=DEFAULT_MIN_TEN_YEAR_RETURN_PCT,
+        help="Minimum ten-year adjusted return when a complete ten-year window exists",
+    )
+    parser.add_argument(
         "--min-us-equity-pct",
         type=float,
         default=50.0,
@@ -3730,6 +3838,10 @@ def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
         parser.error("--min-scale must be non-negative")
     if args.min_age_years < 0:
         parser.error("--min-age-years must be non-negative")
+    if args.min_five_year_return_pct < -100:
+        parser.error("--min-five-year-return-pct must be at least -100")
+    if args.min_ten_year_return_pct < -100:
+        parser.error("--min-ten-year-return-pct must be at least -100")
     if not 0 <= args.min_us_equity_pct <= 100:
         parser.error("--min-us-equity-pct must be between 0 and 100")
     if args.min_direct_limit_cny < 0:

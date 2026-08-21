@@ -471,6 +471,54 @@ class PerformanceTests(unittest.TestCase):
             ranking.calculate_trailing_performance(points[1:], "example", date(2026, 8, 20), 10)
         )
 
+    def test_conditional_long_return_thresholds_and_missing_history(self):
+        self.assertEqual(
+            [],
+            ranking.performance_threshold_failures(
+                {
+                    "three_year_return_pct": 50.0,
+                    "five_year_return_pct": None,
+                    "ten_year_return_pct": None,
+                },
+                50,
+                80,
+                220,
+            ),
+        )
+        self.assertEqual(
+            [],
+            ranking.performance_threshold_failures(
+                {
+                    "three_year_return_pct": 50.0,
+                    "five_year_return_pct": 80.0,
+                    "ten_year_return_pct": 220.0,
+                },
+                50,
+                80,
+                220,
+            ),
+        )
+        reasons = {
+            reason
+            for reason, _label in ranking.performance_threshold_failures(
+                {
+                    "three_year_return_pct": 50.0,
+                    "five_year_return_pct": 79.99,
+                    "ten_year_return_pct": 219.99,
+                },
+                50,
+                80,
+                220,
+            )
+        }
+        self.assertEqual(
+            {
+                "five_year_return_below_threshold",
+                "ten_year_return_below_threshold",
+            },
+            reasons,
+        )
+
     def test_incomplete_display_only_history_does_not_emit_warning(self):
         trend = []
         for observed, nav in (
@@ -810,6 +858,8 @@ class HtmlOutputTests(unittest.TestCase):
                 "min_scale_billion_cny": 3.0,
                 "min_age_years": 3,
                 "min_three_year_return_pct": 50.0,
+                "min_five_year_return_pct_if_available": 80.0,
+                "min_ten_year_return_pct_if_available": 220.0,
                 "min_us_equity_pct": 50.0,
                 "min_direct_limit_cny_inclusive": 200,
                 "base_candidates_total": 2,
@@ -1530,6 +1580,70 @@ class QuotaNoticeTests(unittest.TestCase):
             text, date(2026, 6, 5), "https://example.test/southern.pdf"
         )[0]
         self.assertEqual(1000, base["global_amount_cny"])
+
+    def test_limit_with_currency_after_amount_and_pdf_line_breaks(self):
+        text = """
+        暂停大额 申购起始 日 2026 年 07 月 17 日
+        自 2026 年 07 月 17 日起，人民币 A 调整大额申购业务，单日单个基金账户
+        单笔或多笔累计申购、定期定额投资的金额不应超过 10 人民币元（含 10 人民币元）。
+        """
+        base = ranking.parse_quota_notice(
+            text, date(2026, 7, 17), "https://example.test/htffund.pdf"
+        )[0]
+        self.assertEqual(date(2026, 7, 17), base["effective_date"])
+        self.assertEqual(10, base["global_amount_cny"])
+
+    def test_cumulative_amount_limit_wording(self):
+        text = "单日申购、定期定额投资及转换转入金额累计限额为10.00元"
+        base = ranking.parse_quota_notice(
+            text, date(2026, 7, 27), "https://example.test/yinhua.pdf"
+        )[0]
+        self.assertEqual(10, base["global_amount_cny"])
+
+    def test_split_chinese_and_numeric_pdf_runs_are_rejoined(self):
+        text = "业\n务\n限\n额\n为\n5\n,\n000\n.\n00\n元"
+        base = ranking.parse_quota_notice(
+            text, date(2026, 2, 4), "https://example.test/gf.pdf"
+        )[0]
+        self.assertEqual(5000, base["global_amount_cny"])
+
+    @patch.object(ranking, "fetch_announcements")
+    def test_newer_unparsed_notice_invalidates_older_limit(self, announcements):
+        announcements.return_value = [
+            {
+                "id": "old-notice",
+                "title": "调整大额申购限制金额的公告",
+                "published": date(2026, 7, 10),
+                "url": "https://example.test/old-notice.pdf",
+            },
+            {
+                "id": "new-notice",
+                "title": "调整大额申购限制金额的公告",
+                "published": date(2026, 7, 17),
+                "url": "https://example.test/new-notice.pdf",
+            },
+        ]
+
+        class Cache:
+            def get_text(self, _client, document, _referer):
+                if document.announcement_id == "old-notice":
+                    return "申购业务限额为1,000.00元"
+                return "公告正文未能提取额度"
+
+        quota, warnings = ranking.resolve_quota(
+            object(),
+            {
+                "code": "018966",
+                "purchase_status": "limited",
+                "page_agency_limit_cny": 10,
+                "fund_page_url": "https://example.test/018966",
+            },
+            date(2026, 8, 21),
+            Cache(),
+        )
+        self.assertEqual("unknown", quota["direct_limit"]["status"])
+        self.assertEqual("unknown", quota["agency_limit"]["status"])
+        self.assertTrue(any("produced no effective limit transition" in w for w in warnings))
 
     def test_pdf_split_table_label_and_direct_channel_override(self):
         text = """

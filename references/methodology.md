@@ -22,6 +22,8 @@ the updater never silently drops a required evaluation.
 
 1. Keep purchasable OTC RMB A shares and an explicit RMB primary share without C/D markers. Exclude
    RMB C/D, USD, HKD, back-end shares, and standalone ETFs; eligible feeder funds and LOFs remain.
+   Limit the universe to QDII fund types and `指数型-海外股票`; ordinary domestic equity, mixed, and
+   index funds are outside the candidate pool.
 2. Use the newest holder half-year/year-end period whose fund count reaches 95% of the preceding
    complete period. Skip a partially disclosed newer period with a visible warning.
 3. Do not impose a fund-scale threshold. Require inception strictly over three years and trailing
@@ -36,8 +38,9 @@ the updater never silently drops a required evaluation.
 6. Cross-check the newest eligible RMB product summary. An explicit index or weight conflict, a missing
    document, or unreadable text is reported but does not exclude the fund. Parse the official
    annualized comprehensive fund operating expense from the same RMB summary when available.
-7. Apply the configured China, Hong Kong, and pan-Asia geography keywords to fund names only. Contract
-   benchmarks never trigger a geography exclusion, including when they explicitly target those markets.
+7. Apply the configured China, Hong Kong, and pan-Asia geography keywords to US-main routing only.
+   A matching fund remains eligible but routes to the global supplement regardless of confirmed US
+   exposure. Contract benchmarks never trigger geography routing.
 8. Resolve the manager-level direct-sale quota for every otherwise eligible candidate. Unlimited sale
    qualifies; a known amount must be at least CNY 200. Unknown direct quota is excluded with a warning.
    Agency quota is displayed but does not affect eligibility.
@@ -47,17 +50,19 @@ the updater never silently drops a required evaluation.
 - Read direct US equities from the latest eligible report's country table. For fund-of-funds, classify
   disclosed underlying funds using official sources. Unknown positions contribute zero to the confirmed
   lower bound and their full weight to the possible upper bound; an interval midpoint is never used.
-- Require confirmed US-equity exposure of at least 50%. A critical report or table parse failure stops
-  the run. Contract benchmark classification does not decide list placement.
+- Require confirmed US-equity exposure of at least 50% and no configured geography keyword in the fund
+  name. A critical report or table parse failure stops the run. Contract benchmark classification does
+  not decide list placement.
 - Rank by three-year CNY Nasdaq-100 weekly-return correlation descending, then `abs(beta - 1)`, confirmed
   US exposure, institutional holding, three-year return descending, and fund code ascending.
 
 ## Global Supplement Ranking
 
 - Accept every remaining eligible strategy whose confirmed US-equity exposure is below 50%, including
-  intervals whose possible upper bound crosses 50%. Display the full conservative interval. Do not
-  include candidates already in the US main ranking, bond/commodity strategies, or funds rejected by
-  the configured name keywords.
+  intervals whose possible upper bound crosses 50%. Also accept every eligible fund whose name matches
+  a configured US-main geography keyword, even when confirmed exposure is 50% or higher. Display the
+  full conservative interval and the routing reason. Do not include candidates already in the US main
+  ranking or bond/commodity strategies; the global list has no geography-name exclusion.
 - Compute the three-year annualized return from the actual adjusted-NAV start/end dates. Divide it by
   the absolute three-year maximum drawdown. A true zero drawdown stores `null`, displays `∞`, and sorts
   before finite ratios.
@@ -108,7 +113,8 @@ classifications are cached with source dates and catalog fingerprints. PDF cache
 PDFs with extractable text. Historical runs never consume a future NAV, benchmark point, allocation, or
 announcement.
 
-JSON schema 9 is the structured source of truth. `records` contains the US main list,
+JSON schema 10 is the structured source of truth. `records` contains the US main list,
 `global_supplement.records` contains the supplement, and `exclusion_summary` records reason counts and
-codes. CSV and Markdown combine both lists with an explicit list field. `latest.html` and
+codes. Each record has a `routing_reason`; filters expose `us_main_exclude_keywords` and an empty
+`global_exclude_keywords`. CSV and Markdown combine both lists with explicit list and routing fields. `latest.html` and
 `public/index.html` are generated from the same payload and must be byte-identical.

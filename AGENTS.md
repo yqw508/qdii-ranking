@@ -4,7 +4,8 @@
 
 - Treat this repository as the implementation and operating source of truth for the QDII US main
   ranking and global supplement ranking.
-- Accept both active and passive/index QDII strategies. Contract benchmark metadata is display-only
+- Limit candidates to QDII and `指数型-海外股票`; do not accept ordinary domestic equity, mixed, or
+  index funds. Accept both active and passive/index strategies within that scope. Contract benchmark metadata is display-only
   and never an eligibility or routing gate. Exclude standalone exchange-traded ETF shares; keep
   eligible OTC RMB feeder shares.
 - Exclude bond and commodity strategies from both rankings. The global supplement may include equity,
@@ -25,11 +26,13 @@
   unreadable states. Benchmark identity, market, country/region, asset class, structure, weight,
   conflicts, and parse status must never exclude or route a fund. Cross-check the latest RMB product
   summary and report conflicts as warnings.
-- Apply the established China, Hong Kong, and pan-Asia geography exclusion only to fund names through
-  the configured keywords. Never infer a geography exclusion from a contract benchmark.
-- Evaluate conservative US-equity exposure for every three-year-performance-qualified candidate that
-  passes the fixed type and fund-name geography exclusions. Put confirmed exposure at or above 50% in the US
-  main ranking; put all remaining candidates in the global supplement. A crossing interval follows its
+- Apply the established China, Hong Kong, and pan-Asia keywords only to US-main routing. A matching
+  fund remains eligible and routes to the global supplement regardless of confirmed US exposure. Never
+  infer geography routing from a contract benchmark; the global supplement has no geography exclusion.
+- Evaluate conservative US-equity exposure for every three-year-performance-qualified candidate in
+  the fixed type scope. Put confirmed exposure at or above 50% in the US main ranking only when the
+  name does not match a geography keyword; route keyword matches and all remaining candidates to the
+  global supplement. A crossing interval follows its
   confirmed lower bound and must remain visible. Unresolved positions only increase the possible upper
   bound; a critical report or holding-table parse failure blocks publication.
 - Rank the US main list by Nasdaq-100 correlation descending, beta distance from 1 ascending, confirmed

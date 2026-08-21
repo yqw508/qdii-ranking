@@ -66,6 +66,14 @@ DEFAULT_MIN_DIRECT_LIMIT_CNY = 200
 DEFAULT_MIN_THREE_YEAR_RETURN_PCT = 30.0
 DEFAULT_MIN_FIVE_YEAR_RETURN_PCT = 60.0
 DEFAULT_MIN_TEN_YEAR_RETURN_PCT = 100.0
+ROUTING_REASON_CONFIRMED_US = "confirmed_us_exposure"
+ROUTING_REASON_BELOW_US_THRESHOLD = "us_exposure_below_threshold"
+ROUTING_REASON_GEOGRAPHY_OVERRIDE = "us_main_name_geography_override"
+ROUTING_REASON_LABELS = {
+    ROUTING_REASON_CONFIRMED_US: "美股确认达标",
+    ROUTING_REASON_BELOW_US_THRESHOLD: "美股确认不足",
+    ROUTING_REASON_GEOGRAPHY_OVERRIDE: "地域名称分流",
+}
 EXCLUDED_FUND_TYPES = {"QDII-纯债", "QDII-混合债", "QDII-商品"}
 NOTICE_TITLE_RE = re.compile(
     r"大额申购|申购.{0,20}(?:限额|业务上限)|(?:限额|业务上限).{0,20}申购|恢复.{0,12}申购"
@@ -1374,6 +1382,26 @@ def ranking_list_for_exposure(
         if float(exposure["confirmed_pct"]) >= threshold_pct
         else "global_supplement"
     )
+
+
+def ranking_route(
+    name: str,
+    exposure: dict[str, Any],
+    threshold_pct: float,
+    us_main_exclude_keywords: Iterable[str],
+) -> tuple[str, str]:
+    if any(keyword and keyword in name for keyword in us_main_exclude_keywords):
+        return "global_supplement", ROUTING_REASON_GEOGRAPHY_OVERRIDE
+    if float(exposure["confirmed_pct"]) >= threshold_pct:
+        return "us_main", ROUTING_REASON_CONFIRMED_US
+    return "global_supplement", ROUTING_REASON_BELOW_US_THRESHOLD
+
+
+def routing_reason_label(reason: str) -> str:
+    try:
+        return ROUTING_REASON_LABELS[reason]
+    except KeyError as exc:
+        raise DataError(f"Unknown ranking routing reason: {reason}") from exc
 
 
 def normalize_notice_text(text: str) -> str:
@@ -2898,6 +2926,7 @@ def write_csv(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fields = [
         "ranking_list",
+        "routing_reason",
         "rank",
         "code",
         "name",
@@ -3049,10 +3078,11 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
         f"有完整十年历史时近十年收益 >= {payload['filters']['min_ten_year_return_pct_if_available']:g}%；"
         f"直销额度 >= {payload['filters']['min_direct_limit_cny_inclusive']:,} 元；"
         "业绩基准仅展示、不参与筛选或分榜；"
-        f"名称排除 {'、'.join(payload['filters']['exclude_keywords']) or '无'}；"
+        f"美国主榜名称排除 {'、'.join(payload['filters']['us_main_exclude_keywords']) or '无'}；"
+        "全球补充榜名称地域不限；"
         "人民币 A 类或无 C/D 标记的人民币主份额；场外可申购",
-        f"- 美国主榜：美股确认下限 >= {payload['filters']['min_us_equity_pct']:g}%；按纳指100相关性、Beta 接近 1、美股确认下限、机构持仓、近三年收益和基金代码排序",
-        "- 全球补充榜：排除债券、商品及基金名称地域关键词；按三年年化收益回撤比、三年收益、较小回撤、机构持仓、规模和代码排序",
+        f"- 美国主榜：名称不含地域关键词且美股确认下限 >= {payload['filters']['min_us_equity_pct']:g}%；按纳指100相关性、Beta 接近 1、美股确认下限、机构持仓、近三年收益和基金代码排序",
+        "- 全球补充榜：地域名称不限；名称命中美国主榜地域关键词或美股确认下限不足 50% 时进入；排除债券和商品；按三年年化收益回撤比、三年收益、较小回撤、机构持仓、规模和代码排序",
         f"- 全量筛选：基础候选 {payload['filters']['base_candidates_total']} 只；"
         f"业绩扫描 {payload['filters']['performance_candidates_scanned']} 只；"
         f"合同扫描 {payload['filters']['contract_candidates_scanned']} 只；"
@@ -3066,14 +3096,15 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
         "",
         "## 美国主榜",
         "",
-        "| 排名 | 基金 | 近三年 | 近五年 | 近十年 | 持有费率 | 纳指相关性 | Beta | 美股确认区间 | 直销额度 | 代销额度 |",
-        "|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| 排名 | 基金 | 分流原因 | 近三年 | 近五年 | 近十年 | 持有费率 | 纳指相关性 | Beta | 美股确认区间 | 直销额度 | 代销额度 |",
+        "|---:|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for item in payload["records"]:
         source = item["quota_source_urls"][-1] if item["quota_source_urls"] else item["fund_page_url"]
         rule = format_rule(item["share_class_rule"], item["channel_rule"])
         lines.append(
             f"| {item['rank']} | [{item['name']} {item['code']}]({source}) | "
+            f"{routing_reason_label(item['routing_reason'])} | "
             f"{format_percentage(item['three_year_return_pct'], show_sign=True)} | "
             f"{format_optional_percentage(item['five_year_return_pct'], show_sign=True)} | "
             f"{format_optional_percentage(item['ten_year_return_pct'], show_sign=True)} | "
@@ -3093,15 +3124,15 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
             f"额度计算：{rule}"
         )
     if not records:
-        lines.append("| - | 暂无符合全部条件的基金 | - | - | - | - | - | - | - | - | - |")
+        lines.append("| - | 暂无符合全部条件的基金 | - | - | - | - | - | - | - | - | - | - |")
 
     lines.extend(
         [
             "",
             "## 全球补充榜",
             "",
-            "| 排名 | 基金 | 合同基准 | 美股确认区间 | 近三年 | 近五年 | 近十年 | 持有费率 | 收益回撤比 | 直销额度 | 代销额度 |",
-            "|---:|---|---|---:|---:|---:|---:|---:|---:|---:|---:|",
+            "| 排名 | 基金 | 分流原因 | 合同基准 | 美股确认区间 | 近三年 | 近五年 | 近十年 | 持有费率 | 收益回撤比 | 直销额度 | 代销额度 |",
+            "|---:|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|",
         ]
     )
     for item in global_records:
@@ -3111,6 +3142,7 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
         ratio = "∞" if item["return_drawdown_ratio"] is None else f"{item['return_drawdown_ratio']:.2f}"
         lines.append(
             f"| {item['rank']} | [{item['name']} {item['code']}]({source}) | "
+            f"{routing_reason_label(item['routing_reason'])} | "
             f"[{benchmark_display(contract)}]({contract_source}) | "
             f"{format_percentage(item['us_equity_exposure']['confirmed_pct'])}-"
             f"{format_percentage(item['us_equity_exposure']['possible_pct'])} | "
@@ -3122,7 +3154,7 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
         )
         lines.append(f"  - 产品标签：{' / '.join(item['product_structure_tags'])}")
     if not global_records:
-        lines.append("| - | 暂无符合全部条件的基金 | - | - | - | - | - | - | - | - | - |")
+        lines.append("| - | 暂无符合全部条件的基金 | - | - | - | - | - | - | - | - | - | - |")
     if payload["warnings"]:
         lines.extend(["", "## 警告", ""])
         lines.extend(f"- {warning}" for warning in payload["warnings"])
@@ -3166,6 +3198,8 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
         f"十年有数据 ≥ {filters['min_ten_year_return_pct_if_available']:g}%",
         f"直销 ≥ {filters['min_direct_limit_cny_inclusive']:,} 元",
         "业绩基准仅展示",
+        f"美国榜排除 {' / '.join(filters['us_main_exclude_keywords'])}",
+        "全球榜地域不限",
     )
     filter_html = "".join(
         f'<span class="filter-condition">{html.escape(part)}</span>'
@@ -3186,6 +3220,8 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
             f'<span class="tag {"risk" if tag in {"杠杆", "反向", "波动率策略"} else ""}">{html.escape(tag)}</span>'
             for tag in item["product_structure_tags"]
         )
+        if item["routing_reason"] == ROUTING_REASON_GEOGRAPHY_OVERRIDE:
+            tags += '<span class="tag route">地域名称分流</span>'
         if is_us:
             primary_metrics = f"""
             <span class="summary-metric fit"><span class="metric-label">纳指相关 / β</span><span class="metric-value">{format_correlation(fit['correlation'])} · {format_beta(fit['beta'])}</span></span>
@@ -3224,7 +3260,7 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
         )
         prospectus_date = contract.get("prospectus_published_date") or "--"
         return f"""
-      <details class="fund-item" data-code="{html.escape(item['code'], quote=True)}" data-list="{html.escape(item['ranking_list'], quote=True)}">
+      <details class="fund-item" data-code="{html.escape(item['code'], quote=True)}" data-list="{html.escape(item['ranking_list'], quote=True)}" data-routing-reason="{html.escape(item['routing_reason'], quote=True)}">
         <summary>
           <span class="rank" aria-label="排名 {item['rank']}">{item['rank']}</span>
           <span class="fund-identity">
@@ -3245,6 +3281,7 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
             <div><dt>成立日</dt><dd>{html.escape(item['inception_date'])}</dd></div>
             <div><dt>机构持有</dt><dd>{format_percentage(item['institution_holding_ratio_pct'])}</dd></div>
             <div><dt>规模</dt><dd>{item['scale_billion_cny']:.2f} 亿元</dd></div>
+            <div><dt>分流原因</dt><dd>{html.escape(routing_reason_label(item['routing_reason']))}</dd></div>
             <div><dt>近一年收益</dt><dd class="positive-text">{format_percentage(item['one_year_return_pct'], show_sign=True)}</dd></div>
             <div><dt>近一年回撤</dt><dd class="negative-text">{format_percentage(item['one_year_max_drawdown_pct'])}</dd></div>
             <div><dt>近三年收益</dt><dd class="positive-text">{format_percentage(item['three_year_return_pct'], show_sign=True)}</dd></div>
@@ -3336,6 +3373,7 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
     .tags {{ display:flex; flex-wrap:wrap; gap:4px; }}
     .tag {{ padding:1px 5px; border:1px solid #cbd3db; border-radius:3px; color:#4c5a67; background:#f8fafb; font-size:11px; }}
     .tag.risk {{ border-color:#e5a5a0; color:var(--negative); background:#fff5f4; }}
+    .tag.route {{ border-color:#d6a04a; color:#755015; background:#fff8e8; }}
     .chevron {{ width:9px; height:9px; border-right:2px solid #7a8793; border-bottom:2px solid #7a8793; transform:rotate(45deg) translate(-2px,2px); transition:transform 150ms ease; }}
     .fund-item[open] .chevron {{ transform:rotate(225deg) translate(-1px,-1px); }}
     .summary-metrics {{ grid-column:2/-1; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:12px; }}
@@ -3441,6 +3479,7 @@ def build_output_record(
     record = {
         "rank": rank,
         "ranking_list": ranking_list,
+        "routing_reason": fund["routing_reason"],
         "code": fund["code"],
         "name": fund["name"],
         "fund_type": fund["fund_type"],
@@ -3515,7 +3554,7 @@ def build_payload(args: argparse.Namespace, client: HttpClient) -> dict[str, Any
         enriched,
         args.min_scale,
         len(enriched),
-        exclude_keywords=args.exclude_keywords,
+        exclude_keywords=(),
         as_of=as_of,
         min_age_years=args.min_age_years,
     )
@@ -3579,8 +3618,18 @@ def build_payload(args: argparse.Namespace, client: HttpClient) -> dict[str, Any
             exposure_cache,
         )
         warnings.extend(f"{fund['code']} {warning}" for warning in exposure_warnings)
-        routed = {**fund, "us_equity_exposure": exposure}
-        if ranking_list_for_exposure(exposure, args.min_us_equity_pct) == "us_main":
+        ranking_list, routing_reason = ranking_route(
+            fund["name"],
+            exposure,
+            args.min_us_equity_pct,
+            args.us_main_exclude_keywords,
+        )
+        routed = {
+            **fund,
+            "us_equity_exposure": exposure,
+            "routing_reason": routing_reason,
+        }
+        if ranking_list == "us_main":
             if not isinstance(fund.get("nasdaq100_fit"), dict):
                 detail = fund.get("nasdaq100_fit_error") or "unknown calculation error"
                 raise DataError(
@@ -3680,7 +3729,7 @@ def build_payload(args: argparse.Namespace, client: HttpClient) -> dict[str, Any
         "scale_billion_cny desc, code asc"
     )
     return {
-        "schema_version": 9,
+        "schema_version": 10,
         "run_date": as_of.isoformat(),
         "generated_at": datetime.now(SHANGHAI_TZ).isoformat(timespec="seconds"),
         "holder_report_date": selected.report_date,
@@ -3717,9 +3766,10 @@ def build_payload(args: argparse.Namespace, client: HttpClient) -> dict[str, Any
             ),
             "ranking_method": us_ranking_method,
             "global_supplement_ranking_method": global_ranking_method,
-            "us_equity_method": "conservative confirmed lower bound determines US-main versus global-supplement routing; unresolved positions only increase possible upper bound",
+            "us_equity_method": "conservative confirmed lower bound determines routing unless a fund-name geography keyword keeps the fund out of the US main list; unresolved positions only increase possible upper bound",
             "contract_benchmark_method": "display-only latest prospectus metadata; benchmark identity, market, structure, weight, and parse status never affect eligibility or routing",
-            "exclude_keywords": args.exclude_keywords,
+            "us_main_exclude_keywords": args.us_main_exclude_keywords,
+            "global_exclude_keywords": [],
             "exclude_fund_types": sorted(EXCLUDED_FUND_TYPES),
             "exclude_asset_classes": ["bond", "commodity"],
             "share_class": "OTC RMB A or explicit RMB primary share without C/D marker",
@@ -3804,10 +3854,12 @@ def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
         help="Inclusive minimum manager direct-sale daily limit in CNY",
     )
     parser.add_argument(
+        "--us-main-exclude-keywords",
         "--exclude-keywords",
+        dest="us_main_exclude_keywords",
         nargs="*",
         default=DEFAULT_EXCLUDE_KEYWORDS,
-        help="Fund-name keywords to exclude",
+        help="Fund-name keywords routed away from the US main list",
     )
     parser.add_argument(
         "--output-dir",

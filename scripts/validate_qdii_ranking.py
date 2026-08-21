@@ -31,7 +31,10 @@ EXPECTED_FILTERS = {
     "min_us_equity_pct": 50.0,
     "min_direct_limit_cny_inclusive": 200,
 }
-EXPECTED_EXCLUDE_KEYWORDS = {"亚洲", "中国", "港"}
+EXPECTED_US_MAIN_EXCLUDE_KEYWORDS = {"亚洲", "中国", "港"}
+ROUTING_REASON_CONFIRMED_US = "confirmed_us_exposure"
+ROUTING_REASON_BELOW_US_THRESHOLD = "us_exposure_below_threshold"
+ROUTING_REASON_GEOGRAPHY_OVERRIDE = "us_main_name_geography_override"
 EXPECTED_RANKING_METHOD = (
     "nasdaq100_correlation desc, abs(nasdaq100_beta - 1) asc, "
     "us_equity_confirmed_pct desc, institution_holding_ratio_pct desc, "
@@ -58,6 +61,7 @@ class RankingHtmlParser(HTMLParser):
         super().__init__(convert_charrefs=True)
         self.codes: list[str] = []
         self.lists: list[str] = []
+        self.routing_reasons: list[str] = []
         self.blocks: dict[str, str] = {}
         self.all_text: list[str] = []
         self._current_code: str | None = None
@@ -74,6 +78,7 @@ class RankingHtmlParser(HTMLParser):
                 raise ValidationError("HTML contains an invalid nested fund record")
             self._current_code = code
             self.lists.append(attributes.get("data-list") or "")
+            self.routing_reasons.append(attributes.get("data-routing-reason") or "")
             self._current_text = []
 
     def handle_endtag(self, tag: str) -> None:
@@ -200,9 +205,15 @@ def validate_filters(filters: Any) -> None:
     for key, expected in EXPECTED_FILTERS.items():
         require(filters.get(key) == expected, f"Unexpected filter {key}: {filters.get(key)!r}")
     require(
-        set(filters.get("exclude_keywords", [])) == EXPECTED_EXCLUDE_KEYWORDS,
-        "Fund-name exclusion keywords changed",
+        set(filters.get("us_main_exclude_keywords", []))
+        == EXPECTED_US_MAIN_EXCLUDE_KEYWORDS,
+        "US-main fund-name exclusion keywords changed",
     )
+    require(
+        filters.get("global_exclude_keywords") == [],
+        "Global supplement must not exclude fund-name geography keywords",
+    )
+    require("exclude_keywords" not in filters, "Legacy exclude_keywords filter is still emitted")
     require(filters.get("purchasable_only") is True, "purchasable_only must be true")
     require(filters.get("full_scan_completed") is True, "Full scan was not completed")
     require(
@@ -471,8 +482,9 @@ def validate_records(
         name = record.get("name")
         require(isinstance(name, str) and name, f"{code} has no fund name")
         require(
-            not any(keyword in name for keyword in EXPECTED_EXCLUDE_KEYWORDS),
-            f"{code} contains an excluded fund-name keyword",
+            str(record.get("fund_type", "")).startswith("QDII")
+            or record.get("fund_type") == "指数型-海外股票",
+            f"{code} is outside the QDII and overseas-index candidate scope",
         )
         require(
             record.get("fund_type")
@@ -540,15 +552,40 @@ def validate_records(
         require(unresolved >= 0, f"{code} has a negative unresolved exposure")
         require(bool(exposure.get("source_url")), f"{code} exposure has no source")
 
+        routing_reason = record.get("routing_reason")
+        has_geography_keyword = any(
+            keyword in name for keyword in EXPECTED_US_MAIN_EXCLUDE_KEYWORDS
+        )
+
         if ranking_list == "us_main":
+            require(
+                routing_reason == ROUTING_REASON_CONFIRMED_US,
+                f"{code} has an invalid US-main routing reason",
+            )
+            require(
+                not has_geography_keyword,
+                f"{code} has a geography keyword and cannot enter the US main list",
+            )
             require(confirmed >= EXPECTED_FILTERS["min_us_equity_pct"], f"{code} does not meet the confirmed US-equity threshold")
             require(exposure.get("status") == "qualified", f"{code} exposure is not qualified")
             validate_nasdaq_fit(record, run_date)
         else:
-            require(
-                confirmed < EXPECTED_FILTERS["min_us_equity_pct"],
-                f"{code} global record meets the US-main exposure threshold",
-            )
+            if routing_reason == ROUTING_REASON_GEOGRAPHY_OVERRIDE:
+                require(
+                    has_geography_keyword,
+                    f"{code} geography-override routing has no matching name keyword",
+                )
+            elif routing_reason == ROUTING_REASON_BELOW_US_THRESHOLD:
+                require(
+                    not has_geography_keyword,
+                    f"{code} geography keyword requires geography-override routing",
+                )
+                require(
+                    confirmed < EXPECTED_FILTERS["min_us_equity_pct"],
+                    f"{code} global record meets the US-main exposure threshold without an override",
+                )
+            else:
+                raise ValidationError(f"{code} has an invalid global routing reason")
             annualized = as_number(
                 record.get("three_year_annualized_return_pct"), f"{code} annualized return"
             )
@@ -646,7 +683,7 @@ def validate_csv(path: Path, records: list[dict[str, Any]]) -> None:
     require(len(rows) == len(records), "CSV record count differs from JSON")
     for record, row in zip(records, rows):
         code = record["code"]
-        for field in ("ranking_list", "code", "name"):
+        for field in ("ranking_list", "routing_reason", "code", "name"):
             require(row.get(field) == str(record[field]), f"CSV {field} differs for {code}")
         require(row.get("rank") == str(record["rank"]), f"CSV rank differs for {code}")
         for field in (
@@ -777,6 +814,7 @@ def validate_markdown(path: Path, payload: dict[str, Any], records: list[dict[st
         require(rank == record["rank"] and code == record["code"], f"Markdown order differs at {record['code']}")
         require(name == record["name"], f"Markdown name differs for {record['code']}")
         expected_values = [
+            mailer.format_routing_reason(record["routing_reason"]),
             format_percentage(record["three_year_return_pct"], show_sign=True),
             mailer.format_optional_percentage(record["five_year_return_pct"]),
             mailer.format_optional_percentage(record["ten_year_return_pct"]),
@@ -829,6 +867,10 @@ def validate_html_document(
         parser.lists == [record["ranking_list"] for record in records],
         f"{label} ranking-list assignments differ from JSON",
     )
+    require(
+        parser.routing_reasons == [record["routing_reason"] for record in records],
+        f"{label} routing reasons differ from JSON",
+    )
     all_text = " ".join(parser.all_text)
     require("美国主榜" in all_text and "全球补充榜" in all_text, f"{label} tabs are missing")
     for record in records:
@@ -836,6 +878,7 @@ def validate_html_document(
         block = parser.blocks[code]
         expected_values = [
             record["name"],
+            mailer.format_routing_reason(record["routing_reason"]),
             record["contract_benchmark"]["benchmark_name"],
             record["contract_benchmark"]["benchmark_text"],
             f"{float(record['scale_billion_cny']):.2f} 亿元",
@@ -891,6 +934,7 @@ def validate_email_rendering(payload: dict[str, Any], records: list[dict[str, An
         for record in records:
             expected = [
                 record["contract_benchmark"]["benchmark_name"],
+                mailer.format_routing_reason(record["routing_reason"]),
                 mailer.format_percentage(record["three_year_return_pct"], show_sign=True),
                 mailer.format_optional_percentage(record["five_year_return_pct"]),
                 mailer.format_optional_percentage(record["ten_year_return_pct"]),
@@ -919,7 +963,7 @@ def validate_local_artifacts(
     output_dir: Path, publish_dir: Path, expected_date: str
 ) -> tuple[dict[str, Any], list[str]]:
     payload = load_payload(output_dir / "latest.json")
-    require(payload.get("schema_version") == 9, "Unexpected JSON schema version")
+    require(payload.get("schema_version") == 10, "Unexpected JSON schema version")
     require(payload.get("run_date") == expected_date, "Ranking date is not today's Shanghai date")
     require(
         str(payload.get("generated_at", ""))[:10] == expected_date,

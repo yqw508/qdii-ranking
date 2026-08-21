@@ -19,6 +19,11 @@ from typing import Any, Callable, Iterable, Mapping
 SHANGHAI_TZ = timezone(timedelta(hours=8))
 SMTP_HOST = "smtp.qq.com"
 SMTP_PORT = 465
+ROUTING_REASON_LABELS = {
+    "confirmed_us_exposure": "美股确认达标",
+    "us_exposure_below_threshold": "美股确认不足",
+    "us_main_name_geography_override": "地域名称分流",
+}
 
 
 class MailConfigurationError(RuntimeError):
@@ -44,6 +49,10 @@ def format_beta(value: Any) -> str:
 
 def format_ratio(value: Any) -> str:
     return "∞" if value is None else f"{float(value):.2f}"
+
+
+def format_routing_reason(value: Any) -> str:
+    return ROUTING_REASON_LABELS.get(str(value), str(value))
 
 
 def format_optional_percentage(value: Any) -> str:
@@ -140,6 +149,16 @@ def material_notes(payload: Mapping[str, Any]) -> list[str]:
                 f"{record['code']} {record['name']}：美股占比保守区间 "
                 f"{confirmed:.2f}%-{possible:.2f}%。"
             )
+    geography_records = [
+        record
+        for record in payload["global_supplement"]["records"]
+        if record.get("routing_reason") == "us_main_name_geography_override"
+    ]
+    if geography_records:
+        funds = "、".join(
+            f"{record['code']} {record['name']}" for record in geography_records
+        )
+        notes.append(f"地域名称分流：{funds} 因名称命中美国主榜地域关键词进入全球补充榜。")
     return notes
 
 
@@ -158,11 +177,12 @@ def success_plain_text(payload: Mapping[str, Any], page_url: str) -> str:
         f"QDII 美国主榜与全球补充榜已于 {payload['run_date']} 更新并发布。",
         "",
         f"美国主榜（{len(payload['records'])}只）",
-        "排名  基金代码  基金名称  合同基准  纳指相关/Beta  美股区间  3年/5年/10年收益  持有费率  直销/代销额度",
+        "排名  基金代码  基金名称  分流原因  合同基准  纳指相关/Beta  美股区间  3年/5年/10年收益  持有费率  直销/代销额度",
     ]
     for record in payload["records"]:
         lines.append(
             f"{record['rank']:>2}  {record['code']}  {record['name']}  "
+            f"{format_routing_reason(record['routing_reason'])}  "
             f"{record['contract_benchmark']['benchmark_name']}  "
             f"{format_correlation(record['nasdaq100_fit']['correlation'])}/"
             f"{format_beta(record['nasdaq100_fit']['beta'])}  "
@@ -180,12 +200,13 @@ def success_plain_text(payload: Mapping[str, Any], page_url: str) -> str:
         [
             "",
             f"全球补充榜（{len(global_records)}只）",
-            "排名  基金代码  基金名称  合同基准  美股区间  3年/5年/10年收益  持有费率  收益回撤比  直销/代销额度",
+            "排名  基金代码  基金名称  分流原因  合同基准  美股区间  3年/5年/10年收益  持有费率  收益回撤比  直销/代销额度",
         ]
     )
     for record in global_records:
         lines.append(
             f"{record['rank']:>2}  {record['code']}  {record['name']}  "
+            f"{format_routing_reason(record['routing_reason'])}  "
             f"{record['contract_benchmark']['benchmark_name']}  "
             f"{format_percentage(record['us_equity_exposure']['confirmed_pct'])}-"
             f"{format_percentage(record['us_equity_exposure']['possible_pct'])}  "
@@ -217,6 +238,7 @@ def success_html(payload: Mapping[str, Any], page_url: str) -> str:
             f"<td>{record['rank']}</td>"
             f"<td><strong>{html.escape(record['name'])}</strong>"
             f"<br><span>{html.escape(record['code'])}</span></td>"
+            f"<td>{html.escape(format_routing_reason(record['routing_reason']))}</td>"
             f"<td>{html.escape(record['contract_benchmark']['benchmark_name'])}</td>"
             f"<td>{format_correlation(fit['correlation'])}<br>β {format_beta(fit['beta'])}</td>"
             f"<td>{format_percentage(record['us_equity_exposure']['confirmed_pct'])}-<br>{format_percentage(record['us_equity_exposure']['possible_pct'])}</td>"
@@ -232,6 +254,7 @@ def success_html(payload: Mapping[str, Any], page_url: str) -> str:
             "<tr>"
             f"<td>{record['rank']}</td>"
             f"<td><strong>{html.escape(record['name'])}</strong><br><span>{html.escape(record['code'])}</span></td>"
+            f"<td>{html.escape(format_routing_reason(record['routing_reason']))}</td>"
             f"<td>{html.escape(record['contract_benchmark']['benchmark_name'])}</td>"
             f"<td>{format_percentage(record['us_equity_exposure']['confirmed_pct'])}-<br>{format_percentage(record['us_equity_exposure']['possible_pct'])}</td>"
             f"<td>{format_percentage(record['three_year_return_pct'], show_sign=True)}<br>{format_optional_percentage(record['five_year_return_pct'])}<br>{format_optional_percentage(record['ten_year_return_pct'])}</td>"
@@ -268,6 +291,7 @@ def success_html(payload: Mapping[str, Any], page_url: str) -> str:
     <thead><tr>
       <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">排名</th>
       <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">基金</th>
+      <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">分流原因</th>
       <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">合同基准</th>
       <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">纳指相关 / Beta</th>
       <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">美股区间</th>
@@ -276,13 +300,14 @@ def success_html(payload: Mapping[str, Any], page_url: str) -> str:
       <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">直销</th>
       <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">代销</th>
     </tr></thead>
-    <tbody>{''.join(us_rows) if us_rows else '<tr><td colspan="9" style="padding:8px">暂无符合全部条件的基金</td></tr>'}</tbody>
+    <tbody>{''.join(us_rows) if us_rows else '<tr><td colspan="10" style="padding:8px">暂无符合全部条件的基金</td></tr>'}</tbody>
   </table>
   <h2 style="font-size:16px;margin-top:20px">全球补充榜（{len(payload['global_supplement']['records'])}只）</h2>
   <table style="border-collapse:collapse;width:100%;font-size:13px">
     <thead><tr>
       <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">排名</th>
       <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">基金</th>
+      <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">分流原因</th>
       <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">合同基准</th>
       <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">美股区间</th>
       <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">3年 / 5年 / 10年</th>
@@ -291,7 +316,7 @@ def success_html(payload: Mapping[str, Any], page_url: str) -> str:
       <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">直销</th>
       <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">代销</th>
     </tr></thead>
-    <tbody>{''.join(global_rows) if global_rows else '<tr><td colspan="9" style="padding:8px">暂无符合全部条件的基金</td></tr>'}</tbody>
+    <tbody>{''.join(global_rows) if global_rows else '<tr><td colspan="10" style="padding:8px">暂无符合全部条件的基金</td></tr>'}</tbody>
   </table>
   {exclusions_html}
   {notes_html}

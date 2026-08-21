@@ -20,6 +20,11 @@ def make_record(rank, ranking_list="us_main"):
     return {
         "rank": rank,
         "ranking_list": ranking_list,
+        "routing_reason": (
+            "confirmed_us_exposure"
+            if ranking_list == "us_main"
+            else "us_exposure_below_threshold"
+        ),
         "code": code,
         "name": f"全球科技精选{rank}(QDII)A",
         "fund_type": "QDII-普通股票",
@@ -157,7 +162,7 @@ def make_global_record(rank):
 
 def make_payload():
     return {
-        "schema_version": 9,
+        "schema_version": 10,
         "run_date": RUN_DATE,
         "generated_at": "2026-08-20T09:08:00+08:00",
         "holder_report_date": "2025-12-31",
@@ -188,7 +193,8 @@ def make_payload():
             "global_supplement_ranking_method": validator.EXPECTED_GLOBAL_RANKING_METHOD,
             "us_equity_method": "conservative confirmed lower bound",
             "contract_benchmark_method": "latest prospectus",
-            "exclude_keywords": ["亚洲", "中国", "港"],
+            "us_main_exclude_keywords": ["亚洲", "中国", "港"],
+            "global_exclude_keywords": [],
             "exclude_fund_types": ["QDII-商品", "QDII-混合债", "QDII-纯债"],
             "exclude_asset_classes": ["bond", "commodity"],
             "share_class": "OTC RMB A or explicit RMB primary share without C/D marker",
@@ -380,6 +386,44 @@ class RankingValidatorTests(unittest.TestCase):
         validated, _ = self.validate(payload)
         self.assertTrue(validated["records"][0]["contract_benchmark"]["excluded_target"])
 
+    def test_accepts_geography_override_above_us_threshold_in_global_list(self):
+        payload = make_payload()
+        record = payload["global_supplement"]["records"][0]
+        record["name"] = "富国中国精选混合(QDII)人民币A"
+        record["routing_reason"] = "us_main_name_geography_override"
+        record["us_equity_exposure"].update(
+            confirmed_pct=80.0,
+            possible_pct=82.0,
+            direct_us_pct=80.0,
+            unresolved_pct=2.0,
+            status="qualified",
+        )
+        validated, _ = self.validate(payload)
+        self.assertEqual(
+            "us_main_name_geography_override",
+            validated["global_supplement"]["records"][0]["routing_reason"],
+        )
+
+    def test_rejects_global_record_above_us_threshold_without_override(self):
+        payload = make_payload()
+        record = payload["global_supplement"]["records"][0]
+        record["us_equity_exposure"].update(confirmed_pct=80.0, possible_pct=82.0)
+        with self.assertRaisesRegex(validator.ValidationError, "without an override"):
+            self.validate(payload)
+
+    def test_rejects_geography_override_without_matching_name(self):
+        payload = make_payload()
+        record = payload["global_supplement"]["records"][0]
+        record["routing_reason"] = "us_main_name_geography_override"
+        with self.assertRaisesRegex(validator.ValidationError, "no matching name keyword"):
+            self.validate(payload)
+
+    def test_rejects_us_main_name_with_geography_keyword(self):
+        payload = make_payload()
+        payload["records"][0]["name"] = "国富亚洲机会股票(QDII)A"
+        with self.assertRaisesRegex(validator.ValidationError, "cannot enter the US main"):
+            self.validate(payload)
+
     def test_rejects_contract_target_exclusion_reason(self):
         payload = make_payload()
         payload["exclusion_summary"].append(
@@ -543,6 +587,10 @@ class RankingEmailTests(unittest.TestCase):
 
     def test_success_email_contains_table_link_and_material_notes(self):
         payload = make_payload()
+        payload["global_supplement"]["records"][0]["name"] = "富国中国精选混合(QDII)人民币A"
+        payload["global_supplement"]["records"][0][
+            "routing_reason"
+        ] = "us_main_name_geography_override"
         payload["warnings"].append(
             "纳指100基准更新失败，使用完整缓存：Nasdaq XNDX 最新数据 2026-08-19。"
         )
@@ -562,6 +610,8 @@ class RankingEmailTests(unittest.TestCase):
         self.assertIn("全球补充榜（3只）", plain)
         self.assertIn("纳斯达克100指数", plain)
         self.assertIn("德国DAX指数", plain)
+        self.assertIn("地域名称分流", plain)
+        self.assertIn("因名称命中美国主榜地域关键词", plain)
         self.assertIn("99.00%-99.50%", plain)
         self.assertIn("99.0%/1.01", plain)
         self.assertIn("使用完整缓存", plain)

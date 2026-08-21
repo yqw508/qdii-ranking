@@ -40,7 +40,12 @@ class FundFilterTests(unittest.TestCase):
         self.assertEqual(100.0, args.min_ten_year_return_pct)
         self.assertEqual(50.0, args.min_us_equity_pct)
         self.assertEqual(200, args.min_direct_limit_cny)
+        self.assertEqual(["亚洲", "中国", "港"], args.us_main_exclude_keywords)
         self.assertEqual("public", args.publish_dir.name)
+
+    def test_legacy_exclude_keywords_option_maps_to_us_main_only(self):
+        args = ranking.parse_args(["--exclude-keywords", "亚洲", "港"])
+        self.assertEqual(["亚洲", "港"], args.us_main_exclude_keywords)
 
     def test_recognizes_rmb_a_share(self):
         self.assertTrue(
@@ -80,6 +85,40 @@ class FundFilterTests(unittest.TestCase):
                 ranking.is_rmb_a_share({"name": name, "fund_type": "QDII-股票"}),
                 name,
             )
+
+    def test_candidate_scope_keeps_qdii_and_overseas_passive_only(self):
+        self.assertTrue(
+            ranking.is_rmb_a_share(
+                {"name": "华夏全球股票(QDII)人民币A", "fund_type": "QDII-普通股票"}
+            )
+        )
+        self.assertTrue(
+            ranking.is_rmb_a_share(
+                {"name": "华夏纳斯达克100联接人民币A", "fund_type": "指数型-海外股票"}
+            )
+        )
+        self.assertFalse(
+            ranking.is_rmb_a_share(
+                {"name": "普通境内指数人民币A", "fund_type": "指数型-股票"}
+            )
+        )
+
+    def test_standalone_etf_is_excluded_but_feeder_and_lof_are_kept(self):
+        self.assertFalse(
+            ranking.is_otc_share(
+                {"name": "纳斯达克100ETF人民币A", "fund_type": "指数型-海外股票"}
+            )
+        )
+        self.assertTrue(
+            ranking.is_otc_share(
+                {"name": "纳斯达克100ETF联接人民币A", "fund_type": "指数型-海外股票"}
+            )
+        )
+        self.assertTrue(
+            ranking.is_otc_share(
+                {"name": "美国成长LOF人民币A", "fund_type": "指数型-海外股票"}
+            )
+        )
 
     def test_filters_keywords_and_ranks_strict_scale(self):
         metadata = {
@@ -775,6 +814,7 @@ class HtmlOutputTests(unittest.TestCase):
         return {
             "rank": rank,
             "ranking_list": "us_main",
+            "routing_reason": "confirmed_us_exposure",
             "code": code,
             "name": name,
             "fund_type": "QDII-普通股票",
@@ -879,6 +919,8 @@ class HtmlOutputTests(unittest.TestCase):
                 "min_ten_year_return_pct_if_available": 100.0,
                 "min_us_equity_pct": 50.0,
                 "min_direct_limit_cny_inclusive": 200,
+                "us_main_exclude_keywords": ["亚洲", "中国", "港"],
+                "global_exclude_keywords": [],
                 "base_candidates_total": 2,
                 "contract_candidates_scanned": 2,
             },
@@ -1220,6 +1262,34 @@ class UsEquityExposureTests(unittest.TestCase):
                 {"confirmed_pct": 49.99, "possible_pct": 80.0}, 50
             ),
         )
+
+    def test_routing_reason_uses_geography_override_before_exposure(self):
+        keywords = ["亚洲", "中国", "港"]
+        self.assertEqual(
+            ("us_main", "confirmed_us_exposure"),
+            ranking.ranking_route(
+                "全球科技精选(QDII)A", {"confirmed_pct": 50.0}, 50, keywords
+            ),
+        )
+        self.assertEqual(
+            ("global_supplement", "us_exposure_below_threshold"),
+            ranking.ranking_route(
+                "全球科技精选(QDII)A", {"confirmed_pct": 49.99}, 50, keywords
+            ),
+        )
+        for name in (
+            "国富亚洲机会股票(QDII)A",
+            "富国中国精选混合(QDII)A",
+            "大成港股精选混合(QDII)A",
+        ):
+            for confirmed in (49.0, 50.0, 80.0):
+                with self.subTest(name=name, confirmed=confirmed):
+                    self.assertEqual(
+                        ("global_supplement", "us_main_name_geography_override"),
+                        ranking.ranking_route(
+                            name, {"confirmed_pct": confirmed}, 50, keywords
+                        ),
+                    )
 
     def test_chinese_instrument_names_are_preserved_for_catalog_matching(self):
         self.assertEqual(

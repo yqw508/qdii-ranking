@@ -2952,7 +2952,7 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
         f"成立超过 {payload['filters']['min_age_years']} 年；"
         f"近三年复权收益 >= {payload['filters']['min_three_year_return_pct']:g}%；"
         f"直销额度 >= {payload['filters']['min_direct_limit_cny_inclusive']:,} 元；"
-        "合同风格不设硬门槛；"
+        "业绩基准仅展示、不参与筛选或分榜；"
         f"名称排除 {'、'.join(payload['filters']['exclude_keywords']) or '无'}；"
         "人民币 A 类或无 C/D 标记的人民币主份额；场外可申购",
         f"- 美国主榜：美股确认下限 >= {payload['filters']['min_us_equity_pct']:g}%；按纳指100相关性、Beta 接近 1、美股确认下限、机构持仓、近三年收益和基金代码排序",
@@ -3063,7 +3063,7 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
         f"成立 > {filters['min_age_years']} 年",
         f"三年收益 ≥ {filters['min_three_year_return_pct']:g}%",
         f"直销 ≥ {filters['min_direct_limit_cny_inclusive']:,} 元",
-        "合同风格不设硬门槛",
+        "业绩基准仅展示",
     )
     filter_html = "".join(
         f'<span class="filter-condition">{html.escape(part)}</span>'
@@ -3155,7 +3155,7 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
           <section class="benchmark-detail" aria-label="合同基准">
             <span>合同基准</span>
             <strong>{html.escape(contract['benchmark_text'])}</strong>
-            <small>解析状态：{html.escape(contract['status'])}；仅作风格说明，不参与准入。</small>
+            <small>解析状态：{html.escape(contract['status'])}；仅作资料展示，不参与准入或分榜。</small>
           </section>
           <div class="quota-grid" aria-label="申购额度">
             <div><span>直销额度</span>{direct_link}</div>
@@ -3458,13 +3458,6 @@ def build_payload(args: argparse.Namespace, client: HttpClient) -> dict[str, Any
             client, fund, as_of, document_cache, contract_catalog
         )
         warnings.extend(profile_warnings)
-        if profile["excluded_target"]:
-            record_exclusion(
-                "excluded_target_market",
-                "以中国、香港或泛亚洲为主要目标",
-                fund["code"],
-            )
-            continue
         classified_candidates.append(
             {**fund, "contract_benchmark": profile, "holding_cost": holding_cost}
         )
@@ -3612,16 +3605,14 @@ def build_payload(args: argparse.Namespace, client: HttpClient) -> dict[str, Any
             "global_quota_qualified_count": len(global_quota_qualified),
             "full_scan_completed": (
                 performance_scanned_count == len(preliminary)
-                and len(classified_candidates)
-                + len(exclusions.get("excluded_target_market", {"codes": []})["codes"])
-                == len(performance_qualified)
+                and len(classified_candidates) == len(performance_qualified)
                 and len(us_routed_candidates) + len(global_routed_candidates)
                 == len(classified_candidates)
             ),
             "ranking_method": us_ranking_method,
             "global_supplement_ranking_method": global_ranking_method,
             "us_equity_method": "conservative confirmed lower bound determines US-main versus global-supplement routing; unresolved positions only increase possible upper bound",
-            "contract_benchmark_method": "latest prospectus metadata only; unresolved, composite, and low-weight styles do not block eligibility",
+            "contract_benchmark_method": "display-only latest prospectus metadata; benchmark identity, market, structure, weight, and parse status never affect eligibility or routing",
             "exclude_keywords": args.exclude_keywords,
             "exclude_fund_types": sorted(EXCLUDED_FUND_TYPES),
             "exclude_asset_classes": ["bond", "commodity"],

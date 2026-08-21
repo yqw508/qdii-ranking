@@ -4,9 +4,9 @@
 
 - Treat this repository as the implementation and operating source of truth for the QDII US main
   ranking and global supplement ranking.
-- Accept both active and passive/index QDII strategies. Contract benchmark purity is descriptive, not
-  an eligibility gate. Exclude standalone exchange-traded ETF shares; keep eligible OTC RMB feeder
-  shares.
+- Accept both active and passive/index QDII strategies. Contract benchmark metadata is display-only
+  and never an eligibility or routing gate. Exclude standalone exchange-traded ETF shares; keep
+  eligible OTC RMB feeder shares.
 - Exclude bond and commodity strategies from both rankings. The global supplement may include equity,
   REIT, volatility, leveraged, and inverse strategies when all other rules pass.
 - Treat requests to analyze or verify one fund as read-only. Do not change ranking rules, generated
@@ -20,13 +20,13 @@
   ranking date, trailing three-year adjusted return of at least 50%, and a known direct-sale quota of
   at least CNY 200. Unlimited direct sale and exactly CNY 200 both qualify.
 - Parse the latest prospectus benchmark for display. Keep recognized, composite, unrecognized, and
-  unreadable states; do not exclude a fund solely for a composite, low-weight, conflicting, or missing
-  benchmark. Cross-check the latest RMB product summary and report conflicts as warnings.
-- Exclude names and clearly identified target benchmarks focused on China, Hong Kong, or pan-Asia. Do
-  not exclude a global or multi-market product merely because it contains a minority allocation to
-  those markets.
+  unreadable states. Benchmark identity, market, country/region, asset class, structure, weight,
+  conflicts, and parse status must never exclude or route a fund. Cross-check the latest RMB product
+  summary and report conflicts as warnings.
+- Apply the established China, Hong Kong, and pan-Asia geography exclusion only to fund names through
+  the configured keywords. Never infer a geography exclusion from a contract benchmark.
 - Evaluate conservative US-equity exposure for every three-year-performance-qualified candidate that
-  passes the fixed type and geography exclusions. Put confirmed exposure at or above 50% in the US
+  passes the fixed type and fund-name geography exclusions. Put confirmed exposure at or above 50% in the US
   main ranking; put all remaining candidates in the global supplement. A crossing interval follows its
   confirmed lower bound and must remain visible. Unresolved positions only increase the possible upper
   bound; a critical report or holding-table parse failure blocks publication.

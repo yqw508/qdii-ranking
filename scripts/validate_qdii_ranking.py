@@ -224,6 +224,11 @@ def validate_filters(filters: Any) -> None:
     )
     require(
         filters.get("us_equity_candidates_scanned")
+        == filters.get("performance_qualified_count"),
+        "Contract benchmark metadata filtered a performance-qualified candidate",
+    )
+    require(
+        filters.get("us_equity_candidates_scanned")
         == filters.get("us_routed_count") + filters.get("global_routed_count"),
         "US-equity scan count does not close against the routed counts",
     )
@@ -257,6 +262,10 @@ def validate_exclusion_summary(value: Any) -> None:
         label = item.get("label")
         codes = item.get("codes")
         require(isinstance(reason, str) and reason, "Exclusion reason is missing")
+        require(
+            reason != "excluded_target_market",
+            "Contract benchmark metadata must not exclude a candidate",
+        )
         require(reason not in reasons, f"Duplicate exclusion reason: {reason}")
         reasons.add(reason)
         require(isinstance(label, str) and label, f"Exclusion label is missing for {reason}")
@@ -354,11 +363,18 @@ def validate_contract_benchmark(
         require(bool(component.get("benchmark_id")), f"{code} contract component id is missing")
         weight = as_number(component.get("weight_pct"), f"{code} component weight")
         require(0 <= weight <= 100, f"{code} contract component weight is invalid")
+        require(
+            isinstance(component.get("excluded_target"), bool),
+            f"{code} contract component target flag is invalid",
+        )
     require(
         contract.get("structure") in {"standard", "leveraged", "inverse", "volatility"},
         f"{code} contract benchmark structure is invalid",
     )
-    require(contract.get("excluded_target") is False, f"{code} targets an excluded market")
+    require(
+        isinstance(contract.get("excluded_target"), bool),
+        f"{code} contract target flag is invalid",
+    )
     require(
         contract.get("management_style") in {"active", "passive"}
         and record.get("management_style") == contract.get("management_style"),

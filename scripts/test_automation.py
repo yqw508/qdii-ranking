@@ -174,12 +174,12 @@ def make_payload():
             "performance_qualified_count": 27,
             "contract_candidates_scanned": 27,
             "contract_metadata_resolved_count": 8,
-            "us_equity_candidates_scanned": 8,
-            "us_routed_count": 3,
-            "global_routed_count": 5,
-            "us_quota_candidates_scanned": 3,
+            "us_equity_candidates_scanned": 27,
+            "us_routed_count": 12,
+            "global_routed_count": 15,
+            "us_quota_candidates_scanned": 12,
             "us_quota_qualified_count": 3,
-            "global_quota_candidates_scanned": 5,
+            "global_quota_candidates_scanned": 15,
             "global_quota_qualified_count": 3,
             "full_scan_completed": True,
             "ranking_method": validator.EXPECTED_RANKING_METHOD,
@@ -335,6 +335,44 @@ class RankingValidatorTests(unittest.TestCase):
         )
         validated, _ = self.validate(payload)
         self.assertEqual("composite", validated["records"][0]["contract_benchmark"]["status"])
+
+    def test_accepts_excluded_target_flag_as_display_only_metadata(self):
+        payload = make_payload()
+        contract = payload["records"][0]["contract_benchmark"]
+        contract.update(
+            benchmark_id="csi-hk-us-china-technology",
+            benchmark_name="中证香港美国上市中美科技指数",
+            benchmark_text="中证香港美国上市中美科技指数收益率×85%+活期存款利率×15%",
+            benchmark_weight_pct=85.0,
+            market_scope="excluded",
+            market_label="中国及中国香港",
+            excluded_target=True,
+        )
+        contract["components"][0].update(
+            benchmark_id="csi-hk-us-china-technology",
+            benchmark_name="中证香港美国上市中美科技指数",
+            weight_pct=85.0,
+            market_scope="excluded",
+            market_label="中国及中国香港",
+            excluded_target=True,
+        )
+        validated, _ = self.validate(payload)
+        self.assertTrue(validated["records"][0]["contract_benchmark"]["excluded_target"])
+
+    def test_rejects_contract_target_exclusion_reason(self):
+        payload = make_payload()
+        payload["exclusion_summary"].append(
+            {
+                "reason": "excluded_target_market",
+                "label": "以中国、香港或泛亚洲为主要目标",
+                "count": 1,
+                "codes": ["016701"],
+            }
+        )
+        with self.assertRaisesRegex(
+            validator.ValidationError, "Contract benchmark metadata must not exclude"
+        ):
+            self.validate(payload)
 
     def test_rejects_both_lists_empty(self):
         payload = make_payload()

@@ -8,7 +8,8 @@
   manager disclosures mirrored by the announcement PDF endpoint. Selection never uses a document
   published after the requested ranking date.
 - `contract-benchmarks.json` is the versioned benchmark catalog. It records aliases, market scope,
-  region, asset class, style, excluded targets, and ordinary/leveraged/inverse/volatility structure.
+  region, asset class, style, descriptive target flags, and ordinary/leveraged/inverse/volatility
+  structure. Every catalog field is display-only.
 - `us-equity-instruments.json` contains official-source classifications used for conservative
   fund-of-funds look-through.
 - Nasdaq `XNDX` gross total-return history and SAFE USD/CNY central parity produce the CNY Nasdaq-100
@@ -28,13 +29,13 @@ the updater never silently drops a required evaluation.
 4. Keep active and passive/index strategies. Exclude bond and commodity strategies.
 5. Parse the latest prospectus disclosed on or before the ranking date and keep recognized, composite,
    unrecognized, or unreadable status plus all recognized benchmark components. Benchmark purity,
-   component count, and weight do not control eligibility.
+   identity, market, country/region, asset class, structure, component count, weight, and parse status
+   do not control eligibility or list routing.
 6. Cross-check the newest eligible RMB product summary. An explicit index or weight conflict, a missing
    document, or unreadable text is reported but does not exclude the fund. Parse the official
    annualized comprehensive fund operating expense from the same RMB summary when available.
-7. Exclude names and clearly identified target benchmarks focused on China, Hong Kong, or pan-Asia. A
-   global or multi-market benchmark is not excluded merely for containing a minority exposure to these
-   markets.
+7. Apply the configured China, Hong Kong, and pan-Asia geography keywords to fund names only. Contract
+   benchmarks never trigger a geography exclusion, including when they explicitly target those markets.
 8. Resolve the manager-level direct-sale quota for every otherwise eligible candidate. Unlimited sale
    qualifies; a known amount must be at least CNY 200. Unknown direct quota is excluded with a warning.
    Agency quota is displayed but does not affect eligibility.
@@ -53,8 +54,8 @@ the updater never silently drops a required evaluation.
 
 - Accept every remaining eligible strategy whose confirmed US-equity exposure is below 50%, including
   intervals whose possible upper bound crosses 50%. Display the full conservative interval. Do not
-  include candidates already in the US main ranking, bond/commodity strategies, or excluded target
-  markets.
+  include candidates already in the US main ranking, bond/commodity strategies, or funds rejected by
+  the configured name keywords.
 - Compute the three-year annualized return from the actual adjusted-NAV start/end dates. Divide it by
   the absolute three-year maximum drawdown. A true zero drawdown stores `null`, displays `∞`, and sorts
   before finite ratios.

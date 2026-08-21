@@ -63,8 +63,9 @@ NASDAQ100_MIN_SPAN_DAYS = 1000
 FUND_EXPOSURE_CACHE_SCHEMA_VERSION = 1
 US_EQUITY_METHOD_VERSION = 1
 DEFAULT_MIN_DIRECT_LIMIT_CNY = 200
-DEFAULT_MIN_FIVE_YEAR_RETURN_PCT = 80.0
-DEFAULT_MIN_TEN_YEAR_RETURN_PCT = 220.0
+DEFAULT_MIN_THREE_YEAR_RETURN_PCT = 30.0
+DEFAULT_MIN_FIVE_YEAR_RETURN_PCT = 60.0
+DEFAULT_MIN_TEN_YEAR_RETURN_PCT = 100.0
 EXCLUDED_FUND_TYPES = {"QDII-纯债", "QDII-混合债", "QDII-商品"}
 NOTICE_TITLE_RE = re.compile(
     r"大额申购|申购.{0,20}(?:限额|业务上限)|(?:限额|业务上限).{0,20}申购|恢复.{0,12}申购"
@@ -469,7 +470,7 @@ def enrich_fund_pages(
 
 def filter_and_rank(
     candidates: list[dict[str, Any]],
-    min_scale: float,
+    min_scale: float | None,
     top: int,
     exclude_keywords: Iterable[str] = (),
     as_of: date | None = None,
@@ -478,7 +479,7 @@ def filter_and_rank(
     eligible = [
         item
         for item in candidates
-        if item["scale_billion_cny"] > min_scale
+        if (min_scale is None or item["scale_billion_cny"] > min_scale)
         and item["purchase_status"] in {"open", "limited"}
         and (
             min_age_years == 0
@@ -2293,7 +2294,7 @@ def parse_us_equity_report(text: str, code: str) -> dict[str, Any]:
     text = clean_report_text(text)
     direct_heading = re.search(
         r"(?:报告期末|期末)在各个国家（地区）证券市场的"
-        r"(?:股票及存托凭证|权益)投资分\s*布",
+        r"(?:股票及存托\s*凭证|权益)投资分\s*布",
         text,
     )
     if not direct_heading:
@@ -2325,7 +2326,8 @@ def parse_us_equity_report(text: str, code: str) -> dict[str, Any]:
     total_fund_pct = 0.0
     if fund_amount > 0:
         net_match = re.search(
-            r"期末基金\s*资产净值(.{0,1400}?)5\.\s*期末基金\s*份额净值",
+            r"期末基金\s*资产\s*净值(.{0,1400}?)"
+            r"5\.\s*期末基金\s*份额\s*净值",
             text,
             re.S,
         )
@@ -3027,6 +3029,10 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
     scale_dates = "、".join(
         sorted({item["scale_report_date"] for item in combined})
     ) or "无"
+    min_scale = payload["filters"]["min_scale_billion_cny"]
+    scale_requirement = (
+        "规模不限" if min_scale is None else f"规模 > {float(min_scale):g} 亿元"
+    )
     lines = [
         "# QDII 美国主榜与全球补充榜",
         "",
@@ -3036,7 +3042,7 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
         f"- 近一年净值观察区间：{summarize_periods(combined, 'one_year')}",
         f"- 近三年净值观察区间：{summarize_periods(combined, 'three_year')}",
         f"- 申购额度评估日：{payload['run_date']}",
-        f"- 筛选条件：规模 > {payload['filters']['min_scale_billion_cny']:g} 亿元；"
+        f"- 筛选条件：{scale_requirement}；"
         f"成立超过 {payload['filters']['min_age_years']} 年；"
         f"近三年复权收益 >= {payload['filters']['min_three_year_return_pct']:g}%；"
         f"有完整五年历史时近五年收益 >= {payload['filters']['min_five_year_return_pct_if_available']:g}%；"
@@ -3148,8 +3154,12 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
     combined = [*us_records, *global_records]
     filters = payload["filters"]
     scale_dates = "、".join(sorted({item["scale_report_date"] for item in combined})) or "无"
+    min_scale = filters["min_scale_billion_cny"]
+    scale_requirement = (
+        "规模不限" if min_scale is None else f"规模 > {float(min_scale):g} 亿元"
+    )
     filter_parts = (
-        f"规模 > {filters['min_scale_billion_cny']:g} 亿元",
+        scale_requirement,
         f"成立 > {filters['min_age_years']} 年",
         f"三年收益 ≥ {filters['min_three_year_return_pct']:g}%",
         f"五年有数据 ≥ {filters['min_five_year_return_pct_if_available']:g}%",
@@ -3752,7 +3762,10 @@ def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--top", type=int, default=10, help="Maximum result count")
     parser.add_argument(
-        "--min-scale", type=float, default=3.0, help="Strict minimum scale in CNY 100m"
+        "--min-scale",
+        type=float,
+        default=None,
+        help="Optional strict minimum scale in CNY 100m; omitted by default",
     )
     parser.add_argument(
         "--min-age-years",
@@ -3763,7 +3776,7 @@ def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--min-three-year-return-pct",
         type=float,
-        default=50.0,
+        default=DEFAULT_MIN_THREE_YEAR_RETURN_PCT,
         help="Minimum trailing three-year adjusted return percentage",
     )
     parser.add_argument(
@@ -3834,7 +3847,7 @@ def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     args = parser.parse_args(argv)
     if args.top <= 0:
         parser.error("--top must be positive")
-    if args.min_scale < 0:
+    if args.min_scale is not None and args.min_scale < 0:
         parser.error("--min-scale must be non-negative")
     if args.min_age_years < 0:
         parser.error("--min-age-years must be non-negative")

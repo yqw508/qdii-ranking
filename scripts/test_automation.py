@@ -164,11 +164,11 @@ def make_payload():
         "holder_period_fund_count": 24000,
         "filters": {
             "top": 10,
-            "min_scale_billion_cny": 3.0,
+            "min_scale_billion_cny": None,
             "min_age_years": 3,
-            "min_three_year_return_pct": 50.0,
-            "min_five_year_return_pct_if_available": 80.0,
-            "min_ten_year_return_pct_if_available": 220.0,
+            "min_three_year_return_pct": 30.0,
+            "min_five_year_return_pct_if_available": 60.0,
+            "min_ten_year_return_pct_if_available": 100.0,
             "min_us_equity_pct": 50.0,
             "min_direct_limit_cny_inclusive": 200,
             "base_candidates_total": 42,
@@ -314,8 +314,8 @@ class RankingValidatorTests(unittest.TestCase):
 
     def test_rejects_available_long_return_below_conditional_threshold(self):
         for field, value in (
-            ("five_year_return_pct", 79.99),
-            ("ten_year_return_pct", 219.99),
+            ("five_year_return_pct", 59.99),
+            ("ten_year_return_pct", 99.99),
         ):
             with self.subTest(field=field):
                 payload = make_payload()
@@ -324,6 +324,12 @@ class RankingValidatorTests(unittest.TestCase):
                     validator.ValidationError, "conditional .* return threshold"
                 ):
                     self.validate(payload)
+
+    def test_scale_is_validated_but_not_an_eligibility_threshold(self):
+        payload = make_payload()
+        payload["records"][0]["scale_billion_cny"] = 0.01
+        validated, _ = self.validate(payload)
+        self.assertEqual(0.01, validated["records"][0]["scale_billion_cny"])
 
     def test_accepts_composite_contract_without_style_threshold(self):
         payload = make_payload()

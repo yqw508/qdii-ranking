@@ -23,11 +23,11 @@ import send_qdii_email as mailer
 SHANGHAI_TZ = timezone(timedelta(hours=8))
 EXPECTED_FILTERS = {
     "top": 10,
-    "min_scale_billion_cny": 3.0,
+    "min_scale_billion_cny": None,
     "min_age_years": 3,
-    "min_three_year_return_pct": 50.0,
-    "min_five_year_return_pct_if_available": 80.0,
-    "min_ten_year_return_pct_if_available": 220.0,
+    "min_three_year_return_pct": 30.0,
+    "min_five_year_return_pct_if_available": 60.0,
+    "min_ten_year_return_pct_if_available": 100.0,
     "min_us_equity_pct": 50.0,
     "min_direct_limit_cny_inclusive": 200,
 }
@@ -484,9 +484,8 @@ def validate_records(
             f"{code} is not currently purchasable",
         )
         require(
-            as_number(record.get("scale_billion_cny"), f"{code} scale")
-            > EXPECTED_FILTERS["min_scale_billion_cny"],
-            f"{code} does not meet the strict scale threshold",
+            as_number(record.get("scale_billion_cny"), f"{code} scale") >= 0,
+            f"{code} has an invalid scale",
         )
         require(
             parse_date(record["inception_date"]) < cutoff,

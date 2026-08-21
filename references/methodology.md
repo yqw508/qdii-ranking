@@ -24,9 +24,9 @@ the updater never silently drops a required evaluation.
    RMB C/D, USD, HKD, back-end shares, and standalone ETFs; eligible feeder funds and LOFs remain.
 2. Use the newest holder half-year/year-end period whose fund count reaches 95% of the preceding
    complete period. Skip a partially disclosed newer period with a visible warning.
-3. Require scale strictly above CNY 300 million, inception strictly over three years, and trailing
-   three-year adjusted return of at least 50%. If a complete five-year adjusted return exists, require
-   at least 80%. If a complete ten-year adjusted return exists, require at least 220%. A missing long
+3. Do not impose a fund-scale threshold. Require inception strictly over three years and trailing
+   three-year adjusted return of at least 30%. If a complete five-year adjusted return exists, require
+   at least 60%. If a complete ten-year adjusted return exists, require at least 100%. A missing long
    window bypasses only its own conditional threshold; an available value must pass.
 4. Keep active and passive/index strategies. Exclude bond and commodity strategies.
 5. Parse the latest prospectus disclosed on or before the ranking date and keep recognized, composite,
@@ -82,9 +82,10 @@ empty or shorter than ten without relaxing thresholds; both lists empty stops pu
 - Correlation is Pearson correlation, beta is sample covariance divided by benchmark sample variance,
   and tracking error is the sample standard deviation of weekly active returns times `sqrt(52)`.
 
-Five- and ten-year returns and the annualized comprehensive operating expense are display-only. The
-official fee measure is not an application or redemption fee. Adjusted NAV returns already reflect fund
-operating expenses, so the displayed expense is never subtracted again.
+Five- and ten-year returns apply only their conditional eligibility thresholds and do not participate
+in ranking. The annualized comprehensive operating expense is display-only and is not an application
+or redemption fee. Adjusted NAV returns already reflect fund operating expenses, so the displayed
+expense is never subtracted again.
 
 ## Quota Precedence
 

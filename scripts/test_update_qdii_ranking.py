@@ -34,7 +34,10 @@ class FundFilterTests(unittest.TestCase):
     def test_default_result_count_and_return_threshold(self):
         args = ranking.parse_args([])
         self.assertEqual(10, args.top)
-        self.assertEqual(50.0, args.min_three_year_return_pct)
+        self.assertIsNone(args.min_scale)
+        self.assertEqual(30.0, args.min_three_year_return_pct)
+        self.assertEqual(60.0, args.min_five_year_return_pct)
+        self.assertEqual(100.0, args.min_ten_year_return_pct)
         self.assertEqual(50.0, args.min_us_equity_pct)
         self.assertEqual(200, args.min_direct_limit_cny)
         self.assertEqual("public", args.publish_dir.name)
@@ -95,6 +98,20 @@ class FundFilterTests(unittest.TestCase):
         candidates[0].update(scale_billion_cny=4, purchase_status="open")
         candidates[1].update(scale_billion_cny=3, purchase_status="open")
         result = ranking.filter_and_rank(candidates, min_scale=3, top=10)
+        self.assertEqual(["1"], [item["code"] for item in result])
+
+    def test_default_scale_filter_keeps_small_funds(self):
+        candidates = [
+            {
+                "code": "1",
+                "name": "全球小规模基金(QDII)A",
+                "institution_holding_ratio_pct": 10,
+                "scale_billion_cny": 0.01,
+                "purchase_status": "open",
+                "inception_date": "2020-01-01",
+            }
+        ]
+        result = ranking.filter_and_rank(candidates, min_scale=None, top=10)
         self.assertEqual(["1"], [item["code"] for item in result])
 
     def test_excludes_bond_and_commodity_types_but_keeps_fof_and_reit(self):
@@ -417,13 +434,13 @@ class PerformanceTests(unittest.TestCase):
     @patch.object(ranking, "fetch_trailing_performance")
     def test_three_year_threshold_full_scan_includes_exact_match(self, fetch):
         fetch.side_effect = [
-            ({"three_year_return_pct": 49.99}, []),
-            ({"three_year_return_pct": 50.0}, []),
+            ({"three_year_return_pct": 29.99}, []),
+            ({"three_year_return_pct": 30.0}, []),
             ({"three_year_return_pct": 80.0}, []),
         ]
         candidates = [{"code": str(index)} for index in range(3)]
         selected, warnings, scanned = ranking.filter_performance_full_scan(
-            object(), candidates, date(2026, 8, 19), 50.0, top=2
+            object(), candidates, date(2026, 8, 19), 30.0, top=2
         )
         self.assertEqual(["1", "2"], [item["code"] for item in selected])
         self.assertEqual([], warnings)
@@ -476,39 +493,39 @@ class PerformanceTests(unittest.TestCase):
             [],
             ranking.performance_threshold_failures(
                 {
-                    "three_year_return_pct": 50.0,
+                    "three_year_return_pct": 30.0,
                     "five_year_return_pct": None,
                     "ten_year_return_pct": None,
                 },
-                50,
-                80,
-                220,
+                30,
+                60,
+                100,
             ),
         )
         self.assertEqual(
             [],
             ranking.performance_threshold_failures(
                 {
-                    "three_year_return_pct": 50.0,
-                    "five_year_return_pct": 80.0,
-                    "ten_year_return_pct": 220.0,
+                    "three_year_return_pct": 30.0,
+                    "five_year_return_pct": 60.0,
+                    "ten_year_return_pct": 100.0,
                 },
-                50,
-                80,
-                220,
+                30,
+                60,
+                100,
             ),
         )
         reasons = {
             reason
             for reason, _label in ranking.performance_threshold_failures(
                 {
-                    "three_year_return_pct": 50.0,
-                    "five_year_return_pct": 79.99,
-                    "ten_year_return_pct": 219.99,
+                    "three_year_return_pct": 30.0,
+                    "five_year_return_pct": 59.99,
+                    "ten_year_return_pct": 99.99,
                 },
-                50,
-                80,
-                220,
+                30,
+                60,
+                100,
             )
         }
         self.assertEqual(
@@ -855,11 +872,11 @@ class HtmlOutputTests(unittest.TestCase):
             "run_date": "2026-08-20",
             "holder_report_date": "2025-12-31",
             "filters": {
-                "min_scale_billion_cny": 3.0,
+                "min_scale_billion_cny": None,
                 "min_age_years": 3,
-                "min_three_year_return_pct": 50.0,
-                "min_five_year_return_pct_if_available": 80.0,
-                "min_ten_year_return_pct_if_available": 220.0,
+                "min_three_year_return_pct": 30.0,
+                "min_five_year_return_pct_if_available": 60.0,
+                "min_ten_year_return_pct_if_available": 100.0,
                 "min_us_equity_pct": 50.0,
                 "min_direct_limit_cny_inclusive": 200,
                 "base_candidates_total": 2,
@@ -892,6 +909,10 @@ class HtmlOutputTests(unittest.TestCase):
             ranking.write_html(path, self.payload())
             document = path.read_text(encoding="utf-8")
         self.assertIn('name="viewport"', document)
+        self.assertIn("规模不限", document)
+        self.assertIn("三年收益 ≥ 30%", document)
+        self.assertIn("五年有数据 ≥ 60%", document)
+        self.assertIn("十年有数据 ≥ 100%", document)
         self.assertEqual(2, document.count('<details class="fund-item"'))
         self.assertNotIn("<script>alert(1)</script>", document)
         self.assertIn("&lt;script&gt;alert(1)&lt;/script&gt;", document)
@@ -1045,14 +1066,33 @@ class PeriodicReportTests(unittest.TestCase):
         self.assertEqual(0.0, parsed["fund_investment_pct"])
         self.assertEqual([], parsed["fund_holdings"])
 
+    def test_parses_wrapped_depository_receipt_heading(self):
+        report_text = """
+        5.1 报告期末基金资产组合情况
+        1 权益投资 306,976,360.04 89.48
+        2 基金投资 - -
+        9 合计 343,048,323.73 100.00
+        5.2 报告期末在各个国家（地区）证券市场的股票及存托 凭证投资分布
+        国家（地区） 公允价值（人民币元） 占基金资产净值比例（%）
+        美国 288,684,697.04 88.57
+        中国香港 18,291,663.00 5.61
+        合计 306,976,360.04 94.18
+        5.3 报告期末按行业分类
+        """
+        parsed = ranking.parse_us_equity_report(report_text, "017144")
+        self.assertEqual(88.57, parsed["direct_us_pct"])
+        self.assertEqual(0.0, parsed["fund_investment_pct"])
+
     def test_sums_wrapped_multi_share_net_assets(self):
         report_text = """
-        4.期末基金资产净值
+        4.期末基金资产
+        净值
         人民币A类 1,000,000,00
         0.00
         人民币C类 500,000,00
         0.00
-        5.期末基金份额净值 1.00
+        5.期末基金份额
+        净值 1.00
         5.1 报告期末基金资产组合情况
         1 权益投资 --
         2 基金投资 1,350,000,000.00 90.00
@@ -1199,10 +1239,15 @@ class UsEquityExposureTests(unittest.TestCase):
                 date(2026, 6, 30),
             )
             gf_resolved = resolver.resolve("广发纳指 100ETF", date(2026, 6, 30))
+            biotech_resolved = resolver.resolve(
+                "纳指生物 科技 ETF 汇添富", date(2026, 6, 30)
+            )
         self.assertIsNotNone(resolved)
         self.assertEqual(100.0, resolved["us_equity_pct"])
         self.assertIsNotNone(gf_resolved)
         self.assertEqual(100.0, gf_resolved["us_equity_pct"])
+        self.assertIsNotNone(biotech_resolved)
+        self.assertEqual(100.0, biotech_resolved["us_equity_pct"])
 
     def test_163813_conservative_lower_bound_exceeds_fifty(self):
         holdings = [

@@ -88,3 +88,8 @@ authorization to complete the full update and publication workflow:
 Do not deploy a partial or warning-blind result. Explain material unresolved look-through intervals,
 contract/fee warnings, and quota warnings in the final report. Read `references/methodology.md` when a
 source changes, a report period is skipped, or parsing becomes unresolved.
+
+The scheduled workflow runs daily at 07:07 Asia/Shanghai. Cache reuse must include a same-run source
+revalidation: conditional NAV checks and one current announcement-index check per performance-qualified
+fund. Never trade ranking freshness for runtime. Inspect `run-metrics.json` and the Actions performance
+comparison when update latency changes materially.

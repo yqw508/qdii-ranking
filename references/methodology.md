@@ -108,10 +108,25 @@ ranking date. A later transition overrides an earlier one for the same channel.
 
 ## Cache And Output
 
-NAV calculations, benchmark history, fund exposure, legal documents, periodic reports, and underlying
-classifications are cached with source dates and catalog fingerprints. PDF cache hits must still be valid
-PDFs with extractable text. Historical runs never consume a future NAV, benchmark point, allocation, or
-announcement.
+Each daily run revalidates ranking-critical sources rather than trusting the prior result. NAV history
+uses `Last-Modified`; a `304` reuses normalized points only after the latest fund-page NAV date and value
+agree. A changed source, missing validator, corrupt cache, or mismatch forces a complete download.
+
+Each performance-qualified fund has one daily announcement-index snapshot shared by contract, holding,
+and quota processing. A cold cache paginates until the legal-document history is seeded; later runs
+check the first page and merge new IDs. Parsed contract profiles, report exposure, and quota transitions
+are keyed by source announcement IDs, catalog fingerprints, and parser versions. A parser-version change
+invalidates only its derived cache. Cached failures remain failures until the source or parser identity
+changes.
+
+PDF bytes remain cached by announcement ID. On a derived-result cache miss they must still be valid PDFs
+with extractable text. Historical runs never consume a future NAV, benchmark point, allocation, or
+announcement. Ranking-critical revalidation failure stops publication instead of falling back to the
+previous day's ranking.
+
+Every run writes an unpublished `run-metrics.json` with phase durations, categorized HTTP calls and
+bytes, retries, conditional responses, PDF extractions, and cache statistics. GitHub Actions compares it
+with the versioned pre-optimization baseline; performance misses warn but never bypass data validation.
 
 JSON schema 10 is the structured source of truth. `records` contains the US main list,
 `global_supplement.records` contains the supplement, and `exclusion_summary` records reason counts and

@@ -161,6 +161,8 @@ def is_reportable_warning(warning: str) -> bool:
         return True
     if warning.startswith("纳指100基准更新失败，使用完整缓存："):
         return True
+    if "的基金主页净值已更新至 " in warning and "已强制重新验证完整历史并按后者计算" in warning:
+        return True
     if warning.startswith(
         ("合同基准告警 ", "产品概要告警 ", "持有费率告警 ", "额度剔除 ")
     ):

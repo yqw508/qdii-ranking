@@ -2,7 +2,7 @@ name: Update QDII ranking
 
 on:
   schedule:
-    - cron: "7 1 * * *"
+    - cron: "7 23 * * *"
   workflow_dispatch:
 
 permissions:
@@ -26,6 +26,10 @@ jobs:
     timeout-minutes: 90
 
     steps:
+      - name: Record job start
+        shell: bash
+        run: echo "JOB_STARTED_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
+
       - name: Check out main
         uses: actions/checkout@v7
         with:
@@ -70,6 +74,7 @@ jobs:
           key: qdii-ranking-${{ runner.os }}-${{ hashFiles('scripts/update_qdii_ranking.py', 'references/us-equity-instruments.json', 'references/contract-benchmarks.json') }}-${{ github.run_id }}
           restore-keys: |
             qdii-ranking-${{ runner.os }}-${{ hashFiles('scripts/update_qdii_ranking.py', 'references/us-equity-instruments.json', 'references/contract-benchmarks.json') }}-
+            qdii-ranking-${{ runner.os }}-
 
       - name: Install Python dependencies
         id: dependencies
@@ -219,6 +224,15 @@ jobs:
           --status success
           --data "$OUTPUT_DIR/latest.json"
           --url "$PAGE_URL"
+
+      - name: Report performance comparison
+        if: ${{ success() }}
+        continue-on-error: true
+        run: >-
+          python scripts/report_update_metrics.py
+          --baseline references/performance-baseline.json
+          --current "$OUTPUT_DIR/run-metrics.json"
+          --job-started-epoch "$JOB_STARTED_EPOCH"
 
       - name: Send failure email
         if: ${{ failure() }}

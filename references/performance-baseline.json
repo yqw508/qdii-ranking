@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "measured_date": "2026-08-21",
+  "description": "Six successful GitHub Actions runs before the cache and concurrency optimization.",
+  "runs": [
+    {"run_id": 32453215251, "head_sha": "dd58c65d", "event": "workflow_dispatch", "refresh_seconds": 1429, "end_to_end_seconds": 1472},
+    {"run_id": 32448711097, "head_sha": "e8ed5e9e", "event": "workflow_dispatch", "refresh_seconds": 632, "end_to_end_seconds": 675},
+    {"run_id": 32446421420, "head_sha": "1bddc36d", "event": "workflow_dispatch", "refresh_seconds": 427, "end_to_end_seconds": 472},
+    {"run_id": 32444194433, "head_sha": "ba968396", "event": "workflow_dispatch", "refresh_seconds": 662, "end_to_end_seconds": 706},
+    {"run_id": 32442486462, "head_sha": "0452a734", "event": "workflow_dispatch", "refresh_seconds": 567, "end_to_end_seconds": 605},
+    {"run_id": 32440337490, "head_sha": "9c2b62d6", "event": "schedule", "refresh_seconds": 356, "end_to_end_seconds": 398}
+  ],
+  "summary": {
+    "refresh_seconds": {"minimum": 356, "median": 599.5, "maximum": 1429},
+    "end_to_end_seconds": {"minimum": 398, "median": 640, "maximum": 1472},
+    "base_candidates": 110,
+    "document_candidates": 34,
+    "announcement_index_calls_minimum": 102,
+    "pdf_text_extractions": 301
+  },
+  "targets": {
+    "refresh_median_seconds_max": 240,
+    "end_to_end_median_seconds_max": 300,
+    "refresh_reduction_pct_min": 60,
+    "end_to_end_reduction_pct_min": 50,
+    "announcement_index_reduction_pct_min": 66,
+    "unchanged_pdf_extraction_reduction_pct": 100
+  }
+}

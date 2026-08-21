@@ -69,7 +69,7 @@ https://qdii-ranking-web-run-cool-d2gy0iw957219659c.webapps.tcloudbase.com/?v=<�
 
 ## 每日自动更新
 
-`.github/workflows/update-ranking.yml` 每天北京时间 09:07 执行，也支持手动触发。流程依次为
+`.github/workflows/update-ranking.yml` 每天北京时间 07:07 执行，也支持手动触发。流程依次为
 刷新、质量校验、测试、提交生成页、CloudBase 部署、线上验证和 QQ 邮件通知。首次启用时
 先手动运行一次并验收。
 

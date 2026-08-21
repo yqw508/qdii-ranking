@@ -469,6 +469,95 @@ class ContractBenchmarkTests(unittest.TestCase):
         self.assertGreater(annualized, 0)
 
 
+class AnnouncementCacheTests(unittest.TestCase):
+    @patch.object(ranking, "_announcement_page")
+    def test_daily_check_seeds_history_once_and_reuses_snapshot(self, page):
+        page_one = {
+            "TotalCount": 200,
+            "PageSize": 100,
+            "Data": [
+                {"ID": "report", "TITLE": "某基金2026年第2季度报告", "PUBLISHDATEDesc": "2026-07-20"},
+                {"ID": "quota", "TITLE": "某基金限制大额申购公告", "PUBLISHDATEDesc": "2026-08-18"},
+                {"ID": "future", "TITLE": "某基金更新招募说明书", "PUBLISHDATEDesc": "2026-08-21"},
+            ],
+        }
+        page_two = {
+            "TotalCount": 200,
+            "PageSize": 100,
+            "Data": [
+                {"ID": "prospectus", "TITLE": "某基金更新招募说明书", "PUBLISHDATEDesc": "2026-06-01"},
+                {"ID": "summary", "TITLE": "某基金(A类份额)基金产品资料概要更新", "PUBLISHDATEDesc": "2026-06-02"},
+            ],
+        }
+        page.side_effect = lambda _client, _code, index: page_one if index == 1 else page_two
+        as_of = date(2026, 8, 20)
+        with TemporaryDirectory() as directory:
+            cache = ranking.AnnouncementIndexCache(Path(directory))
+            first = cache.get(object(), "000043", as_of)
+            second = cache.get(object(), "000043", as_of)
+            self.assertEqual(3, page.call_count)
+            self.assertNotIn("future", {item.announcement_id for item in first.items})
+            prospectus, summary = ranking.fetch_latest_legal_documents(
+                object(), "000043", as_of, snapshot=second
+            )
+            self.assertEqual("prospectus", prospectus.announcement_id)
+            self.assertEqual("summary", summary.announcement_id)
+            self.assertEqual(
+                "report",
+                ranking.fetch_latest_periodic_report(
+                    object(), "000043", as_of, snapshot=second
+                ).announcement_id,
+            )
+            self.assertEqual(
+                ["quota"],
+                [item["id"] for item in ranking.fetch_announcements(
+                    object(), "000043", as_of, snapshot=second
+                )],
+            )
+            self.assertEqual(
+                {"checks": 2, "pages_fetched": 3, "full_seeds": 1, "cache_loads": 1, "corrupt_rebuilds": 0},
+                cache.stats(),
+            )
+
+    @patch.object(ranking, "resolve_contract_benchmark")
+    def test_contract_result_cache_invalidates_on_document_change(self, resolve):
+        profile = {
+            "status": "recognized",
+            "prospectus_published_date": "2026-06-01",
+            "product_summary_published_date": "2026-06-02",
+        }
+        holding = {
+            "status": "parsed",
+            "source_published_date": "2026-06-02",
+            "measurement_date": "2026-05-31",
+        }
+        resolve.return_value = (profile, holding, ["warning"])
+        fund = {"code": "000043", "name": "嘉实美国成长股票人民币", "fund_type": "QDII-普通股票"}
+        as_of = date(2026, 8, 20)
+        catalog = ranking.ContractBenchmarkCatalog(ranking.DEFAULT_CONTRACT_BENCHMARK_CATALOG)
+        base_items = (
+            ranking.AnnouncementRecord("p", "更新招募说明书", date(2026, 6, 1)),
+            ranking.AnnouncementRecord("s", "A类基金产品资料概要", date(2026, 6, 2)),
+        )
+        first = ranking.FundAnnouncementSnapshot("000043", as_of, base_items)
+        changed = ranking.FundAnnouncementSnapshot(
+            "000043",
+            as_of,
+            (base_items[0], ranking.AnnouncementRecord("s2", "A类基金产品资料概要更新", date(2026, 8, 1))),
+        )
+        with TemporaryDirectory() as directory:
+            cache = ranking.ContractProfileResultCache(Path(directory))
+            self.assertEqual(
+                (profile, holding, ["warning"]),
+                cache.get(object(), fund, as_of, object(), catalog, first),
+            )
+            cache.get(object(), fund, as_of, object(), catalog, first)
+            cache.get(object(), fund, as_of, object(), catalog, changed)
+        self.assertEqual(2, resolve.call_count)
+        self.assertEqual(1, cache.stats()["hits"])
+        self.assertEqual(2, cache.stats()["misses"])
+
+
 class PerformanceTests(unittest.TestCase):
     @patch.object(ranking, "fetch_trailing_performance")
     def test_three_year_threshold_full_scan_includes_exact_match(self, fetch):
@@ -775,10 +864,48 @@ class PerformanceCacheTests(unittest.TestCase):
             "nasdaq100_fit_error": None,
         }
 
-    @patch.object(ranking, "fetch_trailing_performance")
-    def test_cache_hits_and_rebuilds_future_or_corrupt_data(self, fetch):
-        fetch.return_value = (self.result(), ["cached warning"])
-        fund = {"code": "000001", "fund_page_url": "https://example.test/fund"}
+    @patch.object(ranking, "calculate_performance_from_points")
+    def test_cache_revalidates_with_304_and_rebuilds_corruption(self, calculate):
+        calculate.return_value = (self.result(), ["cached warning"])
+        observed = date(2026, 8, 19)
+        timestamp = int(
+            ranking.datetime.combine(
+                observed, ranking.datetime.min.time(), ranking.SHANGHAI_TZ
+            ).timestamp()
+            * 1000
+        )
+        source = (
+            "var Data_netWorthTrend = "
+            + json.dumps(
+                [
+                    {"x": timestamp - 86400000, "y": 1.0, "equityReturn": 0},
+                    {"x": timestamp, "y": 1.1, "equityReturn": 10},
+                ]
+            )
+            + ";"
+        )
+
+        class Client:
+            def __init__(self):
+                self.responses = [
+                    (200, source, "Wed, 19 Aug 2026 01:00:00 GMT"),
+                    (304, None, "Wed, 19 Aug 2026 01:00:00 GMT"),
+                    (200, source, "Wed, 19 Aug 2026 01:00:00 GMT"),
+                ]
+                self.last_modified = []
+
+            def get_conditional_text(self, _url, referer=None, last_modified=None):
+                self.last_modified.append(last_modified)
+                return self.responses.pop(0)
+
+        client = Client()
+        fund = {
+            "code": "000001",
+            "fund_page_url": "https://example.test/fund",
+            "latest_nav_date": observed.isoformat(),
+            "latest_nav_value": 1.1,
+        }
+
         as_of = date(2026, 8, 19)
         benchmark = ranking.Nasdaq100Benchmark(
             {date(2023, 8, 1): 100.0, as_of: 200.0},
@@ -787,17 +914,55 @@ class PerformanceCacheTests(unittest.TestCase):
         with TemporaryDirectory() as directory:
             root = Path(directory)
             cache = ranking.PerformanceResultCache(root)
-            self.assertEqual(self.result(), cache.get(object(), fund, as_of, benchmark)[0])
-            self.assertEqual(self.result(), cache.get(object(), fund, as_of, benchmark)[0])
-            path = root / as_of.isoformat() / "000001.json"
+            self.assertEqual(self.result(), cache.get(client, fund, as_of, benchmark)[0])
+            self.assertEqual(self.result(), cache.get(client, fund, as_of, benchmark)[0])
+            path = root / "nav-history" / "000001.json"
             payload = json.loads(path.read_text(encoding="utf-8"))
-            payload["performance"]["three_year_performance_end_date"] = "2026-08-20"
+            payload["schema_version"] = 0
             path.write_text(json.dumps(payload), encoding="utf-8")
-            self.assertEqual(self.result(), cache.get(object(), fund, as_of, benchmark)[0])
-        self.assertEqual(2, fetch.call_count)
+            self.assertEqual(self.result(), cache.get(client, fund, as_of, benchmark)[0])
+        self.assertEqual([None, "Wed, 19 Aug 2026 01:00:00 GMT", None], client.last_modified)
         self.assertEqual(
-            {"hits": 1, "misses": 2, "corrupt_rebuilds": 1}, cache.stats()
+            {
+                "hits": 1,
+                "misses": 2,
+                "corrupt_rebuilds": 1,
+                "conditional_requests": 1,
+                "not_modified": 1,
+                "updates": 2,
+            },
+            cache.stats(),
         )
+
+    def test_page_lead_warns_only_after_full_history_revalidation(self):
+        points = [
+            {
+                "date": date(2026, 8, 19),
+                "nav": 1.5,
+                "equity_return_pct": 1.0,
+                "unit_money": "",
+            }
+        ]
+        fund = {
+            "code": "000001",
+            "latest_nav_date": "2026-08-20",
+            "latest_nav_value": 1.6,
+        }
+        with self.assertRaisesRegex(ranking.DataError, "does not contain"):
+            ranking.PerformanceResultCache._validate_page_snapshot(
+                points, fund, date(2026, 8, 20)
+            )
+        warning = ranking.PerformanceResultCache._validate_page_snapshot(
+            points, fund, date(2026, 8, 20), allow_page_lead=True
+        )
+        self.assertIn("强制重新验证", warning)
+        with self.assertRaisesRegex(ranking.DataError, "does not contain"):
+            ranking.PerformanceResultCache._validate_page_snapshot(
+                points,
+                {**fund, "latest_nav_date": "2026-08-28"},
+                date(2026, 8, 28),
+                allow_page_lead=True,
+            )
 
 
 class HtmlOutputTests(unittest.TestCase):
@@ -1229,7 +1394,12 @@ class PeriodicReportTests(unittest.TestCase):
             self.assertEqual("parsed", cache.get_text(client, report, "referer"))
             self.assertEqual(2, client.calls)
             self.assertEqual(
-                {"hits": 1, "downloads": 2, "corrupt_redownloads": 1},
+                {
+                    "hits": 1,
+                    "downloads": 2,
+                    "corrupt_redownloads": 1,
+                    "text_extractions": 3,
+                },
                 cache.stats(),
             )
 
@@ -1589,8 +1759,8 @@ class UsEquityExposureTests(unittest.TestCase):
         self.assertEqual(12, performance_qualified)
         self.assertEqual(12, exposure_scanned)
         self.assertEqual(12, exposure_qualified)
-        self.assertEqual(6, ranking.PERFORMANCE_WORKERS)
-        self.assertEqual(6, concurrency["maximum"])
+        self.assertEqual(10, ranking.PERFORMANCE_WORKERS)
+        self.assertEqual(10, concurrency["maximum"])
         self.assertEqual(
             [f"performance {index}" for index in range(12)], warnings
         )
@@ -1867,6 +2037,55 @@ class QuotaNoticeTests(unittest.TestCase):
         }
         self.assertEqual(100, amounts["2026-04-30"])
         self.assertEqual(5000000, amounts["2026-05-06"])
+
+
+class QuotaParseCacheTests(unittest.TestCase):
+    def test_reuses_success_and_failure_by_announcement_id(self):
+        class Documents:
+            def __init__(self):
+                self.calls = 0
+
+            def get_text(self, *_args):
+                self.calls += 1
+                return "notice text"
+
+        fund = {"code": "000001", "fund_page_url": "https://example.test/fund"}
+        notice = {
+            "id": "notice-1",
+            "title": "限制大额申购公告",
+            "published": date(2026, 8, 18),
+            "url": "https://example.test/notice-1.pdf",
+        }
+        transition = {
+            "effective_date": date(2026, 8, 18),
+            "direct_amount_cny": 200,
+            "agency_amount_cny": None,
+            "global_amount_cny": None,
+            "global_status": "limited",
+            "source_url": notice["url"],
+            "published_date": "2026-08-18",
+            "share_aggregation": None,
+            "all_channels_combined": False,
+            "confidence": "high",
+        }
+        documents = Documents()
+        with TemporaryDirectory() as directory:
+            cache = ranking.QuotaNoticeParseCache(Path(directory))
+            with patch.object(ranking, "parse_quota_notice", return_value=[transition]) as parse:
+                self.assertEqual([transition], cache.get(object(), fund, notice, documents))
+                self.assertEqual([transition], cache.get(object(), fund, notice, documents))
+                self.assertEqual(1, parse.call_count)
+            failed = {**notice, "id": "notice-2", "url": "https://example.test/notice-2.pdf"}
+            with patch.object(ranking, "parse_quota_notice", return_value=[]) as parse:
+                with self.assertRaisesRegex(ranking.DataError, "no effective"):
+                    cache.get(object(), fund, failed, documents)
+                with self.assertRaisesRegex(ranking.DataError, "no effective"):
+                    cache.get(object(), fund, failed, documents)
+                self.assertEqual(1, parse.call_count)
+        self.assertEqual(2, documents.calls)
+        self.assertEqual(2, cache.stats()["hits"])
+        self.assertEqual(2, cache.stats()["misses"])
+        self.assertEqual(1, cache.stats()["failures"])
 
 
 if __name__ == "__main__":

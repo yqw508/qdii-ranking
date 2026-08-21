@@ -11,6 +11,7 @@ import html
 import io
 import json
 import math
+import os
 import re
 import statistics
 import sys
@@ -19,10 +20,11 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
-from threading import Lock
+from threading import Lock, get_ident
 from typing import Any, Iterable
 
 try:
@@ -52,8 +54,14 @@ USER_AGENT = (
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36"
 )
 SHANGHAI_TZ = timezone(timedelta(hours=8))
-PERFORMANCE_WORKERS = 6
-PERFORMANCE_CACHE_SCHEMA_VERSION = 4
+PERFORMANCE_WORKERS = 10
+DOCUMENT_WORKERS = 6
+PERFORMANCE_CACHE_SCHEMA_VERSION = 5
+ANNOUNCEMENT_INDEX_CACHE_SCHEMA_VERSION = 1
+CONTRACT_RESULT_CACHE_SCHEMA_VERSION = 1
+CONTRACT_RESULT_METHOD_VERSION = 1
+QUOTA_NOTICE_CACHE_SCHEMA_VERSION = 1
+QUOTA_NOTICE_METHOD_VERSION = 1
 BENCHMARK_CACHE_SCHEMA_VERSION = 1
 BENCHMARK_WINDOW_YEARS = 3
 BENCHMARK_HISTORY_BUFFER_DAYS = 14
@@ -89,26 +97,169 @@ class DataError(RuntimeError):
     """Raised when source data is incomplete enough to invalidate the ranking."""
 
 
+class RunMetrics:
+    def __init__(self) -> None:
+        self.phase_seconds: dict[str, float] = {}
+        self.counters: dict[str, int] = {}
+        self._lock = Lock()
+
+    @contextmanager
+    def phase(self, name: str):
+        started = time.perf_counter()
+        try:
+            yield
+        finally:
+            elapsed = time.perf_counter() - started
+            with self._lock:
+                self.phase_seconds[name] = round(
+                    self.phase_seconds.get(name, 0.0) + elapsed, 3
+                )
+
+    def increment(self, name: str, amount: int = 1) -> None:
+        with self._lock:
+            self.counters[name] = self.counters.get(name, 0) + amount
+
+    def snapshot(self) -> dict[str, Any]:
+        with self._lock:
+            return {
+                "phase_seconds": dict(self.phase_seconds),
+                "counters": dict(self.counters),
+            }
+
+
 class HttpClient:
     def __init__(self, retries: int = 4, timeout: int = 30) -> None:
         self.retries = retries
         self.timeout = timeout
+        self._metrics: dict[str, dict[str, float | int]] = {}
+        self._metrics_lock = Lock()
 
-    def get_bytes(self, url: str, referer: str | None = None) -> bytes:
+    @staticmethod
+    def _category(url: str) -> str:
+        if "pingzhongdata" in url:
+            return "nav_history"
+        if url.startswith(ANNOUNCEMENT_API_URL):
+            return "announcement_index"
+        if url.startswith("https://pdf.dfcfw.com/"):
+            return "announcement_pdf"
+        if url.startswith(HOLDER_API_URL):
+            return "holder_data"
+        if "indexes.nasdaq.com" in url or "safe.gov.cn" in url:
+            return "benchmark"
+        if url.startswith("https://fund.eastmoney.com/") and url.endswith(".html"):
+            return "fund_page"
+        if url == FUND_LIST_URL:
+            return "fund_list"
+        return "other"
+
+    def _record_call(self, category: str) -> None:
+        with self._metrics_lock:
+            item = self._metrics.setdefault(
+                category,
+                {
+                    "calls": 0,
+                    "attempts": 0,
+                    "retries": 0,
+                    "bytes": 0,
+                    "not_modified": 0,
+                    "seconds": 0.0,
+                },
+            )
+            item["calls"] = int(item["calls"]) + 1
+
+    def _record_attempt(
+        self,
+        category: str,
+        elapsed: float,
+        body_size: int = 0,
+        not_modified: bool = False,
+        retry: bool = False,
+    ) -> None:
+        with self._metrics_lock:
+            item = self._metrics[category]
+            item["attempts"] = int(item["attempts"]) + 1
+            item["retries"] = int(item["retries"]) + int(retry)
+            item["bytes"] = int(item["bytes"]) + body_size
+            item["not_modified"] = int(item["not_modified"]) + int(not_modified)
+            item["seconds"] = round(float(item["seconds"]) + elapsed, 3)
+
+    def _request_bytes(
+        self,
+        url: str,
+        referer: str | None = None,
+        extra_headers: dict[str, str] | None = None,
+        allow_not_modified: bool = False,
+    ) -> tuple[int, bytes, dict[str, str]]:
         headers = {"User-Agent": USER_AGENT, "Accept": "*/*"}
         if referer:
             headers["Referer"] = referer
+        if extra_headers:
+            headers.update(extra_headers)
         request = urllib.request.Request(url, headers=headers)
+        category = self._category(url)
+        self._record_call(category)
         last_error: Exception | None = None
         for attempt in range(self.retries):
+            started = time.perf_counter()
             try:
                 with urllib.request.urlopen(request, timeout=self.timeout) as response:
-                    return response.read()
-            except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as exc:
+                    body = response.read()
+                    self._record_attempt(
+                        category,
+                        time.perf_counter() - started,
+                        len(body),
+                        retry=attempt > 0,
+                    )
+                    return response.status, body, dict(response.headers.items())
+            except urllib.error.HTTPError as exc:
+                if allow_not_modified and exc.code == 304:
+                    self._record_attempt(
+                        category,
+                        time.perf_counter() - started,
+                        not_modified=True,
+                        retry=attempt > 0,
+                    )
+                    return 304, b"", dict(exc.headers.items())
                 last_error = exc
-                if attempt + 1 < self.retries:
-                    time.sleep(0.5 * (2**attempt))
+            except (urllib.error.URLError, TimeoutError) as exc:
+                last_error = exc
+            self._record_attempt(
+                category, time.perf_counter() - started, retry=attempt > 0
+            )
+            if attempt + 1 < self.retries:
+                time.sleep(0.5 * (2**attempt))
         raise DataError(f"Failed to fetch {url}: {last_error}")
+
+    def get_bytes(self, url: str, referer: str | None = None) -> bytes:
+        return self._request_bytes(url, referer=referer)[1]
+
+    def get_conditional_text(
+        self,
+        url: str,
+        referer: str | None = None,
+        last_modified: str | None = None,
+        encoding: str = "utf-8-sig",
+    ) -> tuple[int, str | None, str | None]:
+        headers = {"If-Modified-Since": last_modified} if last_modified else None
+        status, body, response_headers = self._request_bytes(
+            url,
+            referer=referer,
+            extra_headers=headers,
+            allow_not_modified=bool(last_modified),
+        )
+        response_last_modified = next(
+            (
+                value
+                for key, value in response_headers.items()
+                if key.lower() == "last-modified"
+            ),
+            None,
+        )
+        return (
+            status,
+            None if status == 304 else body.decode(encoding, errors="replace"),
+            response_last_modified or last_modified,
+        )
 
     def get_text(
         self, url: str, referer: str | None = None, encoding: str = "utf-8-sig"
@@ -137,11 +288,22 @@ class HttpClient:
             headers=headers,
             method="POST",
         )
+        category = self._category(url)
+        self._record_call(category)
         last_error: Exception | None = None
         for attempt in range(self.retries):
+            started = time.perf_counter()
             try:
                 with urllib.request.urlopen(request, timeout=self.timeout) as response:
-                    return json.loads(response.read().decode("utf-8-sig", errors="replace"))
+                    body = response.read()
+                    result = json.loads(body.decode("utf-8-sig", errors="replace"))
+                    self._record_attempt(
+                        category,
+                        time.perf_counter() - started,
+                        len(body),
+                        retry=attempt > 0,
+                    )
+                    return result
             except (
                 json.JSONDecodeError,
                 urllib.error.HTTPError,
@@ -149,9 +311,16 @@ class HttpClient:
                 TimeoutError,
             ) as exc:
                 last_error = exc
+                self._record_attempt(
+                    category, time.perf_counter() - started, retry=attempt > 0
+                )
                 if attempt + 1 < self.retries:
                     time.sleep(0.5 * (2**attempt))
         raise DataError(f"Failed to fetch {url}: {last_error}")
+
+    def metrics(self) -> dict[str, dict[str, float | int]]:
+        with self._metrics_lock:
+            return {category: dict(values) for category, values in self._metrics.items()}
 
 
 @dataclass(frozen=True)
@@ -177,6 +346,25 @@ class LegalDocument:
     published_date: date
     source_url: str
     document_type: str
+
+
+@dataclass(frozen=True)
+class AnnouncementRecord:
+    announcement_id: str
+    title: str
+    published_date: date
+
+    @property
+    def source_url(self) -> str:
+        return ANNOUNCEMENT_PDF_URL.format(announcement_id=self.announcement_id)
+
+
+@dataclass(frozen=True)
+class FundAnnouncementSnapshot:
+    code: str
+    as_of: date
+    items: tuple[AnnouncementRecord, ...]
+    latest_page_ids: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -446,6 +634,12 @@ def parse_fund_page(page: str, code: str) -> dict[str, Any]:
     page_limit = None
     if page_limit_match:
         page_limit = parse_cny_amount(page_limit_match.group(1), page_limit_match.group(2))
+    latest_nav_match = re.search(
+        r"单位净值</a></span>\s*\(</span>(\d{4}-\d{2}-\d{2})\)</p>"
+        r".*?<dd class=\"dataNums\">\s*<span[^>]*>([\d.]+)</span>",
+        page,
+        re.S,
+    )
     return {
         "inception_date": inception_match.group(1),
         "scale_billion_cny": round(scale, 4),
@@ -453,6 +647,10 @@ def parse_fund_page(page: str, code: str) -> dict[str, Any]:
         "purchase_status": purchase_status,
         "purchase_status_text": state_text,
         "page_agency_limit_cny": page_limit,
+        "latest_nav_date": latest_nav_match.group(1) if latest_nav_match else None,
+        "latest_nav_value": (
+            float(latest_nav_match.group(2)) if latest_nav_match else None
+        ),
         "fund_page_url": FUND_PAGE_URL.format(code=code),
     }
 
@@ -913,17 +1111,14 @@ def calculate_trailing_performance(
     }
 
 
-def fetch_trailing_performance(
-    client: HttpClient,
-    fund: dict[str, Any],
+def calculate_performance_from_points(
+    points: list[dict[str, Any]],
+    code: str,
     as_of: date,
+    source_url: str,
     benchmark: Nasdaq100Benchmark | None = None,
 ) -> tuple[dict[str, Any], list[str]]:
-    code = fund["code"]
-    url = PERFORMANCE_DATA_URL.format(code=code, cache_buster=as_of.strftime("%Y%m%d"))
-    payload = client.get_text(url, referer=fund["fund_page_url"])
-    points = parse_performance_page(payload, code)
-    output: dict[str, Any] = {"performance_source_url": url}
+    output: dict[str, Any] = {"performance_source_url": source_url}
     warnings: list[str] = []
     output["nav_history_start_date"] = points[0]["date"].isoformat()
     output["nav_history_end_date"] = max(
@@ -971,100 +1166,147 @@ def fetch_trailing_performance(
     return output, warnings
 
 
+def fetch_trailing_performance(
+    client: HttpClient,
+    fund: dict[str, Any],
+    as_of: date,
+    benchmark: Nasdaq100Benchmark | None = None,
+) -> tuple[dict[str, Any], list[str]]:
+    code = fund["code"]
+    url = PERFORMANCE_DATA_URL.format(code=code, cache_buster=as_of.strftime("%Y%m%d"))
+    payload = client.get_text(url, referer=fund["fund_page_url"])
+    return calculate_performance_from_points(
+        parse_performance_page(payload, code), code, as_of, url, benchmark
+    )
+
+
 class PerformanceResultCache:
     def __init__(self, directory: Path) -> None:
         self.directory = directory
         self.hits = 0
         self.misses = 0
         self.corrupt_rebuilds = 0
+        self.conditional_requests = 0
+        self.not_modified = 0
+        self.updates = 0
         self._stats_lock = Lock()
 
     @staticmethod
-    def _validate(
-        payload: dict[str, Any],
-        code: str,
-        as_of: date,
-        benchmark: Nasdaq100Benchmark,
-    ) -> tuple[dict[str, Any], list[str]]:
-        benchmark_identity = {
-            "index_latest_date": max(benchmark.xndx_levels).isoformat(),
-            "fx_latest_date": max(benchmark.usd_cny_rates).isoformat(),
-        }
+    def _decode_points(payload: dict[str, Any], code: str) -> tuple[list[dict[str, Any]], str | None]:
         if (
             payload.get("schema_version") != PERFORMANCE_CACHE_SCHEMA_VERSION
             or payload.get("code") != code
-            or payload.get("as_of") != as_of.isoformat()
-            or payload.get("benchmark") != benchmark_identity
+            or not isinstance(payload.get("points"), list)
         ):
-            raise DataError("Cached performance identity does not match the request")
-        performance = payload.get("performance")
-        warnings = payload.get("warnings")
-        if not isinstance(performance, dict) or not isinstance(warnings, list):
-            raise DataError("Cached performance payload is incomplete")
-        required_fields = {
-            "performance_source_url",
-            "nav_history_start_date",
-            "nav_history_end_date",
-            "one_year_return_pct",
-            "one_year_max_drawdown_pct",
-            "one_year_performance_start_date",
-            "one_year_performance_end_date",
-            "three_year_return_pct",
-            "three_year_max_drawdown_pct",
-            "three_year_performance_start_date",
-            "three_year_performance_end_date",
-            "five_year_return_pct",
-            "five_year_max_drawdown_pct",
-            "five_year_performance_start_date",
-            "five_year_performance_end_date",
-            "ten_year_return_pct",
-            "ten_year_max_drawdown_pct",
-            "ten_year_performance_start_date",
-            "ten_year_performance_end_date",
-            "nasdaq100_fit",
-            "nasdaq100_fit_error",
-        }
-        if not required_fields.issubset(performance):
-            raise DataError("Cached performance fields are incomplete")
-        if not all(isinstance(warning, str) for warning in warnings):
-            raise DataError("Cached performance warnings are invalid")
-        for field in required_fields - {"nasdaq100_fit", "nasdaq100_fit_error"}:
-            value = performance[field]
-            if field.endswith("_date"):
-                if value is not None and parse_date(str(value)) > as_of:
-                    raise DataError("Cached performance contains a future observation")
-            elif field != "performance_source_url" and value is not None and not isinstance(
-                value, (int, float)
+            raise DataError("Cached NAV history identity is invalid")
+        points: list[dict[str, Any]] = []
+        previous: date | None = None
+        for item in payload["points"]:
+            if not isinstance(item, dict) or set(item) != {
+                "date",
+                "nav",
+                "equity_return_pct",
+                "unit_money",
+            }:
+                raise DataError("Cached NAV history row is invalid")
+            observed = parse_date(str(item["date"]))
+            nav = float(item["nav"])
+            daily_return = item["equity_return_pct"]
+            if (
+                (previous is not None and observed <= previous)
+                or not math.isfinite(nav)
+                or nav <= 0
+                or (
+                    daily_return is not None
+                    and not math.isfinite(float(daily_return))
+                )
             ):
-                raise DataError("Cached performance metric is invalid")
-        fit = performance["nasdaq100_fit"]
-        fit_error = performance["nasdaq100_fit_error"]
-        if fit is None:
-            if not isinstance(fit_error, str) or not fit_error:
-                raise DataError("Cached Nasdaq-100 fit error is missing")
-        else:
-            if fit_error is not None or not isinstance(fit, dict):
-                raise DataError("Cached Nasdaq-100 fit payload is invalid")
-            expected_fit_fields = {
-                "correlation",
-                "beta",
-                "tracking_error_pct",
-                "observations",
-                "start_date",
-                "end_date",
+                raise DataError("Cached NAV history contains invalid values")
+            points.append(
+                {
+                    "date": observed,
+                    "nav": nav,
+                    "equity_return_pct": (
+                        None if daily_return is None else float(daily_return)
+                    ),
+                    "unit_money": str(item["unit_money"]),
+                }
+            )
+            previous = observed
+        if not points:
+            raise DataError("Cached NAV history is empty")
+        last_modified = payload.get("last_modified")
+        if last_modified is not None and not isinstance(last_modified, str):
+            raise DataError("Cached NAV Last-Modified value is invalid")
+        return points, last_modified
+
+    @staticmethod
+    def _encode_points(points: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        return [
+            {
+                "date": point["date"].isoformat(),
+                "nav": point["nav"],
+                "equity_return_pct": point["equity_return_pct"],
+                "unit_money": point["unit_money"],
             }
-            if set(fit) != expected_fit_fields:
-                raise DataError("Cached Nasdaq-100 fit fields are incomplete")
-            for field in ("correlation", "beta", "tracking_error_pct"):
-                value = fit[field]
-                if not isinstance(value, (int, float)) or not math.isfinite(float(value)):
-                    raise DataError("Cached Nasdaq-100 fit metric is invalid")
-            if not isinstance(fit["observations"], int) or fit["observations"] < 0:
-                raise DataError("Cached Nasdaq-100 observation count is invalid")
-            for field in ("start_date", "end_date"):
-                if parse_date(str(fit[field])) > as_of:
-                    raise DataError("Cached Nasdaq-100 fit contains a future observation")
-        return dict(performance), list(warnings)
+            for point in points
+        ]
+
+    @staticmethod
+    def _validate_page_snapshot(
+        points: list[dict[str, Any]],
+        fund: dict[str, Any],
+        as_of: date,
+        allow_page_lead: bool = False,
+    ) -> str | None:
+        raw_date = fund.get("latest_nav_date")
+        raw_value = fund.get("latest_nav_value")
+        if raw_date is None or raw_value is None:
+            return None
+        observed = parse_date(str(raw_date))
+        if observed > as_of:
+            return None
+        match = next((point for point in reversed(points) if point["date"] == observed), None)
+        if match is not None:
+            if math.isclose(
+                float(match["nav"]), float(raw_value), rel_tol=0, abs_tol=1e-8
+            ):
+                return None
+            raise DataError(
+                f"NAV history for {fund['code']} does not match fund-page observation "
+                f"{observed}={float(raw_value):g}"
+            )
+        latest = max(
+            (point for point in points if point["date"] <= as_of),
+            key=lambda point: point["date"],
+        )
+        lag_days = (observed - latest["date"]).days
+        if allow_page_lead and 0 < lag_days <= BENCHMARK_MAX_STALENESS_DAYS:
+            return (
+                f"{fund['code']} 的基金主页净值已更新至 {observed}，完整复权净值历史仍为 "
+                f"{latest['date']}；已强制重新验证完整历史并按后者计算。"
+            )
+        raise DataError(
+            f"NAV history for {fund['code']} does not contain fund-page observation "
+            f"{observed}={float(raw_value):g}"
+        )
+
+    def _save(
+        self,
+        path: Path,
+        code: str,
+        last_modified: str | None,
+        points: list[dict[str, Any]],
+    ) -> None:
+        write_json(
+            path,
+            {
+                "schema_version": PERFORMANCE_CACHE_SCHEMA_VERSION,
+                "code": code,
+                "last_modified": last_modified,
+                "points": self._encode_points(points),
+            },
+        )
 
     def get(
         self,
@@ -1074,34 +1316,62 @@ class PerformanceResultCache:
         benchmark: Nasdaq100Benchmark,
     ) -> tuple[dict[str, Any], list[str]]:
         code = fund["code"]
-        path = self.directory / as_of.isoformat() / f"{code}.json"
+        path = self.directory / "nav-history" / f"{code}.json"
+        points: list[dict[str, Any]] | None = None
+        last_modified: str | None = None
         if path.exists():
             try:
                 payload = json.loads(path.read_text(encoding="utf-8"))
-                result = self._validate(payload, code, as_of, benchmark)
-                with self._stats_lock:
-                    self.hits += 1
-                return result
+                points, last_modified = self._decode_points(payload, code)
             except (DataError, OSError, ValueError, json.JSONDecodeError):
                 with self._stats_lock:
                     self.corrupt_rebuilds += 1
+                points = None
+                last_modified = None
+
+        url = PERFORMANCE_DATA_URL.format(code=code, cache_buster=as_of.strftime("%Y%m%d"))
+        if last_modified:
+            with self._stats_lock:
+                self.conditional_requests += 1
+        status, response_text, response_last_modified = client.get_conditional_text(
+            url,
+            referer=fund["fund_page_url"],
+            last_modified=last_modified,
+        )
+        if status == 304:
+            if points is None:
+                raise DataError(f"NAV source returned 304 without a cache for fund {code}")
+            try:
+                self._validate_page_snapshot(points, fund, as_of)
+            except DataError:
+                status, response_text, response_last_modified = client.get_conditional_text(
+                    url, referer=fund["fund_page_url"]
+                )
+                if status != 200 or response_text is None:
+                    raise
+            else:
+                with self._stats_lock:
+                    self.hits += 1
+                    self.not_modified += 1
+                return calculate_performance_from_points(
+                    points, code, as_of, url, benchmark
+                )
+
+        if status != 200 or response_text is None:
+            raise DataError(f"Unexpected NAV history response {status} for fund {code}")
+        points = parse_performance_page(response_text, code)
+        page_warning = self._validate_page_snapshot(
+            points, fund, as_of, allow_page_lead=True
+        )
         with self._stats_lock:
             self.misses += 1
-        performance, warnings = fetch_trailing_performance(client, fund, as_of, benchmark)
-        write_json(
-            path,
-            {
-                "schema_version": PERFORMANCE_CACHE_SCHEMA_VERSION,
-                "code": code,
-                "as_of": as_of.isoformat(),
-                "benchmark": {
-                    "index_latest_date": max(benchmark.xndx_levels).isoformat(),
-                    "fx_latest_date": max(benchmark.usd_cny_rates).isoformat(),
-                },
-                "performance": performance,
-                "warnings": warnings,
-            },
+            self.updates += 1
+        self._save(path, code, response_last_modified, points)
+        performance, warnings = calculate_performance_from_points(
+            points, code, as_of, url, benchmark
         )
+        if page_warning is not None:
+            warnings.append(page_warning)
         return performance, warnings
 
     def stats(self) -> dict[str, int]:
@@ -1110,6 +1380,9 @@ class PerformanceResultCache:
                 "hits": self.hits,
                 "misses": self.misses,
                 "corrupt_rebuilds": self.corrupt_rebuilds,
+                "conditional_requests": self.conditional_requests,
+                "not_modified": self.not_modified,
+                "updates": self.updates,
             }
 
 
@@ -1622,28 +1895,40 @@ def parse_periodic_report_date(title: str) -> date | None:
 
 
 def fetch_latest_periodic_report(
-    client: HttpClient, code: str, as_of: date
+    client: HttpClient,
+    code: str,
+    as_of: date,
+    snapshot: FundAnnouncementSnapshot | None = None,
 ) -> PeriodicReport:
-    params = {"fundcode": code, "pageIndex": "1", "pageSize": "100", "type": "0"}
-    url = f"{ANNOUNCEMENT_API_URL}?{urllib.parse.urlencode(params)}"
-    referer = f"https://fundf10.eastmoney.com/jjgg_{code}.html"
-    payload = client.get_json(url, referer=referer)
+    if snapshot is not None:
+        if snapshot.code != code or snapshot.as_of != as_of:
+            raise DataError("Announcement snapshot identity does not match report request")
+        latest_ids = set(snapshot.latest_page_ids)
+        records = tuple(
+            item
+            for item in snapshot.items
+            if not latest_ids or item.announcement_id in latest_ids
+        )
+    else:
+        records = tuple(
+            _parse_announcement_page(_announcement_page(client, code, 1), code)
+        )
     reports: list[PeriodicReport] = []
-    for item in payload.get("Data") or []:
-        report_date = parse_periodic_report_date(str(item.get("TITLE") or ""))
+    for item in records:
+        report_date = parse_periodic_report_date(item.title)
         if report_date is None:
             continue
-        published = parse_date(str(item["PUBLISHDATEDesc"]))
+        published = item.published_date
         if published > as_of or report_date > as_of:
             continue
-        announcement_id = str(item["ID"])
+        announcement_id = item.announcement_id
         reports.append(
             PeriodicReport(
                 announcement_id=announcement_id,
-                title=str(item["TITLE"]),
+                title=item.title,
                 report_date=report_date,
                 published_date=published,
-                source_url=ANNOUNCEMENT_PDF_URL.format(announcement_id=announcement_id),
+                source_url=item.source_url,
             )
         )
     if not reports:
@@ -1657,6 +1942,10 @@ class PeriodicReportCache:
         self.hits = 0
         self.downloads = 0
         self.corrupt_redownloads = 0
+        self.text_extractions = 0
+        self._stats_lock = Lock()
+        self._key_locks: dict[str, Lock] = {}
+        self._key_locks_lock = Lock()
 
     @staticmethod
     def _validate(pdf_bytes: bytes) -> str:
@@ -1673,29 +1962,41 @@ class PeriodicReportCache:
         report: PeriodicReport | LegalDocument,
         referer: str,
     ) -> str:
-        self.directory.mkdir(parents=True, exist_ok=True)
-        path = self.directory / f"{report.announcement_id}.pdf"
-        if path.exists():
-            try:
-                text = self._validate(path.read_bytes())
-                self.hits += 1
-                return text
-            except (DataError, OSError):
-                self.corrupt_redownloads += 1
-        pdf_bytes = client.get_bytes(report.source_url, referer=referer)
-        text = self._validate(pdf_bytes)
-        temporary = path.with_suffix(".pdf.tmp")
-        temporary.write_bytes(pdf_bytes)
-        temporary.replace(path)
-        self.downloads += 1
-        return text
+        with self._key_locks_lock:
+            key_lock = self._key_locks.setdefault(report.announcement_id, Lock())
+        with key_lock:
+            self.directory.mkdir(parents=True, exist_ok=True)
+            path = self.directory / f"{report.announcement_id}.pdf"
+            if path.exists():
+                try:
+                    text = self._validate(path.read_bytes())
+                    with self._stats_lock:
+                        self.hits += 1
+                        self.text_extractions += 1
+                    return text
+                except (DataError, OSError):
+                    with self._stats_lock:
+                        self.corrupt_redownloads += 1
+            pdf_bytes = client.get_bytes(report.source_url, referer=referer)
+            text = self._validate(pdf_bytes)
+            temporary = path.with_name(
+                f"{path.name}.{os.getpid()}.{get_ident()}.tmp"
+            )
+            temporary.write_bytes(pdf_bytes)
+            temporary.replace(path)
+            with self._stats_lock:
+                self.downloads += 1
+                self.text_extractions += 1
+            return text
 
     def stats(self) -> dict[str, int]:
-        return {
-            "hits": self.hits,
-            "downloads": self.downloads,
-            "corrupt_redownloads": self.corrupt_redownloads,
-        }
+        with self._stats_lock:
+            return {
+                "hits": self.hits,
+                "downloads": self.downloads,
+                "corrupt_redownloads": self.corrupt_redownloads,
+                "text_extractions": self.text_extractions,
+            }
 
 
 def normalize_benchmark_name(value: str) -> str:
@@ -1759,6 +2060,195 @@ def _announcement_page(
     return client.get_json(url, referer=f"https://fundf10.eastmoney.com/jjgg_{code}.html")
 
 
+def _parse_announcement_page(
+    payload: dict[str, Any], code: str
+) -> list[AnnouncementRecord]:
+    items = payload.get("Data") or []
+    if not isinstance(items, list):
+        raise DataError(f"Announcement index is invalid for fund {code}")
+    records: list[AnnouncementRecord] = []
+    for item in items:
+        if not isinstance(item, dict):
+            raise DataError(f"Announcement index row is invalid for fund {code}")
+        announcement_id = str(item.get("ID") or "").strip()
+        title = str(item.get("TITLE") or "").strip()
+        published_raw = str(item.get("PUBLISHDATEDesc") or "").strip()
+        if not announcement_id or not title or not published_raw:
+            continue
+        records.append(
+            AnnouncementRecord(
+                announcement_id,
+                title,
+                parse_date(published_raw),
+            )
+        )
+    return records
+
+
+def _announcement_has_legal_pair(items: Iterable[AnnouncementRecord]) -> bool:
+    has_prospectus = any(
+        "招募说明书" in item.title
+        and "提示性公告" not in item.title
+        and "摘要" not in item.title
+        for item in items
+    )
+    has_summary = any(
+        "基金产品资料概要" in item.title and _is_rmb_product_summary(item.title)
+        for item in items
+    )
+    return has_prospectus and has_summary
+
+
+class AnnouncementIndexCache:
+    def __init__(self, directory: Path) -> None:
+        self.directory = directory
+        self.checks = 0
+        self.pages_fetched = 0
+        self.full_seeds = 0
+        self.cache_loads = 0
+        self.corrupt_rebuilds = 0
+        self._stats_lock = Lock()
+        self._key_locks: dict[str, Lock] = {}
+        self._key_locks_lock = Lock()
+
+    @staticmethod
+    def _decode(
+        payload: dict[str, Any], code: str
+    ) -> tuple[dict[str, AnnouncementRecord], bool]:
+        if (
+            payload.get("schema_version") != ANNOUNCEMENT_INDEX_CACHE_SCHEMA_VERSION
+            or payload.get("code") != code
+            or not isinstance(payload.get("items"), list)
+            or not isinstance(payload.get("history_seeded"), bool)
+        ):
+            raise DataError("Cached announcement index identity is invalid")
+        items: dict[str, AnnouncementRecord] = {}
+        for raw in payload["items"]:
+            if not isinstance(raw, dict) or set(raw) != {
+                "id",
+                "title",
+                "published_date",
+            }:
+                raise DataError("Cached announcement index row is invalid")
+            record = AnnouncementRecord(
+                str(raw["id"]),
+                str(raw["title"]),
+                parse_date(str(raw["published_date"])),
+            )
+            if not record.announcement_id or record.announcement_id in items:
+                raise DataError("Cached announcement index contains duplicate IDs")
+            items[record.announcement_id] = record
+        return items, bool(payload["history_seeded"])
+
+    @staticmethod
+    def _encode(
+        code: str,
+        items: dict[str, AnnouncementRecord],
+        history_seeded: bool,
+    ) -> dict[str, Any]:
+        ordered = sorted(
+            items.values(),
+            key=lambda item: (item.published_date, item.announcement_id),
+            reverse=True,
+        )
+        return {
+            "schema_version": ANNOUNCEMENT_INDEX_CACHE_SCHEMA_VERSION,
+            "code": code,
+            "history_seeded": history_seeded,
+            "items": [
+                {
+                    "id": item.announcement_id,
+                    "title": item.title,
+                    "published_date": item.published_date.isoformat(),
+                }
+                for item in ordered
+            ],
+        }
+
+    def _get_locked(
+        self, client: HttpClient, code: str, as_of: date
+    ) -> FundAnnouncementSnapshot:
+        path = self.directory / f"{code}.json"
+        cached: dict[str, AnnouncementRecord] = {}
+        history_seeded = False
+        if path.exists():
+            try:
+                cached, history_seeded = self._decode(
+                    json.loads(path.read_text(encoding="utf-8")), code
+                )
+                with self._stats_lock:
+                    self.cache_loads += 1
+            except (DataError, OSError, ValueError, json.JSONDecodeError):
+                with self._stats_lock:
+                    self.corrupt_rebuilds += 1
+                cached = {}
+                history_seeded = False
+
+        first = _announcement_page(client, code, 1)
+        with self._stats_lock:
+            self.checks += 1
+            self.pages_fetched += 1
+        first_records = _parse_announcement_page(first, code)
+        latest_page_ids = tuple(record.announcement_id for record in first_records)
+        for record in first_records:
+            cached[record.announcement_id] = record
+        total_count = int(first.get("TotalCount") or len(cached))
+        page_size = int(first.get("PageSize") or 100)
+        total_pages = max(1, math.ceil(total_count / max(1, page_size)))
+
+        if not history_seeded:
+            with self._stats_lock:
+                self.full_seeds += 1
+            page = 2
+            while page <= total_pages and not _announcement_has_legal_pair(
+                item for item in cached.values() if item.published_date <= as_of
+            ):
+                payload = _announcement_page(client, code, page)
+                with self._stats_lock:
+                    self.pages_fetched += 1
+                page_items = _parse_announcement_page(payload, code)
+                for record in page_items:
+                    cached[record.announcement_id] = record
+                if not page_items:
+                    break
+                page += 1
+            history_seeded = True
+
+        write_json(path, self._encode(code, cached, history_seeded))
+        visible = tuple(
+            sorted(
+                (
+                    item
+                    for item in cached.values()
+                    if item.published_date <= as_of
+                ),
+                key=lambda item: (item.published_date, item.announcement_id),
+                reverse=True,
+            )
+        )
+        if not visible:
+            raise DataError(f"No announcements were disclosed by {as_of} for fund {code}")
+        return FundAnnouncementSnapshot(code, as_of, visible, latest_page_ids)
+
+    def get(
+        self, client: HttpClient, code: str, as_of: date
+    ) -> FundAnnouncementSnapshot:
+        with self._key_locks_lock:
+            key_lock = self._key_locks.setdefault(code, Lock())
+        with key_lock:
+            return self._get_locked(client, code, as_of)
+
+    def stats(self) -> dict[str, int]:
+        with self._stats_lock:
+            return {
+                "checks": self.checks,
+                "pages_fetched": self.pages_fetched,
+                "full_seeds": self.full_seeds,
+                "cache_loads": self.cache_loads,
+                "corrupt_rebuilds": self.corrupt_rebuilds,
+            }
+
+
 def _is_rmb_product_summary(title: str) -> bool:
     if "提示性公告" in title or "美元" in title or "港币" in title:
         return False
@@ -1768,30 +2258,41 @@ def _is_rmb_product_summary(title: str) -> bool:
 
 
 def fetch_latest_legal_documents(
-    client: HttpClient, code: str, as_of: date
+    client: HttpClient,
+    code: str,
+    as_of: date,
+    snapshot: FundAnnouncementSnapshot | None = None,
 ) -> tuple[LegalDocument | None, LegalDocument | None]:
     prospectuses: list[LegalDocument] = []
     summaries: list[LegalDocument] = []
+    if snapshot is not None:
+        if snapshot.code != code or snapshot.as_of != as_of:
+            raise DataError("Announcement snapshot identity does not match legal-document request")
+        page_items: list[list[AnnouncementRecord]] = [list(snapshot.items)]
+    else:
+        page_items = []
     page = 1
     total_pages = 1
     while page <= total_pages:
-        payload = _announcement_page(client, code, page)
-        if page == 1:
-            total_count = int(payload.get("TotalCount") or 0)
-            page_size = int(payload.get("PageSize") or 100)
-            total_pages = max(1, math.ceil(total_count / max(page_size, 1)))
-        items = payload.get("Data") or []
-        if not isinstance(items, list):
-            raise DataError(f"Announcement index is invalid for fund {code}")
-        for item in items:
-            title = str(item.get("TITLE") or "")
-            published = parse_date(str(item.get("PUBLISHDATEDesc") or ""))
+        if snapshot is not None:
+            records = page_items[0]
+            total_pages = 1
+        else:
+            payload = _announcement_page(client, code, page)
+            if page == 1:
+                total_count = int(payload.get("TotalCount") or 0)
+                page_size = int(payload.get("PageSize") or 100)
+                total_pages = max(1, math.ceil(total_count / max(page_size, 1)))
+            records = _parse_announcement_page(payload, code)
+        for record in records:
+            title = record.title
+            published = record.published_date
             if published > as_of:
                 continue
-            announcement_id = str(item.get("ID") or "")
+            announcement_id = record.announcement_id
             if not announcement_id:
                 continue
-            source_url = ANNOUNCEMENT_PDF_URL.format(announcement_id=announcement_id)
+            source_url = record.source_url
             if (
                 "招募说明书" in title
                 and "提示性公告" not in title
@@ -1818,7 +2319,7 @@ def fetch_latest_legal_documents(
                 )
         if prospectuses and summaries:
             break
-        if not items:
+        if not records:
             break
         page += 1
     prospectus = (
@@ -2039,6 +2540,7 @@ def resolve_contract_benchmark(
     as_of: date,
     document_cache: PeriodicReportCache,
     catalog: ContractBenchmarkCatalog,
+    snapshot: FundAnnouncementSnapshot | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any], list[str]]:
     code = fund["code"]
     warnings: list[str] = []
@@ -2048,7 +2550,9 @@ def resolve_contract_benchmark(
         else "active"
     )
     try:
-        prospectus, summary = fetch_latest_legal_documents(client, code, as_of)
+        prospectus, summary = fetch_latest_legal_documents(
+            client, code, as_of, snapshot=snapshot
+        )
     except DataError as exc:
         profile = unreadable_contract_benchmark(fund)
         profile.update(
@@ -2142,6 +2646,144 @@ def resolve_contract_benchmark(
     return profile, holding_cost, warnings
 
 
+class ContractProfileResultCache:
+    def __init__(self, directory: Path) -> None:
+        self.directory = directory
+        self.hits = 0
+        self.misses = 0
+        self.corrupt_rebuilds = 0
+        self._stats_lock = Lock()
+
+    @staticmethod
+    def _fund_identity(fund: dict[str, Any]) -> str:
+        return hashlib.sha256(
+            f"{fund['code']}\0{fund['name']}\0{fund['fund_type']}".encode("utf-8")
+        ).hexdigest()
+
+    @staticmethod
+    def _document_ids(
+        client: HttpClient,
+        code: str,
+        as_of: date,
+        snapshot: FundAnnouncementSnapshot,
+    ) -> tuple[str | None, str | None]:
+        prospectus, summary = fetch_latest_legal_documents(
+            client, code, as_of, snapshot=snapshot
+        )
+        return (
+            prospectus.announcement_id if prospectus else None,
+            summary.announcement_id if summary else None,
+        )
+
+    @staticmethod
+    def _validate(
+        payload: dict[str, Any],
+        code: str,
+        fund_identity: str,
+        prospectus_id: str | None,
+        summary_id: str | None,
+        catalog_fingerprint: str,
+        as_of: date,
+    ) -> tuple[dict[str, Any], dict[str, Any], list[str]]:
+        if (
+            payload.get("schema_version") != CONTRACT_RESULT_CACHE_SCHEMA_VERSION
+            or payload.get("method_version") != CONTRACT_RESULT_METHOD_VERSION
+            or payload.get("code") != code
+            or payload.get("fund_identity") != fund_identity
+            or payload.get("prospectus_id") != prospectus_id
+            or payload.get("summary_id") != summary_id
+            or payload.get("catalog_fingerprint") != catalog_fingerprint
+        ):
+            raise DataError("Cached contract profile identity is invalid")
+        profile = payload.get("profile")
+        holding_cost = payload.get("holding_cost")
+        warnings = payload.get("warnings")
+        if (
+            not isinstance(profile, dict)
+            or not isinstance(holding_cost, dict)
+            or not isinstance(warnings, list)
+            or not all(isinstance(item, str) for item in warnings)
+        ):
+            raise DataError("Cached contract profile result is incomplete")
+        for raw_date in (
+            profile.get("prospectus_published_date"),
+            profile.get("product_summary_published_date"),
+            holding_cost.get("source_published_date"),
+            holding_cost.get("measurement_date"),
+        ):
+            if raw_date is not None and parse_date(str(raw_date)) > as_of:
+                raise DataError("Cached contract profile contains future data")
+        return dict(profile), dict(holding_cost), list(warnings)
+
+    def get(
+        self,
+        client: HttpClient,
+        fund: dict[str, Any],
+        as_of: date,
+        document_cache: PeriodicReportCache,
+        catalog: ContractBenchmarkCatalog,
+        snapshot: FundAnnouncementSnapshot,
+    ) -> tuple[dict[str, Any], dict[str, Any], list[str]]:
+        code = fund["code"]
+        prospectus_id, summary_id = self._document_ids(
+            client, code, as_of, snapshot
+        )
+        fund_identity = self._fund_identity(fund)
+        path = self.directory / f"{code}.json"
+        if path.exists():
+            try:
+                result = self._validate(
+                    json.loads(path.read_text(encoding="utf-8")),
+                    code,
+                    fund_identity,
+                    prospectus_id,
+                    summary_id,
+                    catalog.fingerprint,
+                    as_of,
+                )
+                with self._stats_lock:
+                    self.hits += 1
+                return result
+            except (DataError, OSError, ValueError, json.JSONDecodeError):
+                with self._stats_lock:
+                    self.corrupt_rebuilds += 1
+        result = resolve_contract_benchmark(
+            client,
+            fund,
+            as_of,
+            document_cache,
+            catalog,
+            snapshot=snapshot,
+        )
+        profile, holding_cost, warnings = result
+        write_json(
+            path,
+            {
+                "schema_version": CONTRACT_RESULT_CACHE_SCHEMA_VERSION,
+                "method_version": CONTRACT_RESULT_METHOD_VERSION,
+                "code": code,
+                "fund_identity": fund_identity,
+                "prospectus_id": prospectus_id,
+                "summary_id": summary_id,
+                "catalog_fingerprint": catalog.fingerprint,
+                "profile": profile,
+                "holding_cost": holding_cost,
+                "warnings": warnings,
+            },
+        )
+        with self._stats_lock:
+            self.misses += 1
+        return result
+
+    def stats(self) -> dict[str, int]:
+        with self._stats_lock:
+            return {
+                "hits": self.hits,
+                "misses": self.misses,
+                "corrupt_rebuilds": self.corrupt_rebuilds,
+            }
+
+
 def normalize_instrument_name(value: str) -> str:
     return re.sub(
         r"[^\u4e00-\u9fffA-Z0-9]+", "", value.upper().replace("V AN", "VAN")
@@ -2171,6 +2813,7 @@ class LookthroughResolver:
                 self.cache = {}
         self.hits = 0
         self.misses = 0
+        self._lock = Lock()
 
     @staticmethod
     def _usable(result: dict[str, Any], report_date: date) -> bool:
@@ -2202,7 +2845,8 @@ class LookthroughResolver:
         normalized = normalize_instrument_name(fund_name)
         result = self._from_catalog(normalized, report_date)
         if result is None:
-            self.misses += 1
+            with self._lock:
+                self.misses += 1
             return None
         key = "|".join(
             (
@@ -2212,14 +2856,15 @@ class LookthroughResolver:
                 str(result["source_url"]),
             )
         )
-        cached = self.cache.get(key)
-        if cached is not None and self._usable(cached, report_date):
-            self.hits += 1
-            return cached
-        self.misses += 1
-        self.cache[key] = result
-        self._save()
-        return result
+        with self._lock:
+            cached = self.cache.get(key)
+            if cached is not None and self._usable(cached, report_date):
+                self.hits += 1
+                return cached
+            self.misses += 1
+            self.cache[key] = result
+            self._save()
+            return result
 
     def _save(self) -> None:
         self.cache_path.parent.mkdir(parents=True, exist_ok=True)
@@ -2233,7 +2878,8 @@ class LookthroughResolver:
         )
 
     def stats(self) -> dict[str, int]:
-        return {"hits": self.hits, "misses": self.misses}
+        with self._lock:
+            return {"hits": self.hits, "misses": self.misses}
 
 
 def clean_report_text(text: str) -> str:
@@ -2504,6 +3150,7 @@ class FundExposureResultCache:
         self.hits = 0
         self.misses = 0
         self.corrupt_rebuilds = 0
+        self._stats_lock = Lock()
 
     @staticmethod
     def _validate(
@@ -2580,9 +3227,11 @@ class FundExposureResultCache:
         report_cache: PeriodicReportCache,
         resolver: LookthroughResolver,
         threshold: float,
+        report: PeriodicReport | None = None,
     ) -> tuple[dict[str, Any], list[str]]:
         code = fund["code"]
-        report = fetch_latest_periodic_report(client, code, as_of)
+        if report is None:
+            report = fetch_latest_periodic_report(client, code, as_of)
         if report.report_date > as_of or report.published_date > as_of:
             raise DataError(f"Periodic report for fund {code} is later than {as_of}")
         path = self.directory / code / f"{report.announcement_id}.json"
@@ -2592,14 +3241,17 @@ class FundExposureResultCache:
                 exposure, warnings = self._validate(
                     payload, code, report, as_of, resolver.catalog_fingerprint
                 )
-                self.hits += 1
+                with self._stats_lock:
+                    self.hits += 1
                 classified, threshold_warnings = apply_us_equity_threshold(
                     exposure, threshold
                 )
                 return classified, [*warnings, *threshold_warnings]
             except (DataError, OSError, TypeError, ValueError, json.JSONDecodeError):
-                self.corrupt_rebuilds += 1
-        self.misses += 1
+                with self._stats_lock:
+                    self.corrupt_rebuilds += 1
+        with self._stats_lock:
+            self.misses += 1
         text = report_cache.get_text(client, report, fund["fund_page_url"])
         parsed = parse_us_equity_report(text, code)
         exposure, warnings = calculate_us_equity_exposure_base(parsed, report, resolver)
@@ -2621,11 +3273,12 @@ class FundExposureResultCache:
         return classified, [*warnings, *threshold_warnings]
 
     def stats(self) -> dict[str, int]:
-        return {
-            "hits": self.hits,
-            "misses": self.misses,
-            "corrupt_rebuilds": self.corrupt_rebuilds,
-        }
+        with self._stats_lock:
+            return {
+                "hits": self.hits,
+                "misses": self.misses,
+                "corrupt_rebuilds": self.corrupt_rebuilds,
+            }
 
 
 def fetch_us_equity_exposure(
@@ -2636,38 +3289,216 @@ def fetch_us_equity_exposure(
     resolver: LookthroughResolver,
     threshold: float,
     exposure_cache: FundExposureResultCache | None = None,
+    report: PeriodicReport | None = None,
+    snapshot: FundAnnouncementSnapshot | None = None,
 ) -> tuple[dict[str, Any], list[str]]:
     if exposure_cache is not None:
         return exposure_cache.get(
-            client, fund, as_of, report_cache, resolver, threshold
+            client, fund, as_of, report_cache, resolver, threshold, report=report
         )
-    report = fetch_latest_periodic_report(client, fund["code"], as_of)
+    if report is None:
+        report = fetch_latest_periodic_report(
+            client, fund["code"], as_of, snapshot=snapshot
+        )
     text = report_cache.get_text(client, report, fund["fund_page_url"])
     parsed = parse_us_equity_report(text, fund["code"])
     return calculate_us_equity_exposure(parsed, report, resolver, threshold)
 
 
-def fetch_announcements(client: HttpClient, code: str, as_of: date) -> list[dict[str, Any]]:
-    params = {"fundcode": code, "pageIndex": "1", "pageSize": "100", "type": "0"}
-    url = f"{ANNOUNCEMENT_API_URL}?{urllib.parse.urlencode(params)}"
-    payload = client.get_json(url, referer=f"https://fundf10.eastmoney.com/jjgg_{code}.html")
+def fetch_announcements(
+    client: HttpClient,
+    code: str,
+    as_of: date,
+    snapshot: FundAnnouncementSnapshot | None = None,
+) -> list[dict[str, Any]]:
+    if snapshot is not None:
+        if snapshot.code != code or snapshot.as_of != as_of:
+            raise DataError("Announcement snapshot identity does not match quota request")
+        latest_ids = set(snapshot.latest_page_ids)
+        records = tuple(
+            item
+            for item in snapshot.items
+            if not latest_ids or item.announcement_id in latest_ids
+        )
+    else:
+        records = tuple(
+            _parse_announcement_page(_announcement_page(client, code, 1), code)
+        )
     notices = []
     cutoff = as_of - timedelta(days=550)
-    for item in payload.get("Data") or []:
-        published = parse_date(item["PUBLISHDATEDesc"])
-        if published > as_of or published < cutoff or not NOTICE_TITLE_RE.search(item["TITLE"]):
+    for item in records:
+        published = item.published_date
+        if published > as_of or published < cutoff or not NOTICE_TITLE_RE.search(item.title):
             continue
-        announcement_id = item["ID"]
+        announcement_id = item.announcement_id
         notices.append(
             {
                 "id": announcement_id,
-                "title": item["TITLE"],
+                "title": item.title,
                 "published": published,
-                "url": ANNOUNCEMENT_PDF_URL.format(announcement_id=announcement_id),
+                "url": item.source_url,
             }
         )
     notices.sort(key=lambda item: item["published"])
     return notices[-12:]
+
+
+class QuotaNoticeParseCache:
+    def __init__(self, directory: Path) -> None:
+        self.directory = directory
+        self.hits = 0
+        self.misses = 0
+        self.failures = 0
+        self.corrupt_rebuilds = 0
+        self._stats_lock = Lock()
+        self._key_locks: dict[str, Lock] = {}
+        self._key_locks_lock = Lock()
+
+    @staticmethod
+    def _identity(notice: dict[str, Any]) -> dict[str, str]:
+        return {
+            "id": str(notice["id"]),
+            "title": str(notice["title"]),
+            "published_date": notice["published"].isoformat(),
+            "source_url": str(notice["url"]),
+        }
+
+    @staticmethod
+    def _encode_transitions(
+        transitions: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        return [
+            {
+                **transition,
+                "effective_date": transition["effective_date"].isoformat(),
+            }
+            for transition in transitions
+        ]
+
+    @staticmethod
+    def _decode(
+        payload: dict[str, Any], identity: dict[str, str]
+    ) -> tuple[list[dict[str, Any]] | None, str | None]:
+        if (
+            payload.get("schema_version") != QUOTA_NOTICE_CACHE_SCHEMA_VERSION
+            or payload.get("method_version") != QUOTA_NOTICE_METHOD_VERSION
+            or payload.get("identity") != identity
+            or not isinstance(payload.get("ok"), bool)
+        ):
+            raise DataError("Cached quota notice identity is invalid")
+        if not payload["ok"]:
+            error = payload.get("error")
+            if not isinstance(error, str) or not error:
+                raise DataError("Cached quota notice failure is invalid")
+            return None, error
+        raw_transitions = payload.get("transitions")
+        if not isinstance(raw_transitions, list) or not raw_transitions:
+            raise DataError("Cached quota notice transitions are empty")
+        transitions: list[dict[str, Any]] = []
+        for item in raw_transitions:
+            if not isinstance(item, dict) or "effective_date" not in item:
+                raise DataError("Cached quota transition is invalid")
+            transition = dict(item)
+            transition["effective_date"] = parse_date(str(item["effective_date"]))
+            if transition.get("source_url") != identity["source_url"]:
+                raise DataError("Cached quota transition source is invalid")
+            transitions.append(transition)
+        return transitions, None
+
+    def _get_locked(
+        self,
+        client: HttpClient,
+        fund: dict[str, Any],
+        notice: dict[str, Any],
+        document_cache: PeriodicReportCache,
+    ) -> list[dict[str, Any]]:
+        identity = self._identity(notice)
+        path = self.directory / f"{identity['id']}.json"
+        if path.exists():
+            try:
+                transitions, error = self._decode(
+                    json.loads(path.read_text(encoding="utf-8")), identity
+                )
+                with self._stats_lock:
+                    self.hits += 1
+                if error is not None:
+                    raise DataError(error)
+                if transitions is None:
+                    raise DataError("Cached quota notice result is missing")
+                return transitions
+            except DataError as exc:
+                if str(exc) and "Cached quota" not in str(exc):
+                    raise
+                with self._stats_lock:
+                    self.corrupt_rebuilds += 1
+            except (OSError, ValueError, json.JSONDecodeError):
+                with self._stats_lock:
+                    self.corrupt_rebuilds += 1
+
+        document = LegalDocument(
+            identity["id"],
+            identity["title"],
+            notice["published"],
+            identity["source_url"],
+            "quota_notice",
+        )
+        try:
+            text = document_cache.get_text(client, document, fund["fund_page_url"])
+            transitions = parse_quota_notice(
+                text, notice["published"], identity["source_url"]
+            )
+            if not transitions:
+                raise DataError("quota notice produced no effective limit transition")
+        except DataError as exc:
+            write_json(
+                path,
+                {
+                    "schema_version": QUOTA_NOTICE_CACHE_SCHEMA_VERSION,
+                    "method_version": QUOTA_NOTICE_METHOD_VERSION,
+                    "identity": identity,
+                    "ok": False,
+                    "error": str(exc),
+                },
+            )
+            with self._stats_lock:
+                self.misses += 1
+                self.failures += 1
+            raise
+        write_json(
+            path,
+            {
+                "schema_version": QUOTA_NOTICE_CACHE_SCHEMA_VERSION,
+                "method_version": QUOTA_NOTICE_METHOD_VERSION,
+                "identity": identity,
+                "ok": True,
+                "transitions": self._encode_transitions(transitions),
+            },
+        )
+        with self._stats_lock:
+            self.misses += 1
+        return transitions
+
+    def get(
+        self,
+        client: HttpClient,
+        fund: dict[str, Any],
+        notice: dict[str, Any],
+        document_cache: PeriodicReportCache,
+    ) -> list[dict[str, Any]]:
+        key = str(notice["id"])
+        with self._key_locks_lock:
+            key_lock = self._key_locks.setdefault(key, Lock())
+        with key_lock:
+            return self._get_locked(client, fund, notice, document_cache)
+
+    def stats(self) -> dict[str, int]:
+        with self._stats_lock:
+            return {
+                "hits": self.hits,
+                "misses": self.misses,
+                "failures": self.failures,
+                "corrupt_rebuilds": self.corrupt_rebuilds,
+            }
 
 
 def new_limit_state(status: str = "unknown", amount: int | None = None) -> dict[str, Any]:
@@ -2699,6 +3530,8 @@ def resolve_quota(
     fund: dict[str, Any],
     as_of: date,
     document_cache: PeriodicReportCache | None = None,
+    snapshot: FundAnnouncementSnapshot | None = None,
+    notice_cache: QuotaNoticeParseCache | None = None,
 ) -> tuple[dict[str, Any], list[str]]:
     warnings: list[str] = []
     if fund["purchase_status"] == "open" and fund.get("page_agency_limit_cny") is None:
@@ -2719,12 +3552,21 @@ def resolve_quota(
     applied_sources: set[str] = set()
     transitions: list[dict[str, Any]] = []
     latest_unparsed_notice_date: date | None = None
-    notices = fetch_announcements(client, fund["code"], as_of)
+    notices = fetch_announcements(client, fund["code"], as_of, snapshot=snapshot)
     for notice in notices:
         try:
-            if document_cache is None:
+            if notice_cache is not None:
+                if document_cache is None:
+                    raise DataError("Quota notice cache requires the PDF document cache")
+                parsed_transitions = notice_cache.get(
+                    client, fund, notice, document_cache
+                )
+            elif document_cache is None:
                 pdf = client.get_bytes(notice["url"], referer=fund["fund_page_url"])
                 text = extract_pdf_text(pdf)
+                parsed_transitions = parse_quota_notice(
+                    text, notice["published"], notice["url"]
+                )
             else:
                 document = LegalDocument(
                     str(notice["id"]),
@@ -2736,9 +3578,9 @@ def resolve_quota(
                 text = document_cache.get_text(
                     client, document, fund["fund_page_url"]
                 )
-            parsed_transitions = parse_quota_notice(
-                text, notice["published"], notice["url"]
-            )
+                parsed_transitions = parse_quota_notice(
+                    text, notice["published"], notice["url"]
+                )
             if not parsed_transitions:
                 raise DataError("quota notice produced no effective limit transition")
             transitions.extend(parsed_transitions)
@@ -2910,7 +3752,9 @@ def summarize_periods(records: list[dict[str, Any]], prefix: str) -> str:
 
 def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary = path.with_name(
+        f"{path.name}.{os.getpid()}.{get_ident()}.tmp"
+    )
     temporary.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     temporary.replace(path)
 
@@ -3535,7 +4379,12 @@ def build_output_record(
     return record
 
 
-def build_payload(args: argparse.Namespace, client: HttpClient) -> dict[str, Any]:
+def build_payload(
+    args: argparse.Namespace,
+    client: HttpClient,
+    run_metrics: RunMetrics | None = None,
+) -> dict[str, Any]:
+    metrics = run_metrics or RunMetrics()
     as_of = parse_date(args.as_of) if args.as_of else current_shanghai_date()
     exclusions: dict[str, dict[str, Any]] = {}
 
@@ -3544,20 +4393,21 @@ def build_payload(args: argparse.Namespace, client: HttpClient) -> dict[str, Any
         if code not in item["codes"]:
             item["codes"].append(code)
 
-    metadata = fetch_fund_metadata(client)
-    periods = fetch_holder_periods(client)
-    selected, warnings = select_holder_period(periods, args.allow_partial_holder_period)
-    holder_rows = fetch_holder_rows(client, selected)
-    candidates = build_holder_candidates(holder_rows, metadata, [])
-    enriched = enrich_fund_pages(client, candidates)
-    preliminary = filter_and_rank(
-        enriched,
-        args.min_scale,
-        len(enriched),
-        exclude_keywords=(),
-        as_of=as_of,
-        min_age_years=args.min_age_years,
-    )
+    with metrics.phase("candidate_discovery"):
+        metadata = fetch_fund_metadata(client)
+        periods = fetch_holder_periods(client)
+        selected, warnings = select_holder_period(periods, args.allow_partial_holder_period)
+        holder_rows = fetch_holder_rows(client, selected)
+        candidates = build_holder_candidates(holder_rows, metadata, [])
+        enriched = enrich_fund_pages(client, candidates)
+        preliminary = filter_and_rank(
+            enriched,
+            args.min_scale,
+            len(enriched),
+            exclude_keywords=(),
+            as_of=as_of,
+            min_age_years=args.min_age_years,
+        )
 
     cache_root = (args.cache_dir or (args.output_dir / "cache")).resolve()
     document_cache = PeriodicReportCache(cache_root / "announcement-pdfs")
@@ -3565,21 +4415,27 @@ def build_payload(args: argparse.Namespace, client: HttpClient) -> dict[str, Any
         args.us_equity_catalog.resolve(), cache_root / "us-equity-lookthrough.json"
     )
     contract_catalog = ContractBenchmarkCatalog(args.contract_benchmark_catalog.resolve())
+    announcement_cache = AnnouncementIndexCache(cache_root / "announcement-indexes")
+    contract_result_cache = ContractProfileResultCache(
+        cache_root / "contract-profiles"
+    )
+    quota_notice_cache = QuotaNoticeParseCache(cache_root / "quota-notices")
     benchmark_cache = Nasdaq100BenchmarkCache(
         cache_root / "benchmarks" / "nasdaq100-cny.json"
     )
-    benchmark, benchmark_warnings = benchmark_cache.get(client, as_of)
+    with metrics.phase("benchmark_update"):
+        benchmark, benchmark_warnings = benchmark_cache.get(client, as_of)
     warnings.extend(benchmark_warnings)
     performance_cache = PerformanceResultCache(cache_root / "performance")
     exposure_cache = FundExposureResultCache(cache_root / "fund-us-equity-exposures")
 
-    (
-        performance_qualified,
-        performance_warnings,
-        performance_scanned_count,
-        performance_rejections,
-    ) = (
-        evaluate_performance_full_scan(
+    with metrics.phase("performance_scan"):
+        (
+            performance_qualified,
+            performance_warnings,
+            performance_scanned_count,
+            performance_rejections,
+        ) = evaluate_performance_full_scan(
             client,
             preliminary,
             as_of,
@@ -3589,25 +4445,28 @@ def build_payload(args: argparse.Namespace, client: HttpClient) -> dict[str, Any
             min_five_year_return_pct=args.min_five_year_return_pct,
             min_ten_year_return_pct=args.min_ten_year_return_pct,
         )
-    )
     warnings.extend(performance_warnings)
     for code, failures in performance_rejections.items():
         for reason, label in failures:
             record_exclusion(reason, label, code)
 
-    classified_candidates: list[dict[str, Any]] = []
-    for fund in performance_qualified:
-        profile, holding_cost, profile_warnings = resolve_contract_benchmark(
-            client, fund, as_of, document_cache, contract_catalog
-        )
-        warnings.extend(profile_warnings)
-        classified_candidates.append(
-            {**fund, "contract_benchmark": profile, "holding_cost": holding_cost}
-        )
+    document_results: list[dict[str, Any] | None] = [None] * len(
+        performance_qualified
+    )
 
-    us_routed_candidates: list[dict[str, Any]] = []
-    global_routed_candidates: list[dict[str, Any]] = []
-    for fund in classified_candidates:
+    def evaluate_documents(fund: dict[str, Any]) -> dict[str, Any]:
+        snapshot = announcement_cache.get(client, fund["code"], as_of)
+        profile, holding_cost, profile_warnings = contract_result_cache.get(
+            client,
+            fund,
+            as_of,
+            document_cache,
+            contract_catalog,
+            snapshot,
+        )
+        report = fetch_latest_periodic_report(
+            client, fund["code"], as_of, snapshot=snapshot
+        )
         exposure, exposure_warnings = fetch_us_equity_exposure(
             client,
             fund,
@@ -3616,7 +4475,66 @@ def build_payload(args: argparse.Namespace, client: HttpClient) -> dict[str, Any
             resolver,
             args.min_us_equity_pct,
             exposure_cache,
+            report=report,
+            snapshot=snapshot,
         )
+        quota: dict[str, Any] | None = None
+        quota_warnings: list[str] = []
+        quota_error: str | None = None
+        try:
+            quota, quota_warnings = resolve_quota(
+                client,
+                fund,
+                as_of,
+                document_cache,
+                snapshot=snapshot,
+                notice_cache=quota_notice_cache,
+            )
+        except (DataError, OSError, ValueError) as exc:
+            quota_error = str(exc)
+        return {
+            "profile": profile,
+            "holding_cost": holding_cost,
+            "profile_warnings": profile_warnings,
+            "exposure": exposure,
+            "exposure_warnings": exposure_warnings,
+            "quota": quota,
+            "quota_warnings": quota_warnings,
+            "quota_error": quota_error,
+        }
+
+    with metrics.phase("document_scan"):
+        if performance_qualified:
+            with ThreadPoolExecutor(
+                max_workers=min(DOCUMENT_WORKERS, len(performance_qualified))
+            ) as executor:
+                futures = {
+                    executor.submit(evaluate_documents, fund): index
+                    for index, fund in enumerate(performance_qualified)
+                }
+                for future in as_completed(futures):
+                    document_results[futures[future]] = future.result()
+
+    classified_candidates: list[dict[str, Any]] = []
+    for fund, result in zip(performance_qualified, document_results):
+        if result is None:
+            raise DataError(f"Documents were not evaluated for fund {fund['code']}")
+        warnings.extend(result["profile_warnings"])
+        classified_candidates.append(
+            {
+                **fund,
+                "contract_benchmark": result["profile"],
+                "holding_cost": result["holding_cost"],
+                "_document_result": result,
+            }
+        )
+
+    us_routed_candidates: list[dict[str, Any]] = []
+    global_routed_candidates: list[dict[str, Any]] = []
+    for fund in classified_candidates:
+        result = fund["_document_result"]
+        exposure = result["exposure"]
+        exposure_warnings = result["exposure_warnings"]
         warnings.extend(f"{fund['code']} {warning}" for warning in exposure_warnings)
         ranking_list, routing_reason = ranking_route(
             fund["name"],
@@ -3642,12 +4560,14 @@ def build_payload(args: argparse.Namespace, client: HttpClient) -> dict[str, Any
     def apply_quota_gate(pool: list[dict[str, Any]]) -> list[dict[str, Any]]:
         qualified: list[dict[str, Any]] = []
         for fund in pool:
-            try:
-                quota, quota_warnings = resolve_quota(
-                    client, fund, as_of, document_cache
+            result = fund["_document_result"]
+            quota = result["quota"]
+            quota_warnings = result["quota_warnings"]
+            quota_error = result["quota_error"]
+            if quota_error is not None or quota is None:
+                warnings.append(
+                    f"额度剔除 {fund['code']}：{quota_error or '额度结果缺失'}"
                 )
-            except (DataError, OSError, ValueError) as exc:
-                warnings.append(f"额度剔除 {fund['code']}：{exc}")
                 record_exclusion(
                     "quota_unresolved", "申购额度无法可靠解析", fund["code"]
                 )
@@ -3778,7 +4698,10 @@ def build_payload(args: argparse.Namespace, client: HttpClient) -> dict[str, Any
         "cache": {
             "nasdaq100_benchmark": benchmark_cache.stats(),
             "performance": performance_cache.stats(),
+            "announcement_indexes": announcement_cache.stats(),
+            "contract_profiles": contract_result_cache.stats(),
             "fund_us_equity_exposures": exposure_cache.stats(),
+            "quota_notices": quota_notice_cache.stats(),
             "announcement_pdfs": document_cache.stats(),
             "underlying_exposures": resolver.stats(),
         },
@@ -3921,23 +4844,70 @@ def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
 
 def main(argv: Iterable[str] | None = None) -> int:
     args = parse_args(argv)
+    metrics = RunMetrics()
+    client = HttpClient()
+    started = time.perf_counter()
+    output_dir = args.output_dir.resolve()
+    publish_dir = args.publish_dir.resolve()
     try:
-        payload = build_payload(args, HttpClient())
-        output_dir = args.output_dir.resolve()
-        publish_dir = args.publish_dir.resolve()
-        write_json(output_dir / "latest.json", payload)
-        write_csv(output_dir / "latest.csv", payload)
-        write_markdown(output_dir / "latest.md", payload)
-        write_html(output_dir / "latest.html", payload)
-        write_html(publish_dir / "index.html", payload)
-        write_json(output_dir / "history" / f"{payload['run_date']}.json", payload)
+        payload = build_payload(args, client, metrics)
+        with metrics.phase("artifact_rendering"):
+            write_json(output_dir / "latest.json", payload)
+            write_csv(output_dir / "latest.csv", payload)
+            write_markdown(output_dir / "latest.md", payload)
+            write_html(output_dir / "latest.html", payload)
+            write_html(publish_dir / "index.html", payload)
+            write_json(output_dir / "history" / f"{payload['run_date']}.json", payload)
     except (DataError, OSError, ValueError) as exc:
+        try:
+            write_json(
+                output_dir / "run-metrics.json",
+                {
+                    "schema_version": 1,
+                    "status": "failure",
+                    "run_date": (
+                        parse_date(args.as_of).isoformat()
+                        if args.as_of
+                        else current_shanghai_date().isoformat()
+                    ),
+                    "refresh_seconds": round(time.perf_counter() - started, 3),
+                    **metrics.snapshot(),
+                    "http": client.metrics(),
+                    "error": str(exc),
+                },
+            )
+        except (OSError, ValueError):
+            pass
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
+    refresh_seconds = round(time.perf_counter() - started, 3)
+    run_metrics = {
+        "schema_version": 1,
+        "status": "success",
+        "run_date": payload["run_date"],
+        "generated_at": payload.get("generated_at"),
+        "refresh_seconds": refresh_seconds,
+        **metrics.snapshot(),
+        "http": client.metrics(),
+        "cache": payload.get("cache", {}),
+        "candidate_counts": {
+            key: payload.get("filters", {}).get(key)
+            for key in (
+                "base_candidates_total",
+                "performance_candidates_scanned",
+                "performance_qualified_count",
+                "contract_candidates_scanned",
+                "us_equity_candidates_scanned",
+                "us_quota_candidates_scanned",
+                "global_quota_candidates_scanned",
+            )
+        },
+    }
+    write_json(output_dir / "run-metrics.json", run_metrics)
     print(
         f"Wrote {len(payload['records'])} US records and "
         f"{len(payload['global_supplement']['records'])} global records to {output_dir} "
-        f"and static site to {publish_dir}"
+        f"and static site to {publish_dir} in {refresh_seconds:.1f}s"
     )
     for warning in payload["warnings"]:
         print(f"WARNING: {warning}", file=sys.stderr)

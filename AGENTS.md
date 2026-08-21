@@ -4,8 +4,9 @@
 
 - Treat this repository as the implementation and operating source of truth for the QDII US main
   ranking and global supplement ranking.
-- Accept both active and passive/index QDII strategies when the contract benchmark is sufficiently
-  explicit. Exclude standalone exchange-traded ETF shares; keep eligible OTC RMB feeder shares.
+- Accept both active and passive/index QDII strategies. Contract benchmark purity is descriptive, not
+  an eligibility gate. Exclude standalone exchange-traded ETF shares; keep eligible OTC RMB feeder
+  shares.
 - Exclude bond and commodity strategies from both rankings. The global supplement may include equity,
   REIT, volatility, leveraged, and inverse strategies when all other rules pass.
 - Treat requests to analyze or verify one fund as read-only. Do not change ranking rules, generated
@@ -16,19 +17,19 @@
 - Keep purchasable China-offered OTC RMB A shares, including an explicit RMB primary share without a
   C/D marker. Exclude RMB C/D, USD, HKD, back-end, and standalone ETF shares.
 - Require scale strictly above CNY 300 million, inception strictly more than three years before the
-  ranking date, trailing three-year adjusted return of at least 50%, and a known direct-sale quota
-  strictly above CNY 1,000. Unlimited direct sale qualifies; exactly CNY 1,000 does not.
-- Require the latest prospectus disclosed by the ranking date to contain one recognized principal
-  market benchmark weighted at least 80%. Allow no more than 20% cash, deposit, or low-risk benchmark.
-  Treat a second market benchmark as a composite style and exclude it. Cross-check the RMB product
-  summary; an explicit conflict blocks publication, while a missing or unreadable summary is a warning.
-- Exclude benchmarks targeting China, Hong Kong, or pan-Asia. Do not exclude a global or multi-market
-  benchmark merely because it contains a minority allocation to those markets.
-- Put US equity benchmarks, including leveraged or inverse variants, in the US main ranking. Require a
-  conservatively confirmed US-equity exposure of at least 50%; a failed US-equity product cannot move
-  to the global supplement. Unresolved positions only increase the possible upper bound.
-- Put the remaining eligible non-US, global, multi-market, REIT, and volatility strategies in the
-  global supplement. Keep bond and commodity strategies excluded.
+  ranking date, trailing three-year adjusted return of at least 50%, and a known direct-sale quota of
+  at least CNY 200. Unlimited direct sale and exactly CNY 200 both qualify.
+- Parse the latest prospectus benchmark for display. Keep recognized, composite, unrecognized, and
+  unreadable states; do not exclude a fund solely for a composite, low-weight, conflicting, or missing
+  benchmark. Cross-check the latest RMB product summary and report conflicts as warnings.
+- Exclude names and clearly identified target benchmarks focused on China, Hong Kong, or pan-Asia. Do
+  not exclude a global or multi-market product merely because it contains a minority allocation to
+  those markets.
+- Evaluate conservative US-equity exposure for every three-year-performance-qualified candidate that
+  passes the fixed type and geography exclusions. Put confirmed exposure at or above 50% in the US
+  main ranking; put all remaining candidates in the global supplement. A crossing interval follows its
+  confirmed lower bound and must remain visible. Unresolved positions only increase the possible upper
+  bound; a critical report or holding-table parse failure blocks publication.
 - Rank the US main list by Nasdaq-100 correlation descending, beta distance from 1 ascending, confirmed
   US-equity exposure, institutional holding, trailing three-year return descending, and fund code.
 - Rank the global supplement by three-year annualized-return/absolute-maximum-drawdown ratio, then
@@ -39,6 +40,10 @@
   lists empty blocks publication.
 - Keep the 95% holder-period completeness rule. Never infer an unknown subscription quota; preserve
   manager-announcement channel and share aggregation rules and report exclusions as warnings.
+- Calculate five- and ten-year adjusted returns from the existing NAV history when complete. Parse the
+  official annualized comprehensive fund operating expense from the latest RMB product summary. These
+  fields are display-only; missing history or fee data is reported but does not affect eligibility or
+  ranking, and NAV returns are not reduced by the fee a second time.
 
 ## Update And Publish
 
@@ -73,5 +78,5 @@ authorization to complete the full update and publication workflow:
    `https://qdii-ranking-web-run-cool-d2gy0iw957219659c.webapps.tcloudbase.com/?v=<YYYY-MM-DD>`.
 
 Do not deploy a partial or warning-blind result. Explain material unresolved look-through intervals,
-contract exclusions, and quota warnings in the final report. Read `references/methodology.md` when a
+contract/fee warnings, and quota warnings in the final report. Read `references/methodology.md` when a
 source changes, a report period is skipped, or parsing becomes unresolved.

@@ -26,33 +26,33 @@ the updater never silently drops a required evaluation.
 3. Require scale strictly above CNY 300 million, inception strictly over three years, and trailing
    three-year adjusted return of at least 50%.
 4. Keep active and passive/index strategies. Exclude bond and commodity strategies.
-5. Parse the latest prospectus disclosed on or before the ranking date. Require one recognized market
-   benchmark with at least 80% weight. A missing weight is 100% only when the document names no other
-   benchmark. Permit at most 20% cash, deposit, reference-rate, or other low-risk benchmark; a second
-   market benchmark is a composite style and is excluded.
-6. Cross-check the newest eligible RMB product summary. An explicit index or weight conflict blocks
-   publication. A missing or unreadable summary does not override the prospectus and is reported.
-7. Exclude a principal benchmark targeting China, Hong Kong, or pan-Asia. A global or multi-market
-   benchmark is not excluded merely for containing a minority exposure to these markets.
+5. Parse the latest prospectus disclosed on or before the ranking date and keep recognized, composite,
+   unrecognized, or unreadable status plus all recognized benchmark components. Benchmark purity,
+   component count, and weight do not control eligibility.
+6. Cross-check the newest eligible RMB product summary. An explicit index or weight conflict, a missing
+   document, or unreadable text is reported but does not exclude the fund. Parse the official
+   annualized comprehensive fund operating expense from the same RMB summary when available.
+7. Exclude names and clearly identified target benchmarks focused on China, Hong Kong, or pan-Asia. A
+   global or multi-market benchmark is not excluded merely for containing a minority exposure to these
+   markets.
 8. Resolve the manager-level direct-sale quota for every otherwise eligible candidate. Unlimited sale
-   qualifies; a known amount must be strictly greater than CNY 1,000. Unknown direct quota is excluded
-   with a warning. Agency quota is displayed but does not affect eligibility.
+   qualifies; a known amount must be at least CNY 200. Unknown direct quota is excluded with a warning.
+   Agency quota is displayed but does not affect eligibility.
 
 ## US Main Ranking
 
-- Accept US equity benchmarks and their leveraged or inverse variants. A US equity product failing the
-  US-exposure rule cannot move to the global supplement.
 - Read direct US equities from the latest eligible report's country table. For fund-of-funds, classify
   disclosed underlying funds using official sources. Unknown positions contribute zero to the confirmed
   lower bound and their full weight to the possible upper bound; an interval midpoint is never used.
-- Require confirmed US-equity exposure of at least 50%. An interval crossing 50% is conservatively
-  excluded and reported. A critical report or table parse failure stops the run.
+- Require confirmed US-equity exposure of at least 50%. A critical report or table parse failure stops
+  the run. Contract benchmark classification does not decide list placement.
 - Rank by three-year CNY Nasdaq-100 weekly-return correlation descending, then `abs(beta - 1)`, confirmed
   US exposure, institutional holding, three-year return descending, and fund code ascending.
 
 ## Global Supplement Ranking
 
-- Accept remaining recognized non-US, global, multi-market, REIT, and volatility strategies. Do not
+- Accept every remaining eligible strategy whose confirmed US-equity exposure is below 50%, including
+  intervals whose possible upper bound crosses 50%. Display the full conservative interval. Do not
   include candidates already in the US main ranking, bond/commodity strategies, or excluded target
   markets.
 - Compute the three-year annualized return from the actual adjusted-NAV start/end dates. Divide it by
@@ -67,8 +67,10 @@ empty or shorter than ten without relaxing thresholds; both lists empty stops pu
 ## Performance And Nasdaq Fit
 
 - Use the latest NAV on or before the ranking date and the latest NAV on or before the corresponding
-  date one or three years earlier. Build adjusted wealth from consecutive NAVs, cash distributions, and
-  explicit source adjustment events. Maximum drawdown is peak-to-trough and stored as non-positive.
+  date one, three, five, or ten years earlier. Build adjusted wealth from consecutive NAVs, cash
+  distributions, and explicit source adjustment events. Maximum drawdown is peak-to-trough and stored
+  as non-positive. Five- and ten-year returns require a complete window; otherwise they remain `null`
+  with the available NAV history start date displayed.
 - Convert XNDX to CNY by multiplying each USD index level by the latest USD/CNY central parity on or
   before that date. Neither source may be carried forward more than seven days; future matching is
   forbidden.
@@ -76,6 +78,10 @@ empty or shorter than ten without relaxing thresholds; both lists empty stops pu
   only across adjacent ISO weeks. Require at least 140 paired returns spanning at least 1,000 days.
 - Correlation is Pearson correlation, beta is sample covariance divided by benchmark sample variance,
   and tracking error is the sample standard deviation of weekly active returns times `sqrt(52)`.
+
+Five- and ten-year returns and the annualized comprehensive operating expense are display-only. The
+official fee measure is not an application or redemption fee. Adjusted NAV returns already reflect fund
+operating expenses, so the displayed expense is never subtracted again.
 
 ## Quota Precedence
 
@@ -96,7 +102,7 @@ classifications are cached with source dates and catalog fingerprints. PDF cache
 PDFs with extractable text. Historical runs never consume a future NAV, benchmark point, allocation, or
 announcement.
 
-JSON schema 8 is the structured source of truth. `records` contains the US main list,
+JSON schema 9 is the structured source of truth. `records` contains the US main list,
 `global_supplement.records` contains the supplement, and `exclusion_summary` records reason counts and
 codes. CSV and Markdown combine both lists with an explicit list field. `latest.html` and
 `public/index.html` are generated from the same payload and must be byte-identical.

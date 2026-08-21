@@ -36,6 +36,7 @@ class FundFilterTests(unittest.TestCase):
         self.assertEqual(10, args.top)
         self.assertEqual(50.0, args.min_three_year_return_pct)
         self.assertEqual(50.0, args.min_us_equity_pct)
+        self.assertEqual(200, args.min_direct_limit_cny)
         self.assertEqual("public", args.publish_dir.name)
 
     def test_recognizes_rmb_a_share(self):
@@ -95,6 +96,18 @@ class FundFilterTests(unittest.TestCase):
         candidates[1].update(scale_billion_cny=3, purchase_status="open")
         result = ranking.filter_and_rank(candidates, min_scale=3, top=10)
         self.assertEqual(["1"], [item["code"] for item in result])
+
+    def test_excludes_bond_and_commodity_types_but_keeps_fof_and_reit(self):
+        metadata = {
+            "1": {"code": "1", "name": "全球债券人民币A", "fund_type": "QDII-纯债"},
+            "2": {"code": "2", "name": "全球混合债人民币A", "fund_type": "QDII-混合债"},
+            "3": {"code": "3", "name": "全球商品人民币A", "fund_type": "QDII-商品"},
+            "4": {"code": "4", "name": "全球配置人民币A", "fund_type": "QDII-FOF"},
+            "5": {"code": "5", "name": "全球REIT人民币A", "fund_type": "QDII-REITs"},
+        }
+        rows = [[code, "", "10", "90", "0", "1"] for code in metadata]
+        candidates = ranking.build_holder_candidates(rows, metadata, [])
+        self.assertEqual(["4", "5"], sorted(item["code"] for item in candidates))
 
     def test_geographic_exclusions_backfill_to_ten(self):
         names = [
@@ -229,19 +242,21 @@ class ContractBenchmarkTests(unittest.TestCase):
         self.assertEqual("nasdaq-100", profile["benchmark_id"])
         self.assertEqual(95.0, profile["benchmark_weight_pct"])
 
-    def test_rejects_multiple_or_sub_eighty_percent_benchmark(self):
-        with self.assertRaisesRegex(ranking.DataError, "multiple market benchmarks"):
-            ranking.parse_contract_benchmark(
-                "本基金的业绩比较基准为80%×纳斯达克100指数收益率+20%×恒生指数收益率。",
-                self.fund,
-                self.catalog,
-            )
-        with self.assertRaisesRegex(ranking.DataError, "below 80"):
-            ranking.parse_contract_benchmark(
-                "本基金的业绩比较基准为60%×MSCI所有国家世界指数+40%×美国3月政府债券收益率。",
-                self.fund,
-                self.catalog,
-            )
+    def test_accepts_composite_and_sub_eighty_percent_benchmarks(self):
+        composite = ranking.parse_contract_benchmark(
+            "本基金的业绩比较基准为80%×纳斯达克100指数收益率+20%×恒生指数收益率。",
+            self.fund,
+            self.catalog,
+        )
+        self.assertEqual("composite", composite["status"])
+        self.assertEqual(2, len(composite["components"]))
+        low_weight = ranking.parse_contract_benchmark(
+            "本基金的业绩比较基准为60%×MSCI所有国家世界指数+40%×美国3月政府债券收益率。",
+            self.fund,
+            self.catalog,
+        )
+        self.assertEqual("recognized", low_weight["status"])
+        self.assertEqual(60.0, low_weight["benchmark_weight_pct"])
 
     def test_special_product_structures_are_explicit(self):
         self.assertEqual(
@@ -294,7 +309,7 @@ class ContractBenchmarkTests(unittest.TestCase):
         self.assertEqual("summary", summary.announcement_id)
 
     @patch.object(ranking, "fetch_latest_legal_documents")
-    def test_product_summary_conflict_blocks(self, documents):
+    def test_product_summary_conflict_warns_and_does_not_block(self, documents):
         prospectus = ranking.LegalDocument(
             "p", "招募说明书", date(2026, 6, 1), "https://example.test/p.pdf", "prospectus"
         )
@@ -309,25 +324,80 @@ class ContractBenchmarkTests(unittest.TestCase):
                     return "本基金的业绩比较基准为95%×纳斯达克100指数收益率+5%×活期存款利率。"
                 return "业绩比较基准 95%×德国DAX指数收益率+5%×活期存款利率 风险收益特征"
 
-        with self.assertRaises(ranking.BenchmarkConflictError):
-            ranking.resolve_contract_benchmark(
-                object(), self.fund, date(2026, 8, 20), Cache(), self.catalog
+        profile, holding_cost, warnings = ranking.resolve_contract_benchmark(
+            object(), self.fund, date(2026, 8, 20), Cache(), self.catalog
+        )
+        self.assertEqual("conflict", profile["product_summary_status"])
+        self.assertEqual("unavailable", holding_cost["status"])
+        self.assertTrue(any("不一致" in warning for warning in warnings))
+
+    @patch.object(ranking, "fetch_latest_legal_documents")
+    def test_legal_document_index_failure_is_non_blocking(self, documents):
+        documents.side_effect = ranking.DataError("source unavailable")
+        profile, holding_cost, warnings = ranking.resolve_contract_benchmark(
+            object(), self.fund, date(2026, 8, 20), object(), self.catalog
+        )
+        self.assertEqual("unreadable", profile["status"])
+        self.assertEqual("unreadable", profile["product_summary_status"])
+        self.assertEqual("unavailable", holding_cost["status"])
+        self.assertEqual(2, len(warnings))
+
+    @patch.object(ranking, "fetch_latest_legal_documents")
+    def test_missing_product_summary_warns_about_holding_cost(self, documents):
+        prospectus = ranking.LegalDocument(
+            "p", "招募说明书", date(2026, 6, 1), "https://example.test/p.pdf", "prospectus"
+        )
+        documents.return_value = prospectus, None
+
+        class Cache:
+            def get_text(self, *_args):
+                return "业绩比较基准 95%×纳斯达克100指数收益率+5%×活期存款利率 风险收益特征"
+
+        _profile, holding_cost, warnings = ranking.resolve_contract_benchmark(
+            object(), self.fund, date(2026, 8, 20), Cache(), self.catalog
+        )
+        self.assertEqual("unavailable", holding_cost["status"])
+        self.assertTrue(any("没有可用的人民币产品概要" in warning for warning in warnings))
+
+    def test_parses_official_annualized_holding_cost(self):
+        summary = ranking.LegalDocument(
+            "s", "产品概要", date(2026, 8, 14), "https://example.test/s.pdf", "product_summary"
+        )
+        result = ranking.parse_holding_cost(
+            "基金运作综合费率 （ 年化 ） 0.66% 注：综合费率测算日期为 2026 年 08 月 13 日。",
+            summary,
+            date(2026, 8, 20),
+        )
+        self.assertEqual(0.66, result["annualized_pct"])
+        self.assertEqual("2026-08-13", result["measurement_date"])
+
+    def test_rejects_missing_or_future_holding_cost_data(self):
+        summary = ranking.LegalDocument(
+            "s", "产品概要", date(2026, 8, 14), "https://example.test/s.pdf", "product_summary"
+        )
+        with self.assertRaisesRegex(ranking.DataError, "Could not locate"):
+            ranking.parse_holding_cost("未披露综合费率", summary, date(2026, 8, 20))
+        with self.assertRaisesRegex(ranking.DataError, "future"):
+            ranking.parse_holding_cost(
+                "基金运作综合费率（年化）1.20% 测算日期为2026年08月21日",
+                summary,
+                date(2026, 8, 20),
             )
 
     def test_direct_limit_and_return_drawdown_boundaries(self):
         self.assertFalse(
             ranking.direct_limit_qualifies(
-                {"status": "limited", "amount_cny": 1000}, 1000
+                {"status": "limited", "amount_cny": 199}, 200
             )
         )
         self.assertTrue(
             ranking.direct_limit_qualifies(
-                {"status": "limited", "amount_cny": 1001}, 1000
+                {"status": "limited", "amount_cny": 200}, 200
             )
         )
         self.assertTrue(
             ranking.direct_limit_qualifies(
-                {"status": "unlimited", "amount_cny": None}, 1000
+                {"status": "unlimited", "amount_cny": None}, 200
             )
         )
         score, annualized = ranking.calculate_return_drawdown_ratio(
@@ -386,6 +456,48 @@ class PerformanceTests(unittest.TestCase):
         )
         self.assertEqual(100.0, result["return_pct"])
         self.assertEqual(-20.0, result["max_drawdown_pct"])
+
+    def test_calculates_complete_five_and_ten_year_returns(self):
+        points = [
+            {"date": date(2016, 8, 18), "nav": 1.0, "equity_return_pct": 0, "unit_money": ""},
+            {"date": date(2021, 8, 18), "nav": 2.0, "equity_return_pct": 100, "unit_money": ""},
+            {"date": date(2026, 8, 18), "nav": 3.0, "equity_return_pct": 50, "unit_money": ""},
+        ]
+        five = ranking.calculate_trailing_performance(points, "example", date(2026, 8, 20), 5)
+        ten = ranking.calculate_trailing_performance(points, "example", date(2026, 8, 20), 10)
+        self.assertEqual(50.0, five["return_pct"])
+        self.assertEqual(200.0, ten["return_pct"])
+        self.assertIsNone(
+            ranking.calculate_trailing_performance(points[1:], "example", date(2026, 8, 20), 10)
+        )
+
+    def test_incomplete_display_only_history_does_not_emit_warning(self):
+        trend = []
+        for observed, nav in (
+            (date(2023, 8, 18), 1.0),
+            (date(2025, 8, 18), 1.5),
+            (date(2026, 8, 18), 2.0),
+        ):
+            timestamp = int(
+                datetime.combine(observed, datetime.min.time(), ranking.SHANGHAI_TZ).timestamp()
+                * 1000
+            )
+            trend.append(
+                {"x": timestamp, "y": nav, "equityReturn": 0, "unitMoney": ""}
+            )
+
+        class Client:
+            def get_text(self, *_args, **_kwargs):
+                return "var Data_netWorthTrend = " + json.dumps(trend) + ";"
+
+        performance, warnings = ranking.fetch_trailing_performance(
+            Client(),
+            {"code": "000001", "fund_page_url": "https://example.test/fund"},
+            date(2026, 8, 19),
+        )
+        self.assertEqual([], warnings)
+        self.assertIsNone(performance["five_year_return_pct"])
+        self.assertIsNone(performance["ten_year_return_pct"])
 
     def test_dividend_is_included_in_adjusted_return(self):
         previous = {
@@ -530,6 +642,8 @@ class PerformanceCacheTests(unittest.TestCase):
     def result():
         return {
             "performance_source_url": "https://example.test/performance.js",
+            "nav_history_start_date": "2016-08-19",
+            "nav_history_end_date": "2026-08-19",
             "one_year_return_pct": 20.0,
             "one_year_max_drawdown_pct": -10.0,
             "one_year_performance_start_date": "2025-08-19",
@@ -538,6 +652,14 @@ class PerformanceCacheTests(unittest.TestCase):
             "three_year_max_drawdown_pct": -20.0,
             "three_year_performance_start_date": "2023-08-19",
             "three_year_performance_end_date": "2026-08-19",
+            "five_year_return_pct": 100.0,
+            "five_year_max_drawdown_pct": -30.0,
+            "five_year_performance_start_date": "2021-08-19",
+            "five_year_performance_end_date": "2026-08-19",
+            "ten_year_return_pct": 200.0,
+            "ten_year_max_drawdown_pct": -40.0,
+            "ten_year_performance_start_date": "2016-08-19",
+            "ten_year_performance_end_date": "2026-08-19",
             "nasdaq100_fit": {
                 "correlation": 0.95,
                 "beta": 1.01,
@@ -594,23 +716,48 @@ class HtmlOutputTests(unittest.TestCase):
             "management_style": "active",
             "product_structure_tags": ["主动", "股票", "大盘成长"],
             "contract_benchmark": {
+                "status": "recognized",
+                "benchmark_id": "russell-1000-growth",
                 "benchmark_name": "罗素1000成长指数",
                 "benchmark_text": "罗素1000成长指数收益率×95%+活期存款利率×5%",
                 "benchmark_weight_pct": 95.0,
                 "market_label": "美国",
+                "market_scope": "us",
                 "asset_class": "equity",
                 "style_label": "大盘成长",
                 "structure": "standard",
                 "management_style": "active",
+                "excluded_target": False,
+                "components": [
+                    {
+                        "benchmark_id": "russell-1000-growth",
+                        "benchmark_name": "罗素1000成长指数",
+                        "weight_pct": 95.0,
+                        "market_scope": "us",
+                        "market_label": "美国",
+                        "asset_class": "equity",
+                        "style_label": "大盘成长",
+                        "structure": "standard",
+                        "excluded_target": False,
+                    }
+                ],
                 "prospectus_published_date": "2026-06-01",
                 "source_url": f"https://example.test/{code}/prospectus.pdf",
                 "product_summary_source_url": f"https://example.test/{code}/summary.pdf",
+            },
+            "holding_cost": {
+                "status": "parsed",
+                "annualized_pct": 1.23,
+                "measurement_date": "2026-05-31",
+                "source_url": f"https://example.test/{code}/summary.pdf",
             },
             "fund_page_url": f"https://example.test/fund/{code}?a=1&b=2",
             "inception_date": "2018-01-02",
             "institution_holding_ratio_pct": 12.34,
             "scale_billion_cny": 5.67,
             "scale_report_date": "2026-06-30",
+            "nav_history_start_date": "2016-08-18",
+            "nav_history_end_date": "2026-08-18",
             "one_year_return_pct": 23.45,
             "one_year_max_drawdown_pct": -12.34,
             "one_year_performance_start_date": "2025-08-18",
@@ -619,6 +766,12 @@ class HtmlOutputTests(unittest.TestCase):
             "three_year_max_drawdown_pct": -23.45,
             "three_year_performance_start_date": "2023-08-18",
             "three_year_performance_end_date": "2026-08-18",
+            "five_year_return_pct": 123.45,
+            "five_year_performance_start_date": "2021-08-18",
+            "five_year_performance_end_date": "2026-08-18",
+            "ten_year_return_pct": 234.56,
+            "ten_year_performance_start_date": "2016-08-18",
+            "ten_year_performance_end_date": "2026-08-18",
             "nasdaq100_fit": {
                 "correlation": 0.9123,
                 "beta": 0.8765,
@@ -658,8 +811,7 @@ class HtmlOutputTests(unittest.TestCase):
                 "min_age_years": 3,
                 "min_three_year_return_pct": 50.0,
                 "min_us_equity_pct": 50.0,
-                "min_direct_limit_cny_exclusive": 1000,
-                "min_contract_benchmark_weight_pct": 80.0,
+                "min_direct_limit_cny_inclusive": 200,
                 "base_candidates_total": 2,
                 "contract_candidates_scanned": 2,
             },
@@ -963,6 +1115,20 @@ class UsEquityExposureTests(unittest.TestCase):
             date(2026, 6, 30),
             date(2026, 7, 21),
             "https://example.test/report.pdf",
+        )
+
+    def test_routes_only_confirmed_fifty_percent_to_us_main(self):
+        self.assertEqual(
+            "us_main",
+            ranking.ranking_list_for_exposure(
+                {"confirmed_pct": 50.0, "possible_pct": 50.0}, 50
+            ),
+        )
+        self.assertEqual(
+            "global_supplement",
+            ranking.ranking_list_for_exposure(
+                {"confirmed_pct": 49.99, "possible_pct": 80.0}, 50
+            ),
         )
 
     def test_chinese_instrument_names_are_preserved_for_catalog_matching(self):

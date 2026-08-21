@@ -26,6 +26,7 @@ def make_record(rank, ranking_list="us_main"):
         "management_style": "active",
         "product_structure_tags": ["主动", "股票", "大盘成长"],
         "contract_benchmark": {
+            "status": "recognized",
             "benchmark_text": "纳斯达克100指数收益率×95%+人民币活期存款利率×5%",
             "benchmark_id": "nasdaq-100" if ranking_list == "us_main" else "dax",
             "benchmark_name": "纳斯达克100指数" if ranking_list == "us_main" else "德国DAX指数",
@@ -36,6 +37,19 @@ def make_record(rank, ranking_list="us_main"):
             "style_label": "大盘成长" if ranking_list == "us_main" else "大盘宽基",
             "structure": "standard",
             "excluded_target": False,
+            "components": [
+                {
+                    "benchmark_id": "nasdaq-100" if ranking_list == "us_main" else "dax",
+                    "benchmark_name": "纳斯达克100指数" if ranking_list == "us_main" else "德国DAX指数",
+                    "weight_pct": 95.0,
+                    "market_scope": "us" if ranking_list == "us_main" else "non_us",
+                    "market_label": "美国" if ranking_list == "us_main" else "德国",
+                    "asset_class": "equity",
+                    "style_label": "大盘成长" if ranking_list == "us_main" else "大盘宽基",
+                    "structure": "standard",
+                    "excluded_target": False,
+                }
+            ],
             "management_style": "active",
             "prospectus_title": "更新招募说明书",
             "prospectus_published_date": "2026-06-01",
@@ -45,15 +59,25 @@ def make_record(rank, ranking_list="us_main"):
             "product_summary_source_url": f"https://example.test/{code}/summary.pdf",
             "catalog_fingerprint": "a" * 64,
         },
+        "holding_cost": {
+            "status": "parsed",
+            "annualized_pct": 0.66 + rank / 100,
+            "measurement_date": "2026-06-01",
+            "source_title": "人民币产品资料概要",
+            "source_published_date": "2026-06-02",
+            "source_url": f"https://example.test/{code}/summary.pdf",
+        },
         "institution_holding_ratio_pct": 50.0 - rank,
         "holder_report_date": "2025-12-31",
-        "inception_date": "2020-01-01",
+        "inception_date": "2010-01-01",
         "scale_billion_cny": 10.0 + rank,
         "scale_report_date": "2026-06-30",
         "purchase_status": "limited",
         "purchase_status_text": "限额申购",
         "fund_page_url": f"https://example.test/fund/{code}",
         "performance_source_url": f"https://example.test/performance/{code}.js",
+        "nav_history_start_date": "2010-01-04",
+        "nav_history_end_date": "2026-08-18",
         "one_year_return_pct": 20.0 + rank,
         "one_year_max_drawdown_pct": -10.0 - rank,
         "one_year_performance_start_date": "2025-08-18",
@@ -62,6 +86,12 @@ def make_record(rank, ranking_list="us_main"):
         "three_year_max_drawdown_pct": -20.0 - rank,
         "three_year_performance_start_date": "2023-08-18",
         "three_year_performance_end_date": "2026-08-18",
+        "five_year_return_pct": 120.0 + rank,
+        "five_year_performance_start_date": "2021-08-18",
+        "five_year_performance_end_date": "2026-08-18",
+        "ten_year_return_pct": 220.0 + rank,
+        "ten_year_performance_start_date": "2016-08-18",
+        "ten_year_performance_end_date": "2026-08-18",
         "nasdaq100_fit": {
             "correlation": round(1.0 - rank / 100, 4),
             "beta": round(1.0 + rank / 100, 4),
@@ -106,7 +136,15 @@ def make_record(rank, ranking_list="us_main"):
 
 def make_global_record(rank):
     record = make_record(rank, "global_supplement")
-    record.pop("us_equity_exposure")
+    record["us_equity_exposure"].update(
+        {
+            "confirmed_pct": 30.0 - rank,
+            "possible_pct": 35.0 - rank,
+            "direct_us_pct": 30.0 - rank,
+            "unresolved_pct": 5.0,
+            "status": "excluded",
+        }
+    )
     total_return = float(record["three_year_return_pct"])
     span_days = 1096
     annualized = ((1 + total_return / 100) ** (365 / span_days) - 1) * 100
@@ -119,7 +157,7 @@ def make_global_record(rank):
 
 def make_payload():
     return {
-        "schema_version": 8,
+        "schema_version": 9,
         "run_date": RUN_DATE,
         "generated_at": "2026-08-20T09:08:00+08:00",
         "holder_report_date": "2025-12-31",
@@ -130,19 +168,17 @@ def make_payload():
             "min_age_years": 3,
             "min_three_year_return_pct": 50.0,
             "min_us_equity_pct": 50.0,
-            "min_direct_limit_cny_exclusive": 1000,
-            "min_contract_benchmark_weight_pct": 80.0,
+            "min_direct_limit_cny_inclusive": 200,
             "base_candidates_total": 42,
             "performance_candidates_scanned": 42,
             "performance_qualified_count": 27,
             "contract_candidates_scanned": 27,
-            "contract_qualified_count": 8,
-            "us_style_candidates_count": 3,
-            "us_equity_candidates_scanned": 3,
-            "us_equity_qualified_count": 3,
+            "contract_metadata_resolved_count": 8,
+            "us_equity_candidates_scanned": 8,
+            "us_routed_count": 3,
+            "global_routed_count": 5,
             "us_quota_candidates_scanned": 3,
             "us_quota_qualified_count": 3,
-            "global_style_candidates_count": 5,
             "global_quota_candidates_scanned": 5,
             "global_quota_qualified_count": 3,
             "full_scan_completed": True,
@@ -151,7 +187,7 @@ def make_payload():
             "us_equity_method": "conservative confirmed lower bound",
             "contract_benchmark_method": "latest prospectus",
             "exclude_keywords": ["亚洲", "中国", "港"],
-            "exclude_fund_types": ["QDII-纯债"],
+            "exclude_fund_types": ["QDII-商品", "QDII-混合债", "QDII-纯债"],
             "exclude_asset_classes": ["bond", "commodity"],
             "share_class": "OTC RMB A or explicit RMB primary share without C/D marker",
             "purchasable_only": True,
@@ -199,8 +235,8 @@ def make_payload():
         },
         "exclusion_summary": [
             {
-                "reason": "direct_limit_not_above_threshold",
-                "label": "直销额度不高于 1,000 元",
+                "reason": "direct_limit_below_threshold",
+                "label": "直销额度低于 200 元",
                 "count": 2,
                 "codes": ["000099", "000100"],
             }
@@ -208,7 +244,7 @@ def make_payload():
         "warnings": [
             "跳过未完整披露的持有人报告期 2026-06-30：覆盖率不足。",
             "000001 Sample ETF 无法按 2026-06-30 的可用数据穿透，其 0.50% 仓位仅计入可能上限。",
-            "000099 美股占比区间 49.00%-51.00% 跨越 50% 阈值，按保守规则排除。",
+            "000099 美股占比区间 49.00%-51.00% 跨越 50% 阈值，按确认下限进入全球补充榜。",
         ],
         "sources": {},
     }
@@ -241,11 +277,64 @@ class RankingValidatorTests(unittest.TestCase):
         self.assertEqual(3, len(payload["global_supplement"]["records"]))
         self.assertEqual(3, len(warnings))
 
+    def test_rejects_missing_three_year_history_warning(self):
+        payload = make_payload()
+        payload["warnings"].append(
+            "000001 的净值历史不足 3 年，近三年涨幅和最大回撤无法计算。"
+        )
+        with self.assertRaisesRegex(validator.ValidationError, "Blocking warnings"):
+            self.validate(payload)
+
     def test_accepts_record_shortfall(self):
         payload = make_payload()
         payload["records"].pop()
         validated, _ = self.validate(payload)
         self.assertEqual(2, len(validated["records"]))
+
+    def test_accepts_missing_long_history_and_holding_cost(self):
+        payload = make_payload()
+        record = payload["records"][0]
+        for prefix in ("five_year", "ten_year"):
+            record[f"{prefix}_return_pct"] = None
+            record[f"{prefix}_performance_start_date"] = None
+            record[f"{prefix}_performance_end_date"] = None
+        record["holding_cost"] = {
+            "status": "unavailable",
+            "annualized_pct": None,
+            "measurement_date": None,
+            "source_title": None,
+            "source_published_date": None,
+            "source_url": None,
+        }
+        payload["warnings"].append("持有费率告警 000001：产品概要无法解析。")
+        validated, _ = self.validate(payload)
+        self.assertIsNone(validated["records"][0]["ten_year_return_pct"])
+
+    def test_accepts_composite_contract_without_style_threshold(self):
+        payload = make_payload()
+        contract = payload["records"][0]["contract_benchmark"]
+        second = deepcopy(contract["components"][0])
+        second.update(
+            benchmark_id="hang-seng",
+            benchmark_name="恒生指数",
+            weight_pct=20.0,
+            market_scope="excluded",
+            market_label="中国香港",
+            excluded_target=True,
+        )
+        contract.update(
+            status="composite",
+            benchmark_id=None,
+            benchmark_name="纳斯达克100指数 + 恒生指数",
+            benchmark_weight_pct=None,
+            market_scope="composite",
+            market_label="复合市场",
+            asset_class="mixed",
+            style_label="复合风格",
+            components=[contract["components"][0], second],
+        )
+        validated, _ = self.validate(payload)
+        self.assertEqual("composite", validated["records"][0]["contract_benchmark"]["status"])
 
     def test_rejects_both_lists_empty(self):
         payload = make_payload()
@@ -283,11 +372,17 @@ class RankingValidatorTests(unittest.TestCase):
         with self.assertRaisesRegex(validator.ValidationError, "direct limit is unresolved"):
             self.validate(payload)
 
-    def test_rejects_direct_limit_equal_to_threshold(self):
+    def test_rejects_direct_limit_below_inclusive_threshold(self):
         payload = make_payload()
-        payload["records"][0]["direct_limit"]["amount_cny"] = 1000
-        with self.assertRaisesRegex(validator.ValidationError, "strict direct-sale"):
+        payload["records"][0]["direct_limit"]["amount_cny"] = 199
+        with self.assertRaisesRegex(validator.ValidationError, "inclusive direct-sale"):
             self.validate(payload)
+
+    def test_accepts_direct_limit_equal_to_inclusive_threshold(self):
+        payload = make_payload()
+        payload["records"][0]["direct_limit"]["amount_cny"] = 200
+        validated, _ = self.validate(payload)
+        self.assertEqual(200, validated["records"][0]["direct_limit"]["amount_cny"])
 
     def test_accepts_unknown_agency_limit(self):
         payload = make_payload()

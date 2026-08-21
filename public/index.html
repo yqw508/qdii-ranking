@@ -66,7 +66,8 @@
     .warnings ul { margin:0; padding:0 0 0 22px; color:#4c5661; } .warnings li { margin:0 0 9px; }
     footer { margin-top:18px; color:var(--muted); font-size:12px; }
     [hidden] { display:none !important; }
-    @media (min-width:820px) { .page { padding-top:28px; } .meta-grid { grid-template-columns:repeat(4,minmax(0,1fr)); } .fund-item summary { grid-template-columns:38px minmax(250px,1fr) minmax(430px,500px) 18px; gap:12px; padding:14px 16px; } .summary-metrics { grid-column:3; grid-row:1; grid-template-columns:repeat(4,minmax(0,1fr)); margin-top:0; } .chevron { grid-column:4; } .fund-detail { padding:18px 66px 20px; } .detail-grid { grid-template-columns:repeat(4,minmax(0,1fr)); } .rule-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+    @media (max-width:480px) { .title-row { gap:8px; } h1 { font-size:20px; } }
+    @media (min-width:820px) { .page { padding-top:28px; } .meta-grid { grid-template-columns:repeat(4,minmax(0,1fr)); } .fund-item summary { grid-template-columns:38px minmax(210px,1fr) minmax(520px,560px) 18px; gap:12px; padding:14px 16px; } .summary-metrics { grid-column:3; grid-row:1; grid-template-columns:repeat(5,minmax(0,1fr)); margin-top:0; } .chevron { grid-column:4; } .fund-detail { padding:18px 66px 20px; } .detail-grid { grid-template-columns:repeat(4,minmax(0,1fr)); } .rule-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
     @media (prefers-reduced-motion:reduce) { .chevron { transition:none; } }
   </style>
 </head>
@@ -74,22 +75,22 @@
   <div class="page">
     <header class="page-header">
       <div class="title-row"><h1>QDII 美国主榜与全球补充榜</h1><time class="run-date" datetime="2026-08-21">2026-08-21</time></div>
-      <p class="filter-line"><span class="filter-condition">规模 &gt; 3 亿元</span><span class="filter-condition">成立 &gt; 3 年</span><span class="filter-condition">三年收益 ≥ 50%</span><span class="filter-condition">直销 &gt; 1,000 元</span><span class="filter-condition">合同基准 ≥ 80%</span></p>
+      <p class="filter-line"><span class="filter-condition">规模 &gt; 3 亿元</span><span class="filter-condition">成立 &gt; 3 年</span><span class="filter-condition">三年收益 ≥ 50%</span><span class="filter-condition">直销 ≥ 200 元</span><span class="filter-condition">合同风格不设硬门槛</span></p>
       <dl class="meta-grid">
         <div><dt>机构持仓报告期</dt><dd>2025-12-31</dd></div>
         <div><dt>规模报告期</dt><dd>2026-06-30</dd></div>
-        <div><dt>净值区间</dt><dd>2023-08-18 至 2026-08-19</dd></div>
+        <div><dt>净值区间</dt><dd>2023-08-18 至 2026-08-19、2023-08-18 至 2026-08-20</dd></div>
         <div><dt>纳指基准更新</dt><dd>XNDX 2026-08-20 · 汇率 2026-08-21</dd></div>
-        <div><dt>基础候选</dt><dd>74 只</dd></div>
-        <div><dt>合同扫描</dt><dd>35 只</dd></div>
-        <div><dt>美国 / 全球入榜</dt><dd>2 / 1 只</dd></div>
-        <div><dt>数据警告</dt><dd>29 项</dd></div>
+        <div><dt>基础候选</dt><dd>69 只</dd></div>
+        <div><dt>合同扫描</dt><dd>33 只</dd></div>
+        <div><dt>美国 / 全球入榜</dt><dd>10 / 8 只</dd></div>
+        <div><dt>数据警告</dt><dd>45 项</dd></div>
       </dl>
     </header>
     <main>
       <div class="tabs" role="tablist" aria-label="榜单切换">
-        <button class="tab" id="tab-us" type="button" role="tab" aria-selected="true" aria-controls="panel-us" data-panel="panel-us">美国主榜<span class="tab-count">2</span></button>
-        <button class="tab" id="tab-global" type="button" role="tab" aria-selected="false" aria-controls="panel-global" data-panel="panel-global">全球补充榜<span class="tab-count">1</span></button>
+        <button class="tab" id="tab-us" type="button" role="tab" aria-selected="true" aria-controls="panel-us" data-panel="panel-us">美国主榜<span class="tab-count">10</span></button>
+        <button class="tab" id="tab-global" type="button" role="tab" aria-selected="false" aria-controls="panel-global" data-panel="panel-global">全球补充榜<span class="tab-count">8</span></button>
       </div>
       <section id="panel-us" class="ranking-list" role="tabpanel" aria-labelledby="tab-us">
       <details class="fund-item" data-code="018966" data-list="us_main">
@@ -98,13 +99,14 @@
           <span class="fund-identity">
             <span class="fund-name-row"><strong>汇添富纳斯达克100ETF发起式联接(QDII)人民币A</strong><span class="fund-code">018966</span></span>
             <span class="benchmark-label">纳斯达克100指数 · 95%</span>
-            <span class="tags"><span class="tag ">被动</span><span class="tag ">股票</span><span class="tag ">大盘成长</span></span>
+            <span class="tags"><span class="tag ">被动</span><span class="tag ">指数</span><span class="tag ">大盘成长</span></span>
           </span>
           <span class="summary-metrics">
 
             <span class="summary-metric fit"><span class="metric-label">纳指相关 / β</span><span class="metric-value">99.8% · 0.93</span></span>
             <span class="summary-metric accent"><span class="metric-label">美股下限</span><span class="metric-value">90.41%</span></span>
             <span class="summary-metric positive"><span class="metric-label">近三年</span><span class="metric-value">+68.61%</span></span>
+            <span class="summary-metric"><span class="metric-label">持有费率</span><span class="metric-value quota">0.66%/年</span></span>
             <span class="summary-metric"><span class="metric-label">直销</span><span class="metric-value quota">正常开放</span></span>
           </span>
           <span class="chevron" aria-hidden="true"></span>
@@ -118,6 +120,9 @@
             <div><dt>近一年回撤</dt><dd class="negative-text">-13.60%</dd></div>
             <div><dt>近三年收益</dt><dd class="positive-text">+68.61%</dd></div>
             <div><dt>近三年回撤</dt><dd class="negative-text">-21.80%</dd></div>
+            <div><dt>近五年收益</dt><dd>--（净值始于 2023-08-02）</dd></div>
+            <div><dt>近十年收益</dt><dd>--（净值始于 2023-08-02）</dd></div>
+            <div><dt>持有费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608141827963210_1.pdf" target="_blank" rel="noopener noreferrer">0.66%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
 
             <div><dt>纳指相关性</dt><dd>99.8%</dd></div>
             <div><dt>Beta</dt><dd>0.93</dd></div>
@@ -129,6 +134,7 @@
           <section class="benchmark-detail" aria-label="合同基准">
             <span>合同基准</span>
             <strong>经人民币汇率调整的纳斯达克 100 指数收益率*95%+商业银行活期存款利率（税后）*5% 如本基金标的指数变化， 则业绩比较基准中的标的指数将相应调整</strong>
+            <small>解析状态：recognized；仅作风格说明，不参与准入。</small>
           </section>
           <div class="quota-grid" aria-label="申购额度">
             <div><span>直销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202507021701203448_1.pdf" target="_blank" rel="noopener noreferrer">正常开放<span class="external" aria-hidden="true">↗</span></a></div>
@@ -136,7 +142,7 @@
           </div>
           <dl class="rule-grid">
             <div><dt>额度计算</dt><dd>不适用</dd></div>
-            <div><dt>净值区间</dt><dd>2023-08-18 至 2026-08-19</dd></div>
+            <div><dt>完整净值历史</dt><dd>2023-08-02 至 2026-08-19</dd></div>
             <div><dt>招募说明书日期</dt><dd>2026-08-14</dd></div>
           </dl>
           <div class="source-row">
@@ -153,13 +159,14 @@
           <span class="fund-identity">
             <span class="fund-name-row"><strong>嘉实美国成长股票人民币</strong><span class="fund-code">000043</span></span>
             <span class="benchmark-label">罗素1000成长指数 · 95%</span>
-            <span class="tags"><span class="tag ">主动</span><span class="tag ">股票</span><span class="tag ">大盘成长</span></span>
+            <span class="tags"><span class="tag ">主动</span><span class="tag ">股票/混合</span><span class="tag ">大盘成长</span></span>
           </span>
           <span class="summary-metrics">
 
             <span class="summary-metric fit"><span class="metric-label">纳指相关 / β</span><span class="metric-value">97.6% · 0.97</span></span>
             <span class="summary-metric accent"><span class="metric-label">美股下限</span><span class="metric-value">94.94%</span></span>
             <span class="summary-metric positive"><span class="metric-label">近三年</span><span class="metric-value">+86.01%</span></span>
+            <span class="summary-metric"><span class="metric-label">持有费率</span><span class="metric-value quota">1.40%/年</span></span>
             <span class="summary-metric"><span class="metric-label">直销</span><span class="metric-value quota">10万元</span></span>
           </span>
           <span class="chevron" aria-hidden="true"></span>
@@ -173,6 +180,9 @@
             <div><dt>近一年回撤</dt><dd class="negative-text">-14.86%</dd></div>
             <div><dt>近三年收益</dt><dd class="positive-text">+86.01%</dd></div>
             <div><dt>近三年回撤</dt><dd class="negative-text">-23.84%</dd></div>
+            <div><dt>近五年收益</dt><dd>+100.58%</dd></div>
+            <div><dt>近十年收益</dt><dd>+359.30%</dd></div>
+            <div><dt>持有费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606241823793418_1.pdf" target="_blank" rel="noopener noreferrer">1.40%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
 
             <div><dt>纳指相关性</dt><dd>97.6%</dd></div>
             <div><dt>Beta</dt><dd>0.97</dd></div>
@@ -183,7 +193,8 @@
           </dl>
           <section class="benchmark-detail" aria-label="合同基准">
             <span>合同基准</span>
-            <strong>95%×罗素1000成长指数收益率+5％×境内银行活期存款税后利率</strong>
+            <strong>95%×罗素1000 成长指数收益率+5％×境内银行活期存款税后利率</strong>
+            <small>解析状态：recognized；仅作风格说明，不参与准入。</small>
           </section>
           <div class="quota-grid" aria-label="申购额度">
             <div><span>直销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202511041774776219_1.pdf" target="_blank" rel="noopener noreferrer">10万元<span class="external" aria-hidden="true">↗</span></a></div>
@@ -191,7 +202,7 @@
           </div>
           <dl class="rule-grid">
             <div><dt>额度计算</dt><dd>不适用；直销/代销分别</dd></div>
-            <div><dt>净值区间</dt><dd>2023-08-18 至 2026-08-19</dd></div>
+            <div><dt>完整净值历史</dt><dd>2013-06-14 至 2026-08-19</dd></div>
             <div><dt>招募说明书日期</dt><dd>2026-06-13</dd></div>
           </dl>
           <div class="source-row">
@@ -201,21 +212,441 @@
             <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607211827195290_1.pdf" target="_blank" rel="noopener noreferrer">定期报告 2026-06-30<span class="external" aria-hidden="true">↗</span></a><a class="source-link" href="https://indexes.nasdaq.com/Index/History/XNDX" target="_blank" rel="noopener noreferrer">Nasdaq XNDX<span class="external" aria-hidden="true">↗</span></a><a class="source-link" href="https://www.safe.gov.cn/AppStructured/hlw/RMBQuery.do" target="_blank" rel="noopener noreferrer">美元兑人民币中间价<span class="external" aria-hidden="true">↗</span></a>
           </div>
         </div>
-      </details></section>
-      <section id="panel-global" class="ranking-list" role="tabpanel" aria-labelledby="tab-global" hidden>
-      <details class="fund-item" data-code="539002" data-list="global_supplement">
+      </details>
+      <details class="fund-item" data-code="163813" data-list="us_main">
         <summary>
-          <span class="rank" aria-label="排名 1">1</span>
+          <span class="rank" aria-label="排名 3">3</span>
           <span class="fund-identity">
-            <span class="fund-name-row"><strong>建信新兴市场混合(QDII)A</strong><span class="fund-code">539002</span></span>
-            <span class="benchmark-label">MSCI新兴市场指数 · 100%</span>
-            <span class="tags"><span class="tag ">主动</span><span class="tag ">股票</span><span class="tag ">多市场宽基</span></span>
+            <span class="fund-name-row"><strong>中银全球策略(QDII-FOF)A</strong><span class="fund-code">163813</span></span>
+            <span class="benchmark-label">MSCI所有国家世界指数 · 60%</span>
+            <span class="tags"><span class="tag ">主动</span><span class="tag ">FOF</span><span class="tag ">全球宽基</span></span>
           </span>
           <span class="summary-metrics">
 
-            <span class="summary-metric fit"><span class="metric-label">收益回撤比</span><span class="metric-value">1.30</span></span>
-            <span class="summary-metric accent"><span class="metric-label">市场 / 资产</span><span class="metric-value small">新兴市场 · equity</span></span>
+            <span class="summary-metric fit"><span class="metric-label">纳指相关 / β</span><span class="metric-value">96.1% · 0.94</span></span>
+            <span class="summary-metric accent"><span class="metric-label">美股下限</span><span class="metric-value">69.81%</span></span>
+            <span class="summary-metric positive"><span class="metric-label">近三年</span><span class="metric-value">+61.37%</span></span>
+            <span class="summary-metric"><span class="metric-label">持有费率</span><span class="metric-value quota">1.50%/年</span></span>
+            <span class="summary-metric"><span class="metric-label">直销</span><span class="metric-value quota">500万元</span></span>
+          </span>
+          <span class="chevron" aria-hidden="true"></span>
+        </summary>
+        <div class="fund-detail">
+          <dl class="detail-grid">
+            <div><dt>成立日</dt><dd>2011-03-03</dd></div>
+            <div><dt>机构持有</dt><dd>24.74%</dd></div>
+            <div><dt>规模</dt><dd>5.73 亿元</dd></div>
+            <div><dt>近一年收益</dt><dd class="positive-text">+14.63%</dd></div>
+            <div><dt>近一年回撤</dt><dd class="negative-text">-15.07%</dd></div>
+            <div><dt>近三年收益</dt><dd class="positive-text">+61.37%</dd></div>
+            <div><dt>近三年回撤</dt><dd class="negative-text">-21.83%</dd></div>
+            <div><dt>近五年收益</dt><dd>+62.99%</dd></div>
+            <div><dt>近十年收益</dt><dd>+82.09%</dd></div>
+            <div><dt>持有费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202605201822475402_1.pdf" target="_blank" rel="noopener noreferrer">1.50%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+
+            <div><dt>纳指相关性</dt><dd>96.1%</dd></div>
+            <div><dt>Beta</dt><dd>0.94</dd></div>
+            <div><dt>跟踪误差</dt><dd>5.22%</dd></div>
+            <div><dt>相关样本</dt><dd>150 周</dd></div>
+            <div><dt>美股确认下限</dt><dd>69.81%</dd></div>
+            <div><dt>美股可能上限</dt><dd>79.07%</dd></div>
+          </dl>
+          <section class="benchmark-detail" aria-label="合同基准">
+            <span>合同基准</span>
+            <strong>60%×MSCI 所有国家世界指数 （MSCIAllCountryWorldIndex）+40%×美国 3 月政府债券（US3-MonthT-Bills）收益率</strong>
+            <small>解析状态：recognized；仅作风格说明，不参与准入。</small>
+          </section>
+          <div class="quota-grid" aria-label="申购额度">
+            <div><span>直销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202604301821795304_1.pdf" target="_blank" rel="noopener noreferrer">500万元<span class="external" aria-hidden="true">↗</span></a></div>
+            <div><span>代销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202604301821795304_1.pdf" target="_blank" rel="noopener noreferrer">500万元<span class="external" aria-hidden="true">↗</span></a></div>
+          </div>
+          <dl class="rule-grid">
+            <div><dt>额度计算</dt><dd>A/C分别；同一基金级限额</dd></div>
+            <div><dt>完整净值历史</dt><dd>2011-03-03 至 2026-08-19</dd></div>
+            <div><dt>招募说明书日期</dt><dd>2026-05-20</dd></div>
+          </dl>
+          <div class="source-row">
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202605201822474692_1.pdf" target="_blank" rel="noopener noreferrer">招募说明书<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202605201822475402_1.pdf" target="_blank" rel="noopener noreferrer">人民币产品概要<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://fund.eastmoney.com/163813.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607211827181995_1.pdf" target="_blank" rel="noopener noreferrer">定期报告 2026-06-30<span class="external" aria-hidden="true">↗</span></a><a class="source-link" href="https://indexes.nasdaq.com/Index/History/XNDX" target="_blank" rel="noopener noreferrer">Nasdaq XNDX<span class="external" aria-hidden="true">↗</span></a><a class="source-link" href="https://www.safe.gov.cn/AppStructured/hlw/RMBQuery.do" target="_blank" rel="noopener noreferrer">美元兑人民币中间价<span class="external" aria-hidden="true">↗</span></a>
+          </div>
+        </div>
+      </details>
+      <details class="fund-item" data-code="017436" data-list="us_main">
+        <summary>
+          <span class="rank" aria-label="排名 4">4</span>
+          <span class="fund-identity">
+            <span class="fund-name-row"><strong>华宝纳斯达克精选股票发起式(QDII)A</strong><span class="fund-code">017436</span></span>
+            <span class="benchmark-label">纳斯达克100指数 · 90%</span>
+            <span class="tags"><span class="tag ">主动</span><span class="tag ">股票/混合</span><span class="tag ">大盘成长</span></span>
+          </span>
+          <span class="summary-metrics">
+
+            <span class="summary-metric fit"><span class="metric-label">纳指相关 / β</span><span class="metric-value">94.9% · 1.21</span></span>
+            <span class="summary-metric accent"><span class="metric-label">美股下限</span><span class="metric-value">89.84%</span></span>
+            <span class="summary-metric positive"><span class="metric-label">近三年</span><span class="metric-value">+89.51%</span></span>
+            <span class="summary-metric"><span class="metric-label">持有费率</span><span class="metric-value quota">--</span></span>
+            <span class="summary-metric"><span class="metric-label">直销</span><span class="metric-value quota">1,000元</span></span>
+          </span>
+          <span class="chevron" aria-hidden="true"></span>
+        </summary>
+        <div class="fund-detail">
+          <dl class="detail-grid">
+            <div><dt>成立日</dt><dd>2023-03-02</dd></div>
+            <div><dt>机构持有</dt><dd>2.15%</dd></div>
+            <div><dt>规模</dt><dd>47.06 亿元</dd></div>
+            <div><dt>近一年收益</dt><dd class="positive-text">+11.40%</dd></div>
+            <div><dt>近一年回撤</dt><dd class="negative-text">-20.31%</dd></div>
+            <div><dt>近三年收益</dt><dd class="positive-text">+89.51%</dd></div>
+            <div><dt>近三年回撤</dt><dd class="negative-text">-29.87%</dd></div>
+            <div><dt>近五年收益</dt><dd>--（净值始于 2023-03-02）</dd></div>
+            <div><dt>近十年收益</dt><dd>--（净值始于 2023-03-02）</dd></div>
+            <div><dt>持有费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202512091796782575_1.pdf" target="_blank" rel="noopener noreferrer">--<span class="external" aria-hidden="true">↗</span></a></dd></div>
+
+            <div><dt>纳指相关性</dt><dd>94.9%</dd></div>
+            <div><dt>Beta</dt><dd>1.21</dd></div>
+            <div><dt>跟踪误差</dt><dd>8.48%</dd></div>
+            <div><dt>相关样本</dt><dd>150 周</dd></div>
+            <div><dt>美股确认下限</dt><dd>89.84%</dd></div>
+            <div><dt>美股可能上限</dt><dd>89.84%</dd></div>
+          </dl>
+          <section class="benchmark-detail" aria-label="合同基准">
+            <span>合同基准</span>
+            <strong>经人民币汇率调整的纳斯达克 100 指数收益率×90%+人民币活期存款税后利率×10%</strong>
+            <small>解析状态：recognized；仅作风格说明，不参与准入。</small>
+          </section>
+          <div class="quota-grid" aria-label="申购额度">
+            <div><span>直销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606221823717545_1.pdf" target="_blank" rel="noopener noreferrer">1,000元<span class="external" aria-hidden="true">↗</span></a></div>
+            <div><span>代销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606221823717545_1.pdf" target="_blank" rel="noopener noreferrer">1,000元<span class="external" aria-hidden="true">↗</span></a></div>
+          </div>
+          <dl class="rule-grid">
+            <div><dt>额度计算</dt><dd>A/C分别；同一基金级限额</dd></div>
+            <div><dt>完整净值历史</dt><dd>2023-03-02 至 2026-08-19</dd></div>
+            <div><dt>招募说明书日期</dt><dd>2025-12-09</dd></div>
+          </dl>
+          <div class="source-row">
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202512091796782393_1.pdf" target="_blank" rel="noopener noreferrer">招募说明书<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202512091796782575_1.pdf" target="_blank" rel="noopener noreferrer">人民币产品概要<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://fund.eastmoney.com/017436.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607211827184076_1.pdf" target="_blank" rel="noopener noreferrer">定期报告 2026-06-30<span class="external" aria-hidden="true">↗</span></a><a class="source-link" href="https://indexes.nasdaq.com/Index/History/XNDX" target="_blank" rel="noopener noreferrer">Nasdaq XNDX<span class="external" aria-hidden="true">↗</span></a><a class="source-link" href="https://www.safe.gov.cn/AppStructured/hlw/RMBQuery.do" target="_blank" rel="noopener noreferrer">美元兑人民币中间价<span class="external" aria-hidden="true">↗</span></a>
+          </div>
+        </div>
+      </details>
+      <details class="fund-item" data-code="017641" data-list="us_main">
+        <summary>
+          <span class="rank" aria-label="排名 5">5</span>
+          <span class="fund-identity">
+            <span class="fund-name-row"><strong>摩根标普500指数(QDII)人民币A</strong><span class="fund-code">017641</span></span>
+            <span class="benchmark-label">标普500指数 · 95%</span>
+            <span class="tags"><span class="tag ">被动</span><span class="tag ">指数</span><span class="tag ">大盘宽基</span></span>
+          </span>
+          <span class="summary-metrics">
+
+            <span class="summary-metric fit"><span class="metric-label">纳指相关 / β</span><span class="metric-value">94.7% · 0.63</span></span>
+            <span class="summary-metric accent"><span class="metric-label">美股下限</span><span class="metric-value">94.03%</span></span>
+            <span class="summary-metric positive"><span class="metric-label">近三年</span><span class="metric-value">+58.33%</span></span>
+            <span class="summary-metric"><span class="metric-label">持有费率</span><span class="metric-value quota">0.66%/年</span></span>
+            <span class="summary-metric"><span class="metric-label">直销</span><span class="metric-value quota">300元</span></span>
+          </span>
+          <span class="chevron" aria-hidden="true"></span>
+        </summary>
+        <div class="fund-detail">
+          <dl class="detail-grid">
+            <div><dt>成立日</dt><dd>2023-04-06</dd></div>
+            <div><dt>机构持有</dt><dd>2.56%</dd></div>
+            <div><dt>规模</dt><dd>53.03 亿元</dd></div>
+            <div><dt>近一年收益</dt><dd class="positive-text">+14.03%</dd></div>
+            <div><dt>近一年回撤</dt><dd class="negative-text">-9.24%</dd></div>
+            <div><dt>近三年收益</dt><dd class="positive-text">+58.33%</dd></div>
+            <div><dt>近三年回撤</dt><dd class="negative-text">-17.40%</dd></div>
+            <div><dt>近五年收益</dt><dd>--（净值始于 2023-04-06）</dd></div>
+            <div><dt>近十年收益</dt><dd>--（净值始于 2023-04-06）</dd></div>
+            <div><dt>持有费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606051823274684_1.pdf" target="_blank" rel="noopener noreferrer">0.66%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+
+            <div><dt>纳指相关性</dt><dd>94.7%</dd></div>
+            <div><dt>Beta</dt><dd>0.63</dd></div>
+            <div><dt>跟踪误差</dt><dd>8.05%</dd></div>
+            <div><dt>相关样本</dt><dd>150 周</dd></div>
+            <div><dt>美股确认下限</dt><dd>94.03%</dd></div>
+            <div><dt>美股可能上限</dt><dd>94.03%</dd></div>
+          </dl>
+          <section class="benchmark-detail" aria-label="合同基准">
+            <span>合同基准</span>
+            <strong>标普 500 指数收益率(经汇率调整后) ×95%+银行活期存款利率(税后) ×5%</strong>
+            <small>解析状态：recognized；仅作风格说明，不参与准入。</small>
+          </section>
+          <div class="quota-grid" aria-label="申购额度">
+            <div><span>直销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607091826843544_1.pdf" target="_blank" rel="noopener noreferrer">300元<span class="external" aria-hidden="true">↗</span></a></div>
+            <div><span>代销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202603311820912764_1.pdf" target="_blank" rel="noopener noreferrer">100元<span class="external" aria-hidden="true">↗</span></a></div>
+          </div>
+          <dl class="rule-grid">
+            <div><dt>额度计算</dt><dd>不适用；直销/代销分别</dd></div>
+            <div><dt>完整净值历史</dt><dd>2023-04-06 至 2026-08-19</dd></div>
+            <div><dt>招募说明书日期</dt><dd>2026-06-05</dd></div>
+          </dl>
+          <div class="source-row">
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606051823274717_1.pdf" target="_blank" rel="noopener noreferrer">招募说明书<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606051823274684_1.pdf" target="_blank" rel="noopener noreferrer">人民币产品概要<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://fund.eastmoney.com/017641.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607211827191526_1.pdf" target="_blank" rel="noopener noreferrer">定期报告 2026-06-30<span class="external" aria-hidden="true">↗</span></a><a class="source-link" href="https://indexes.nasdaq.com/Index/History/XNDX" target="_blank" rel="noopener noreferrer">Nasdaq XNDX<span class="external" aria-hidden="true">↗</span></a><a class="source-link" href="https://www.safe.gov.cn/AppStructured/hlw/RMBQuery.do" target="_blank" rel="noopener noreferrer">美元兑人民币中间价<span class="external" aria-hidden="true">↗</span></a>
+          </div>
+        </div>
+      </details>
+      <details class="fund-item" data-code="000041" data-list="us_main">
+        <summary>
+          <span class="rank" aria-label="排名 6">6</span>
+          <span class="fund-identity">
+            <span class="fund-name-row"><strong>华夏全球股票(QDII)(人民币)</strong><span class="fund-code">000041</span></span>
+            <span class="benchmark-label">标普500指数 + 富时中国指数 + MSCI所有国家世界指数</span>
+            <span class="tags"><span class="tag ">主动</span><span class="tag ">股票/混合</span><span class="tag ">复合风格</span></span>
+          </span>
+          <span class="summary-metrics">
+
+            <span class="summary-metric fit"><span class="metric-label">纳指相关 / β</span><span class="metric-value">90.7% · 0.74</span></span>
+            <span class="summary-metric accent"><span class="metric-label">美股下限</span><span class="metric-value">84.56%</span></span>
+            <span class="summary-metric positive"><span class="metric-label">近三年</span><span class="metric-value">+53.90%</span></span>
+            <span class="summary-metric"><span class="metric-label">持有费率</span><span class="metric-value quota">1.41%/年</span></span>
+            <span class="summary-metric"><span class="metric-label">直销</span><span class="metric-value quota">1万元</span></span>
+          </span>
+          <span class="chevron" aria-hidden="true"></span>
+        </summary>
+        <div class="fund-detail">
+          <dl class="detail-grid">
+            <div><dt>成立日</dt><dd>2007-10-09</dd></div>
+            <div><dt>机构持有</dt><dd>0.56%</dd></div>
+            <div><dt>规模</dt><dd>30.27 亿元</dd></div>
+            <div><dt>近一年收益</dt><dd class="positive-text">+7.07%</dd></div>
+            <div><dt>近一年回撤</dt><dd class="negative-text">-18.10%</dd></div>
+            <div><dt>近三年收益</dt><dd class="positive-text">+53.90%</dd></div>
+            <div><dt>近三年回撤</dt><dd class="negative-text">-18.10%</dd></div>
+            <div><dt>近五年收益</dt><dd>+14.81%</dd></div>
+            <div><dt>近十年收益</dt><dd>+75.10%</dd></div>
+            <div><dt>持有费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607271827369516_1.pdf" target="_blank" rel="noopener noreferrer">1.41%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+
+            <div><dt>纳指相关性</dt><dd>90.7%</dd></div>
+            <div><dt>Beta</dt><dd>0.74</dd></div>
+            <div><dt>跟踪误差</dt><dd>8.09%</dd></div>
+            <div><dt>相关样本</dt><dd>150 周</dd></div>
+            <div><dt>美股确认下限</dt><dd>84.56%</dd></div>
+            <div><dt>美股可能上限</dt><dd>88.76%</dd></div>
+          </dl>
+          <section class="benchmark-detail" aria-label="合同基准">
+            <span>合同基准</span>
+            <strong>标普500 指数 （S&amp;P 500 Index）收益率*70%+富时中国 50 指数 （FTSE China 50 Index） 收益率*15%+ MSCI 全球指数 （MSCI All Country World Index） 收益率*5%+人民币活期存款基准利率*10%</strong>
+            <small>解析状态：composite；仅作风格说明，不参与准入。</small>
+          </section>
+          <div class="quota-grid" aria-label="申购额度">
+            <div><span>直销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202604131821143683_1.pdf" target="_blank" rel="noopener noreferrer">1万元<span class="external" aria-hidden="true">↗</span></a></div>
+            <div><span>代销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202604131821143683_1.pdf" target="_blank" rel="noopener noreferrer">1万元<span class="external" aria-hidden="true">↗</span></a></div>
+          </div>
+          <dl class="rule-grid">
+            <div><dt>额度计算</dt><dd>不适用</dd></div>
+            <div><dt>完整净值历史</dt><dd>2007-10-09 至 2026-08-19</dd></div>
+            <div><dt>招募说明书日期</dt><dd>2026-07-27</dd></div>
+          </dl>
+          <div class="source-row">
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607271827368489_1.pdf" target="_blank" rel="noopener noreferrer">招募说明书<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607271827369516_1.pdf" target="_blank" rel="noopener noreferrer">人民币产品概要<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://fund.eastmoney.com/000041.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607211827191891_1.pdf" target="_blank" rel="noopener noreferrer">定期报告 2026-06-30<span class="external" aria-hidden="true">↗</span></a><a class="source-link" href="https://indexes.nasdaq.com/Index/History/XNDX" target="_blank" rel="noopener noreferrer">Nasdaq XNDX<span class="external" aria-hidden="true">↗</span></a><a class="source-link" href="https://www.safe.gov.cn/AppStructured/hlw/RMBQuery.do" target="_blank" rel="noopener noreferrer">美元兑人民币中间价<span class="external" aria-hidden="true">↗</span></a>
+          </div>
+        </div>
+      </details>
+      <details class="fund-item" data-code="501226" data-list="us_main">
+        <summary>
+          <span class="rank" aria-label="排名 7">7</span>
+          <span class="fund-identity">
+            <span class="fund-name-row"><strong>长城全球新能源车股票发起式(QDII)A</strong><span class="fund-code">501226</span></span>
+            <span class="benchmark-label">彭博全球新能源汽车指数 · 95%</span>
+            <span class="tags"><span class="tag ">主动</span><span class="tag ">股票/混合</span><span class="tag ">新能源汽车</span></span>
+          </span>
+          <span class="summary-metrics">
+
+            <span class="summary-metric fit"><span class="metric-label">纳指相关 / β</span><span class="metric-value">87.7% · 1.12</span></span>
+            <span class="summary-metric accent"><span class="metric-label">美股下限</span><span class="metric-value">74.62%</span></span>
+            <span class="summary-metric positive"><span class="metric-label">近三年</span><span class="metric-value">+134.88%</span></span>
+            <span class="summary-metric"><span class="metric-label">持有费率</span><span class="metric-value quota">1.49%/年</span></span>
+            <span class="summary-metric"><span class="metric-label">直销</span><span class="metric-value quota">500元</span></span>
+          </span>
+          <span class="chevron" aria-hidden="true"></span>
+        </summary>
+        <div class="fund-detail">
+          <dl class="detail-grid">
+            <div><dt>成立日</dt><dd>2023-04-21</dd></div>
+            <div><dt>机构持有</dt><dd>42.30%</dd></div>
+            <div><dt>规模</dt><dd>12.68 亿元</dd></div>
+            <div><dt>近一年收益</dt><dd class="positive-text">+56.87%</dd></div>
+            <div><dt>近一年回撤</dt><dd class="negative-text">-24.09%</dd></div>
+            <div><dt>近三年收益</dt><dd class="positive-text">+134.88%</dd></div>
+            <div><dt>近三年回撤</dt><dd class="negative-text">-24.09%</dd></div>
+            <div><dt>近五年收益</dt><dd>--（净值始于 2023-04-21）</dd></div>
+            <div><dt>近十年收益</dt><dd>--（净值始于 2023-04-21）</dd></div>
+            <div><dt>持有费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202603271820789656_1.pdf" target="_blank" rel="noopener noreferrer">1.49%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+
+            <div><dt>纳指相关性</dt><dd>87.7%</dd></div>
+            <div><dt>Beta</dt><dd>1.12</dd></div>
+            <div><dt>跟踪误差</dt><dd>11.76%</dd></div>
+            <div><dt>相关样本</dt><dd>150 周</dd></div>
+            <div><dt>美股确认下限</dt><dd>74.62%</dd></div>
+            <div><dt>美股可能上限</dt><dd>74.62%</dd></div>
+          </dl>
+          <section class="benchmark-detail" aria-label="合同基准">
+            <span>合同基准</span>
+            <strong>彭博全球新能源汽车指数收益率（Bloomberg Electric Vehicles Index，使用估值汇率折算）×95%+人民币活期存款利率（税后）×5%</strong>
+            <small>解析状态：recognized；仅作风格说明，不参与准入。</small>
+          </section>
+          <div class="quota-grid" aria-label="申购额度">
+            <div><span>直销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607231827294157_1.pdf" target="_blank" rel="noopener noreferrer">500元<span class="external" aria-hidden="true">↗</span></a></div>
+            <div><span>代销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607231827294157_1.pdf" target="_blank" rel="noopener noreferrer">500元<span class="external" aria-hidden="true">↗</span></a></div>
+          </div>
+          <dl class="rule-grid">
+            <div><dt>额度计算</dt><dd>A/C分别；同一基金级限额</dd></div>
+            <div><dt>完整净值历史</dt><dd>2023-04-21 至 2026-08-19</dd></div>
+            <div><dt>招募说明书日期</dt><dd>2026-03-27</dd></div>
+          </dl>
+          <div class="source-row">
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202603271820788726_1.pdf" target="_blank" rel="noopener noreferrer">招募说明书<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202603271820789656_1.pdf" target="_blank" rel="noopener noreferrer">人民币产品概要<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://fund.eastmoney.com/501226.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607211827194530_1.pdf" target="_blank" rel="noopener noreferrer">定期报告 2026-06-30<span class="external" aria-hidden="true">↗</span></a><a class="source-link" href="https://indexes.nasdaq.com/Index/History/XNDX" target="_blank" rel="noopener noreferrer">Nasdaq XNDX<span class="external" aria-hidden="true">↗</span></a><a class="source-link" href="https://www.safe.gov.cn/AppStructured/hlw/RMBQuery.do" target="_blank" rel="noopener noreferrer">美元兑人民币中间价<span class="external" aria-hidden="true">↗</span></a>
+          </div>
+        </div>
+      </details>
+      <details class="fund-item" data-code="008253" data-list="us_main">
+        <summary>
+          <span class="rank" aria-label="排名 8">8</span>
+          <span class="fund-identity">
+            <span class="fund-name-row"><strong>华宝致远混合(QDII)A</strong><span class="fund-code">008253</span></span>
+            <span class="benchmark-label">恒生指数 + 标普500指数</span>
+            <span class="tags"><span class="tag ">主动</span><span class="tag ">股票/混合</span><span class="tag ">复合风格</span></span>
+          </span>
+          <span class="summary-metrics">
+
+            <span class="summary-metric fit"><span class="metric-label">纳指相关 / β</span><span class="metric-value">86.1% · 1.19</span></span>
+            <span class="summary-metric accent"><span class="metric-label">美股下限</span><span class="metric-value">79.20%</span></span>
+            <span class="summary-metric positive"><span class="metric-label">近三年</span><span class="metric-value">+117.72%</span></span>
+            <span class="summary-metric"><span class="metric-label">持有费率</span><span class="metric-value quota">--</span></span>
+            <span class="summary-metric"><span class="metric-label">直销</span><span class="metric-value quota">1,000元</span></span>
+          </span>
+          <span class="chevron" aria-hidden="true"></span>
+        </summary>
+        <div class="fund-detail">
+          <dl class="detail-grid">
+            <div><dt>成立日</dt><dd>2019-11-27</dd></div>
+            <div><dt>机构持有</dt><dd>43.95%</dd></div>
+            <div><dt>规模</dt><dd>11.01 亿元</dd></div>
+            <div><dt>近一年收益</dt><dd class="positive-text">+44.64%</dd></div>
+            <div><dt>近一年回撤</dt><dd class="negative-text">-30.93%</dd></div>
+            <div><dt>近三年收益</dt><dd class="positive-text">+117.72%</dd></div>
+            <div><dt>近三年回撤</dt><dd class="negative-text">-30.93%</dd></div>
+            <div><dt>近五年收益</dt><dd>+34.99%</dd></div>
+            <div><dt>近十年收益</dt><dd>--（净值始于 2019-11-27）</dd></div>
+            <div><dt>持有费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202512091796782322_1.pdf" target="_blank" rel="noopener noreferrer">--<span class="external" aria-hidden="true">↗</span></a></dd></div>
+
+            <div><dt>纳指相关性</dt><dd>86.1%</dd></div>
+            <div><dt>Beta</dt><dd>1.19</dd></div>
+            <div><dt>跟踪误差</dt><dd>13.80%</dd></div>
+            <div><dt>相关样本</dt><dd>150 周</dd></div>
+            <div><dt>美股确认下限</dt><dd>79.20%</dd></div>
+            <div><dt>美股可能上限</dt><dd>84.94%</dd></div>
+          </dl>
+          <section class="benchmark-detail" aria-label="合同基准">
+            <span>合同基准</span>
+            <strong>经人民币汇率调整的恒生指数收益率×65%+经人民币汇率调整的标普 500 指数收益率×15%+境内银行活期存款利率（税后）×20%</strong>
+            <small>解析状态：composite；仅作风格说明，不参与准入。</small>
+          </section>
+          <div class="quota-grid" aria-label="申购额度">
+            <div><span>直销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607211827182692_1.pdf" target="_blank" rel="noopener noreferrer">1,000元<span class="external" aria-hidden="true">↗</span></a></div>
+            <div><span>代销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607211827182692_1.pdf" target="_blank" rel="noopener noreferrer">1,000元<span class="external" aria-hidden="true">↗</span></a></div>
+          </div>
+          <dl class="rule-grid">
+            <div><dt>额度计算</dt><dd>A/C分别；同一基金级限额</dd></div>
+            <div><dt>完整净值历史</dt><dd>2019-11-27 至 2026-08-19</dd></div>
+            <div><dt>招募说明书日期</dt><dd>2025-12-09</dd></div>
+          </dl>
+          <div class="source-row">
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202512091796782446_1.pdf" target="_blank" rel="noopener noreferrer">招募说明书<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202512091796782322_1.pdf" target="_blank" rel="noopener noreferrer">人民币产品概要<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://fund.eastmoney.com/008253.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607211827184101_1.pdf" target="_blank" rel="noopener noreferrer">定期报告 2026-06-30<span class="external" aria-hidden="true">↗</span></a><a class="source-link" href="https://indexes.nasdaq.com/Index/History/XNDX" target="_blank" rel="noopener noreferrer">Nasdaq XNDX<span class="external" aria-hidden="true">↗</span></a><a class="source-link" href="https://www.safe.gov.cn/AppStructured/hlw/RMBQuery.do" target="_blank" rel="noopener noreferrer">美元兑人民币中间价<span class="external" aria-hidden="true">↗</span></a>
+          </div>
+        </div>
+      </details>
+      <details class="fund-item" data-code="006373" data-list="us_main">
+        <summary>
+          <span class="rank" aria-label="排名 9">9</span>
+          <span class="fund-identity">
+            <span class="fund-name-row"><strong>国富全球科技互联混合(QDII)人民币A</strong><span class="fund-code">006373</span></span>
+            <span class="benchmark-label">MSCI全球信息科技指数 + 中证海外中国互联网指数</span>
+            <span class="tags"><span class="tag ">主动</span><span class="tag ">股票/混合</span><span class="tag ">复合风格</span></span>
+          </span>
+          <span class="summary-metrics">
+
+            <span class="summary-metric fit"><span class="metric-label">纳指相关 / β</span><span class="metric-value">84.2% · 1.09</span></span>
+            <span class="summary-metric accent"><span class="metric-label">美股下限</span><span class="metric-value">71.95%</span></span>
+            <span class="summary-metric positive"><span class="metric-label">近三年</span><span class="metric-value">+187.82%</span></span>
+            <span class="summary-metric"><span class="metric-label">持有费率</span><span class="metric-value quota">1.43%/年</span></span>
+            <span class="summary-metric"><span class="metric-label">直销</span><span class="metric-value quota">1,000元</span></span>
+          </span>
+          <span class="chevron" aria-hidden="true"></span>
+        </summary>
+        <div class="fund-detail">
+          <dl class="detail-grid">
+            <div><dt>成立日</dt><dd>2018-11-20</dd></div>
+            <div><dt>机构持有</dt><dd>18.09%</dd></div>
+            <div><dt>规模</dt><dd>58.83 亿元</dd></div>
+            <div><dt>近一年收益</dt><dd class="positive-text">+70.75%</dd></div>
+            <div><dt>近一年回撤</dt><dd class="negative-text">-29.72%</dd></div>
+            <div><dt>近三年收益</dt><dd class="positive-text">+187.82%</dd></div>
+            <div><dt>近三年回撤</dt><dd class="negative-text">-29.72%</dd></div>
+            <div><dt>近五年收益</dt><dd>+185.90%</dd></div>
+            <div><dt>近十年收益</dt><dd>--（净值始于 2018-11-20）</dd></div>
+            <div><dt>持有费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607271827372484_1.pdf" target="_blank" rel="noopener noreferrer">1.43%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+
+            <div><dt>纳指相关性</dt><dd>84.2%</dd></div>
+            <div><dt>Beta</dt><dd>1.09</dd></div>
+            <div><dt>跟踪误差</dt><dd>13.21%</dd></div>
+            <div><dt>相关样本</dt><dd>150 周</dd></div>
+            <div><dt>美股确认下限</dt><dd>71.95%</dd></div>
+            <div><dt>美股可能上限</dt><dd>71.95%</dd></div>
+          </dl>
+          <section class="benchmark-detail" aria-label="合同基准">
+            <span>合同基准</span>
+            <strong>MSCI 全球信息科技指数（MSCI ACWI Information Technology Index)收益率*70%+中证海外中国互联网指数（人民币） 收益率*15%+中债-综合全价(1-3 年)指数收益率*10%+人民币活期存款基准利率 *5% 1、业绩比较基准的设定及原因 （1）基于基金投资范围以及预期投资的主要资产类别，本基金主要投资于境外股票、债券、现金等资产，相应选取与之匹配的境外股票指数、债券指数与人民币活期存款基准利率作为基准要素</strong>
+            <small>解析状态：composite；仅作风格说明，不参与准入。</small>
+          </section>
+          <div class="quota-grid" aria-label="申购额度">
+            <div><span>直销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608201828184894_1.pdf" target="_blank" rel="noopener noreferrer">1,000元<span class="external" aria-hidden="true">↗</span></a></div>
+            <div><span>代销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608201828184894_1.pdf" target="_blank" rel="noopener noreferrer">100元<span class="external" aria-hidden="true">↗</span></a></div>
+          </div>
+          <dl class="rule-grid">
+            <div><dt>额度计算</dt><dd>A/C分别；直销/代销分别</dd></div>
+            <div><dt>完整净值历史</dt><dd>2018-11-20 至 2026-08-19</dd></div>
+            <div><dt>招募说明书日期</dt><dd>2026-07-27</dd></div>
+          </dl>
+          <div class="source-row">
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607271827372229_1.pdf" target="_blank" rel="noopener noreferrer">招募说明书<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607271827372484_1.pdf" target="_blank" rel="noopener noreferrer">人民币产品概要<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://fund.eastmoney.com/006373.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607211827187137_1.pdf" target="_blank" rel="noopener noreferrer">定期报告 2026-06-30<span class="external" aria-hidden="true">↗</span></a><a class="source-link" href="https://indexes.nasdaq.com/Index/History/XNDX" target="_blank" rel="noopener noreferrer">Nasdaq XNDX<span class="external" aria-hidden="true">↗</span></a><a class="source-link" href="https://www.safe.gov.cn/AppStructured/hlw/RMBQuery.do" target="_blank" rel="noopener noreferrer">美元兑人民币中间价<span class="external" aria-hidden="true">↗</span></a>
+          </div>
+        </div>
+      </details>
+      <details class="fund-item" data-code="539002" data-list="us_main">
+        <summary>
+          <span class="rank" aria-label="排名 10">10</span>
+          <span class="fund-identity">
+            <span class="fund-name-row"><strong>建信新兴市场混合(QDII)A</strong><span class="fund-code">539002</span></span>
+            <span class="benchmark-label">MSCI新兴市场指数 · 100%</span>
+            <span class="tags"><span class="tag ">主动</span><span class="tag ">股票/混合</span><span class="tag ">多市场宽基</span></span>
+          </span>
+          <span class="summary-metrics">
+
+            <span class="summary-metric fit"><span class="metric-label">纳指相关 / β</span><span class="metric-value">82.9% · 1.39</span></span>
+            <span class="summary-metric accent"><span class="metric-label">美股下限</span><span class="metric-value">59.65%</span></span>
             <span class="summary-metric positive"><span class="metric-label">近三年</span><span class="metric-value">+215.16%</span></span>
+            <span class="summary-metric"><span class="metric-label">持有费率</span><span class="metric-value quota">1.42%/年</span></span>
             <span class="summary-metric"><span class="metric-label">直销</span><span class="metric-value quota">10万元</span></span>
           </span>
           <span class="chevron" aria-hidden="true"></span>
@@ -229,15 +660,21 @@
             <div><dt>近一年回撤</dt><dd class="negative-text">-33.19%</dd></div>
             <div><dt>近三年收益</dt><dd class="positive-text">+215.16%</dd></div>
             <div><dt>近三年回撤</dt><dd class="negative-text">-35.85%</dd></div>
+            <div><dt>近五年收益</dt><dd>+154.81%</dd></div>
+            <div><dt>近十年收益</dt><dd>+204.05%</dd></div>
+            <div><dt>持有费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606261823876691_1.pdf" target="_blank" rel="noopener noreferrer">1.42%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
 
-            <div><dt>三年年化收益</dt><dd class="positive-text">+46.51%</dd></div>
-            <div><dt>收益回撤比</dt><dd>1.30</dd></div>
-            <div><dt>市场</dt><dd>新兴市场</dd></div>
-            <div><dt>资产类别</dt><dd>equity</dd></div>
+            <div><dt>纳指相关性</dt><dd>82.9%</dd></div>
+            <div><dt>Beta</dt><dd>1.39</dd></div>
+            <div><dt>跟踪误差</dt><dd>19.06%</dd></div>
+            <div><dt>相关样本</dt><dd>150 周</dd></div>
+            <div><dt>美股确认下限</dt><dd>59.65%</dd></div>
+            <div><dt>美股可能上限</dt><dd>59.65%</dd></div>
           </dl>
           <section class="benchmark-detail" aria-label="合同基准">
             <span>合同基准</span>
             <strong>摩根士丹利资本国际新兴市场指数（ MSCI Emerging Markets Index （Net Total Return））</strong>
+            <small>解析状态：recognized；仅作风格说明，不参与准入。</small>
           </section>
           <div class="quota-grid" aria-label="申购额度">
             <div><span>直销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608171828035437_1.pdf" target="_blank" rel="noopener noreferrer">10万元<span class="external" aria-hidden="true">↗</span></a></div>
@@ -245,24 +682,489 @@
           </div>
           <dl class="rule-grid">
             <div><dt>额度计算</dt><dd>A/C分别；直销/代销分别</dd></div>
-            <div><dt>净值区间</dt><dd>2023-08-18 至 2026-08-19</dd></div>
+            <div><dt>完整净值历史</dt><dd>2011-06-21 至 2026-08-19</dd></div>
             <div><dt>招募说明书日期</dt><dd>2026-06-26</dd></div>
           </dl>
           <div class="source-row">
             <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606261823876094_1.pdf" target="_blank" rel="noopener noreferrer">招募说明书<span class="external" aria-hidden="true">↗</span></a>
             <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606261823876691_1.pdf" target="_blank" rel="noopener noreferrer">人民币产品概要<span class="external" aria-hidden="true">↗</span></a>
             <a class="source-link" href="https://fund.eastmoney.com/539002.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607201827128028_1.pdf" target="_blank" rel="noopener noreferrer">定期报告 2026-06-30<span class="external" aria-hidden="true">↗</span></a><a class="source-link" href="https://indexes.nasdaq.com/Index/History/XNDX" target="_blank" rel="noopener noreferrer">Nasdaq XNDX<span class="external" aria-hidden="true">↗</span></a><a class="source-link" href="https://www.safe.gov.cn/AppStructured/hlw/RMBQuery.do" target="_blank" rel="noopener noreferrer">美元兑人民币中间价<span class="external" aria-hidden="true">↗</span></a>
+          </div>
+        </div>
+      </details></section>
+      <section id="panel-global" class="ranking-list" role="tabpanel" aria-labelledby="tab-global" hidden>
+      <details class="fund-item" data-code="017730" data-list="global_supplement">
+        <summary>
+          <span class="rank" aria-label="排名 1">1</span>
+          <span class="fund-identity">
+            <span class="fund-name-row"><strong>嘉实全球产业升级股票发起式(QDII)A</strong><span class="fund-code">017730</span></span>
+            <span class="benchmark-label">沪深300指数 + MSCI所有国家世界指数</span>
+            <span class="tags"><span class="tag ">主动</span><span class="tag ">股票/混合</span><span class="tag ">复合风格</span></span>
+          </span>
+          <span class="summary-metrics">
 
+            <span class="summary-metric fit"><span class="metric-label">收益回撤比</span><span class="metric-value">1.89</span></span>
+            <span class="summary-metric accent"><span class="metric-label">美股确认区间</span><span class="metric-value small">32.63%-32.72%</span></span>
+            <span class="summary-metric positive"><span class="metric-label">近三年</span><span class="metric-value">+260.00%</span></span>
+            <span class="summary-metric"><span class="metric-label">持有费率</span><span class="metric-value quota">1.42%/年</span></span>
+            <span class="summary-metric"><span class="metric-label">直销</span><span class="metric-value quota">10万元</span></span>
+          </span>
+          <span class="chevron" aria-hidden="true"></span>
+        </summary>
+        <div class="fund-detail">
+          <dl class="detail-grid">
+            <div><dt>成立日</dt><dd>2023-02-09</dd></div>
+            <div><dt>机构持有</dt><dd>6.55%</dd></div>
+            <div><dt>规模</dt><dd>31.48 亿元</dd></div>
+            <div><dt>近一年收益</dt><dd class="positive-text">+97.90%</dd></div>
+            <div><dt>近一年回撤</dt><dd class="negative-text">-28.11%</dd></div>
+            <div><dt>近三年收益</dt><dd class="positive-text">+260.00%</dd></div>
+            <div><dt>近三年回撤</dt><dd class="negative-text">-28.11%</dd></div>
+            <div><dt>近五年收益</dt><dd>--（净值始于 2023-02-09）</dd></div>
+            <div><dt>近十年收益</dt><dd>--（净值始于 2023-02-09）</dd></div>
+            <div><dt>持有费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606251823829251_1.pdf" target="_blank" rel="noopener noreferrer">1.42%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+
+            <div><dt>三年年化收益</dt><dd class="positive-text">+53.14%</dd></div>
+            <div><dt>收益回撤比</dt><dd>1.89</dd></div>
+            <div><dt>美股确认下限</dt><dd>32.63%</dd></div>
+            <div><dt>美股可能上限</dt><dd>32.72%</dd></div>
+          </dl>
+          <section class="benchmark-detail" aria-label="合同基准">
+            <span>合同基准</span>
+            <strong>MSCI 全球指数（MSCI All Country World Index）收益率×75%+沪深 300 指数收益率 ×20%+境内银行活期存款利率(税后)×5% MSCI 全球指数是摩根士丹利资本国际公司主持开发的全球性证券市场指数，是全球投资组合经理作为投资基准最为广泛应用的指数</strong>
+            <small>解析状态：composite；仅作风格说明，不参与准入。</small>
+          </section>
+          <div class="quota-grid" aria-label="申购额度">
+            <div><span>直销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607231827273553_1.pdf" target="_blank" rel="noopener noreferrer">10万元<span class="external" aria-hidden="true">↗</span></a></div>
+            <div><span>代销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607231827273553_1.pdf" target="_blank" rel="noopener noreferrer">1,000元<span class="external" aria-hidden="true">↗</span></a></div>
+          </div>
+          <dl class="rule-grid">
+            <div><dt>额度计算</dt><dd>不适用；直销/代销分别</dd></div>
+            <div><dt>完整净值历史</dt><dd>2023-02-09 至 2026-08-19</dd></div>
+            <div><dt>招募说明书日期</dt><dd>2026-02-10</dd></div>
+          </dl>
+          <div class="source-row">
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202602101819845645_1.pdf" target="_blank" rel="noopener noreferrer">招募说明书<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606251823829251_1.pdf" target="_blank" rel="noopener noreferrer">人民币产品概要<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://fund.eastmoney.com/017730.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607211827195101_1.pdf" target="_blank" rel="noopener noreferrer">定期报告 2026-06-30<span class="external" aria-hidden="true">↗</span></a>
+          </div>
+        </div>
+      </details>
+      <details class="fund-item" data-code="100055" data-list="global_supplement">
+        <summary>
+          <span class="rank" aria-label="排名 2">2</span>
+          <span class="fund-identity">
+            <span class="fund-name-row"><strong>富国全球科技互联网股票(QDII)A</strong><span class="fund-code">100055</span></span>
+            <span class="benchmark-label">中证海外中国互联网指数 + 纳斯达克100指数</span>
+            <span class="tags"><span class="tag ">主动</span><span class="tag ">股票/混合</span><span class="tag ">复合风格</span></span>
+          </span>
+          <span class="summary-metrics">
+
+            <span class="summary-metric fit"><span class="metric-label">收益回撤比</span><span class="metric-value">1.45</span></span>
+            <span class="summary-metric accent"><span class="metric-label">美股确认区间</span><span class="metric-value small">17.85%-18.62%</span></span>
+            <span class="summary-metric positive"><span class="metric-label">近三年</span><span class="metric-value">+156.33%</span></span>
+            <span class="summary-metric"><span class="metric-label">持有费率</span><span class="metric-value quota">1.43%/年</span></span>
+            <span class="summary-metric"><span class="metric-label">直销</span><span class="metric-value quota">1,000元</span></span>
+          </span>
+          <span class="chevron" aria-hidden="true"></span>
+        </summary>
+        <div class="fund-detail">
+          <dl class="detail-grid">
+            <div><dt>成立日</dt><dd>2011-07-13</dd></div>
+            <div><dt>机构持有</dt><dd>16.65%</dd></div>
+            <div><dt>规模</dt><dd>66.94 亿元</dd></div>
+            <div><dt>近一年收益</dt><dd class="positive-text">+59.72%</dd></div>
+            <div><dt>近一年回撤</dt><dd class="negative-text">-25.42%</dd></div>
+            <div><dt>近三年收益</dt><dd class="positive-text">+156.33%</dd></div>
+            <div><dt>近三年回撤</dt><dd class="negative-text">-25.42%</dd></div>
+            <div><dt>近五年收益</dt><dd>+114.92%</dd></div>
+            <div><dt>近十年收益</dt><dd>+349.25%</dd></div>
+            <div><dt>持有费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606011823113678_1.pdf" target="_blank" rel="noopener noreferrer">1.43%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+
+            <div><dt>三年年化收益</dt><dd class="positive-text">+36.78%</dd></div>
+            <div><dt>收益回撤比</dt><dd>1.45</dd></div>
+            <div><dt>美股确认下限</dt><dd>17.85%</dd></div>
+            <div><dt>美股可能上限</dt><dd>18.62%</dd></div>
+          </dl>
+          <section class="benchmark-detail" aria-label="合同基准">
+            <span>合同基准</span>
+            <strong>中证海外中国互联网指数（美元）收益率*55%+纳斯达克 100 指数(NASDAQ 100 Index)收益率*30%+中证互联网指数收益率*5%+中债-国债总全价(1-3 年)指数收益率*10% 1、业绩比较基准设定的原因 （1）基于基金投资范围以及预期投资的主要资产类别，本基金主要投资于境内境外股票、 债券等资产， 相应选取与之匹配的境外股票指数、A 股股票指数、 债券指数作为基准要素</strong>
+            <small>解析状态：composite；仅作风格说明，不参与准入。</small>
+          </section>
+          <div class="quota-grid" aria-label="申购额度">
+            <div><span>直销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606051823273982_1.pdf" target="_blank" rel="noopener noreferrer">1,000元<span class="external" aria-hidden="true">↗</span></a></div>
+            <div><span>代销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606051823273982_1.pdf" target="_blank" rel="noopener noreferrer">1,000元<span class="external" aria-hidden="true">↗</span></a></div>
+          </div>
+          <dl class="rule-grid">
+            <div><dt>额度计算</dt><dd>不适用</dd></div>
+            <div><dt>完整净值历史</dt><dd>2011-07-13 至 2026-08-19</dd></div>
+            <div><dt>招募说明书日期</dt><dd>2026-06-01</dd></div>
+          </dl>
+          <div class="source-row">
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606011823113726_1.pdf" target="_blank" rel="noopener noreferrer">招募说明书<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606011823113678_1.pdf" target="_blank" rel="noopener noreferrer">人民币产品概要<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://fund.eastmoney.com/100055.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607211827194882_1.pdf" target="_blank" rel="noopener noreferrer">定期报告 2026-06-30<span class="external" aria-hidden="true">↗</span></a>
+          </div>
+        </div>
+      </details>
+      <details class="fund-item" data-code="270023" data-list="global_supplement">
+        <summary>
+          <span class="rank" aria-label="排名 3">3</span>
+          <span class="fund-identity">
+            <span class="fund-name-row"><strong>广发全球精选股票(QDII)人民币A</strong><span class="fund-code">270023</span></span>
+            <span class="benchmark-label">恒生指数 + MSCI世界指数</span>
+            <span class="tags"><span class="tag ">主动</span><span class="tag ">股票/混合</span><span class="tag ">复合风格</span></span>
+          </span>
+          <span class="summary-metrics">
+
+            <span class="summary-metric fit"><span class="metric-label">收益回撤比</span><span class="metric-value">1.33</span></span>
+            <span class="summary-metric accent"><span class="metric-label">美股确认区间</span><span class="metric-value small">46.65%-46.76%</span></span>
+            <span class="summary-metric positive"><span class="metric-label">近三年</span><span class="metric-value">+141.69%</span></span>
+            <span class="summary-metric"><span class="metric-label">持有费率</span><span class="metric-value quota">1.40%/年</span></span>
+            <span class="summary-metric"><span class="metric-label">直销</span><span class="metric-value quota">2,000元</span></span>
+          </span>
+          <span class="chevron" aria-hidden="true"></span>
+        </summary>
+        <div class="fund-detail">
+          <dl class="detail-grid">
+            <div><dt>成立日</dt><dd>2010-08-18</dd></div>
+            <div><dt>机构持有</dt><dd>6.69%</dd></div>
+            <div><dt>规模</dt><dd>183.54 亿元</dd></div>
+            <div><dt>近一年收益</dt><dd class="positive-text">+44.83%</dd></div>
+            <div><dt>近一年回撤</dt><dd class="negative-text">-25.63%</dd></div>
+            <div><dt>近三年收益</dt><dd class="positive-text">+141.69%</dd></div>
+            <div><dt>近三年回撤</dt><dd class="negative-text">-25.63%</dd></div>
+            <div><dt>近五年收益</dt><dd>+102.20%</dd></div>
+            <div><dt>近十年收益</dt><dd>+399.58%</dd></div>
+            <div><dt>持有费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606051823274688_1.pdf" target="_blank" rel="noopener noreferrer">1.40%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+
+            <div><dt>三年年化收益</dt><dd class="positive-text">+34.13%</dd></div>
+            <div><dt>收益回撤比</dt><dd>1.33</dd></div>
+            <div><dt>美股确认下限</dt><dd>46.65%</dd></div>
+            <div><dt>美股可能上限</dt><dd>46.76%</dd></div>
+          </dl>
+          <section class="benchmark-detail" aria-label="合同基准">
+            <span>合同基准</span>
+            <strong>60%×人民币计价的 MSCI 全球指数（MSCI World Index ）+40%× 人民币计价的恒生指数</strong>
+            <small>解析状态：composite；仅作风格说明，不参与准入。</small>
+          </section>
+          <div class="quota-grid" aria-label="申购额度">
+            <div><span>直销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608101827796966_1.pdf" target="_blank" rel="noopener noreferrer">2,000元<span class="external" aria-hidden="true">↗</span></a></div>
+            <div><span>代销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608101827796966_1.pdf" target="_blank" rel="noopener noreferrer">2,000元<span class="external" aria-hidden="true">↗</span></a></div>
+          </div>
+          <dl class="rule-grid">
+            <div><dt>额度计算</dt><dd>A/C分别；全部渠道合计</dd></div>
+            <div><dt>完整净值历史</dt><dd>2010-08-18 至 2026-08-19</dd></div>
+            <div><dt>招募说明书日期</dt><dd>2026-06-05</dd></div>
+          </dl>
+          <div class="source-row">
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606051823274931_1.pdf" target="_blank" rel="noopener noreferrer">招募说明书<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606051823274688_1.pdf" target="_blank" rel="noopener noreferrer">人民币产品概要<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://fund.eastmoney.com/270023.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607201827126979_1.pdf" target="_blank" rel="noopener noreferrer">定期报告 2026-06-30<span class="external" aria-hidden="true">↗</span></a>
+          </div>
+        </div>
+      </details>
+      <details class="fund-item" data-code="016664" data-list="global_supplement">
+        <summary>
+          <span class="rank" aria-label="排名 4">4</span>
+          <span class="fund-identity">
+            <span class="fund-name-row"><strong>天弘全球高端制造混合(QDII)A</strong><span class="fund-code">016664</span></span>
+            <span class="benchmark-label">未识别</span>
+            <span class="tags"><span class="tag ">主动</span><span class="tag ">股票/混合</span></span>
+          </span>
+          <span class="summary-metrics">
+
+            <span class="summary-metric fit"><span class="metric-label">收益回撤比</span><span class="metric-value">1.07</span></span>
+            <span class="summary-metric accent"><span class="metric-label">美股确认区间</span><span class="metric-value small">24.23%-33.17%</span></span>
+            <span class="summary-metric positive"><span class="metric-label">近三年</span><span class="metric-value">+196.62%</span></span>
+            <span class="summary-metric"><span class="metric-label">持有费率</span><span class="metric-value quota">1.47%/年</span></span>
+            <span class="summary-metric"><span class="metric-label">直销</span><span class="metric-value quota">1,000元</span></span>
+          </span>
+          <span class="chevron" aria-hidden="true"></span>
+        </summary>
+        <div class="fund-detail">
+          <dl class="detail-grid">
+            <div><dt>成立日</dt><dd>2023-04-26</dd></div>
+            <div><dt>机构持有</dt><dd>0.40%</dd></div>
+            <div><dt>规模</dt><dd>16.82 亿元</dd></div>
+            <div><dt>近一年收益</dt><dd class="positive-text">+92.49%</dd></div>
+            <div><dt>近一年回撤</dt><dd class="negative-text">-40.75%</dd></div>
+            <div><dt>近三年收益</dt><dd class="positive-text">+196.62%</dd></div>
+            <div><dt>近三年回撤</dt><dd class="negative-text">-40.75%</dd></div>
+            <div><dt>近五年收益</dt><dd>--（净值始于 2023-04-26）</dd></div>
+            <div><dt>近十年收益</dt><dd>--（净值始于 2023-04-26）</dd></div>
+            <div><dt>持有费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606261823873668_1.pdf" target="_blank" rel="noopener noreferrer">1.47%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+
+            <div><dt>三年年化收益</dt><dd class="positive-text">+43.59%</dd></div>
+            <div><dt>收益回撤比</dt><dd>1.07</dd></div>
+            <div><dt>美股确认下限</dt><dd>24.23%</dd></div>
+            <div><dt>美股可能上限</dt><dd>33.17%</dd></div>
+          </dl>
+          <section class="benchmark-detail" aria-label="合同基准">
+            <span>合同基准</span>
+            <strong>中证高端装备制造指数收益率*40%+标普 Kensho 先进制造业指数（使用估值汇率折算）收益率*40%+中证全债指数收益率*20%</strong>
+            <small>解析状态：unrecognized；仅作风格说明，不参与准入。</small>
+          </section>
+          <div class="quota-grid" aria-label="申购额度">
+            <div><span>直销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607241827302894_1.pdf" target="_blank" rel="noopener noreferrer">1,000元<span class="external" aria-hidden="true">↗</span></a></div>
+            <div><span>代销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607241827302894_1.pdf" target="_blank" rel="noopener noreferrer">100元<span class="external" aria-hidden="true">↗</span></a></div>
+          </div>
+          <dl class="rule-grid">
+            <div><dt>额度计算</dt><dd>不适用；直销/代销分别</dd></div>
+            <div><dt>完整净值历史</dt><dd>2023-04-26 至 2026-08-19</dd></div>
+            <div><dt>招募说明书日期</dt><dd>2026-03-07</dd></div>
+          </dl>
+          <div class="source-row">
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202603071820363929_1.pdf" target="_blank" rel="noopener noreferrer">招募说明书<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606261823873668_1.pdf" target="_blank" rel="noopener noreferrer">人民币产品概要<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://fund.eastmoney.com/016664.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607211827183829_1.pdf" target="_blank" rel="noopener noreferrer">定期报告 2026-06-30<span class="external" aria-hidden="true">↗</span></a>
+          </div>
+        </div>
+      </details>
+      <details class="fund-item" data-code="000614" data-list="global_supplement">
+        <summary>
+          <span class="rank" aria-label="排名 5">5</span>
+          <span class="fund-identity">
+            <span class="fund-name-row"><strong>华安德国(DAX)联接(QDII)A</strong><span class="fund-code">000614</span></span>
+            <span class="benchmark-label">德国DAX指数 · 95%</span>
+            <span class="tags"><span class="tag ">被动</span><span class="tag ">指数</span><span class="tag ">大盘宽基</span></span>
+          </span>
+          <span class="summary-metrics">
+
+            <span class="summary-metric fit"><span class="metric-label">收益回撤比</span><span class="metric-value">1.02</span></span>
+            <span class="summary-metric accent"><span class="metric-label">美股确认区间</span><span class="metric-value small">0.00%-94.40%</span></span>
+            <span class="summary-metric positive"><span class="metric-label">近三年</span><span class="metric-value">+50.18%</span></span>
+            <span class="summary-metric"><span class="metric-label">持有费率</span><span class="metric-value quota">1.05%/年</span></span>
+            <span class="summary-metric"><span class="metric-label">直销</span><span class="metric-value quota">300元</span></span>
+          </span>
+          <span class="chevron" aria-hidden="true"></span>
+        </summary>
+        <div class="fund-detail">
+          <dl class="detail-grid">
+            <div><dt>成立日</dt><dd>2014-08-12</dd></div>
+            <div><dt>机构持有</dt><dd>0.26%</dd></div>
+            <div><dt>规模</dt><dd>3.81 亿元</dd></div>
+            <div><dt>近一年收益</dt><dd class="positive-text">-1.67%</dd></div>
+            <div><dt>近一年回撤</dt><dd class="negative-text">-13.54%</dd></div>
+            <div><dt>近三年收益</dt><dd class="positive-text">+50.18%</dd></div>
+            <div><dt>近三年回撤</dt><dd class="negative-text">-14.14%</dd></div>
+            <div><dt>近五年收益</dt><dd>+40.83%</dd></div>
+            <div><dt>近十年收益</dt><dd>+98.73%</dd></div>
+            <div><dt>持有费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606261823876524_1.pdf" target="_blank" rel="noopener noreferrer">1.05%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+
+            <div><dt>三年年化收益</dt><dd class="positive-text">+14.49%</dd></div>
+            <div><dt>收益回撤比</dt><dd>1.02</dd></div>
+            <div><dt>美股确认下限</dt><dd>0.00%</dd></div>
+            <div><dt>美股可能上限</dt><dd>94.40%</dd></div>
+          </dl>
+          <section class="benchmark-detail" aria-label="合同基准">
+            <span>合同基准</span>
+            <strong>经人民币汇率调整的标的指数收益率×95%＋人民币活期存款税后利率×5%</strong>
+            <small>解析状态：recognized；仅作风格说明，不参与准入。</small>
+          </section>
+          <div class="quota-grid" aria-label="申购额度">
+            <div><span>直销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202507021701384959_1.pdf" target="_blank" rel="noopener noreferrer">300元<span class="external" aria-hidden="true">↗</span></a></div>
+            <div><span>代销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202507021701384959_1.pdf" target="_blank" rel="noopener noreferrer">300元<span class="external" aria-hidden="true">↗</span></a></div>
+          </div>
+          <dl class="rule-grid">
+            <div><dt>额度计算</dt><dd>不适用</dd></div>
+            <div><dt>完整净值历史</dt><dd>2014-08-12 至 2026-08-19</dd></div>
+            <div><dt>招募说明书日期</dt><dd>2026-06-26</dd></div>
+          </dl>
+          <div class="source-row">
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606261823876363_1.pdf" target="_blank" rel="noopener noreferrer">招募说明书<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606261823876524_1.pdf" target="_blank" rel="noopener noreferrer">人民币产品概要<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://fund.eastmoney.com/000614.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607211827189974_1.pdf" target="_blank" rel="noopener noreferrer">定期报告 2026-06-30<span class="external" aria-hidden="true">↗</span></a>
+          </div>
+        </div>
+      </details>
+      <details class="fund-item" data-code="009108" data-list="global_supplement">
+        <summary>
+          <span class="rank" aria-label="排名 6">6</span>
+          <span class="fund-identity">
+            <span class="fund-name-row"><strong>富国红利精选混合(QDII)人民币</strong><span class="fund-code">009108</span></span>
+            <span class="benchmark-label">未识别</span>
+            <span class="tags"><span class="tag ">主动</span><span class="tag ">股票/混合</span></span>
+          </span>
+          <span class="summary-metrics">
+
+            <span class="summary-metric fit"><span class="metric-label">收益回撤比</span><span class="metric-value">0.89</span></span>
+            <span class="summary-metric accent"><span class="metric-label">美股确认区间</span><span class="metric-value small">1.13%-1.13%</span></span>
+            <span class="summary-metric positive"><span class="metric-label">近三年</span><span class="metric-value">+52.82%</span></span>
+            <span class="summary-metric"><span class="metric-label">持有费率</span><span class="metric-value quota">1.47%/年</span></span>
+            <span class="summary-metric"><span class="metric-label">直销</span><span class="metric-value quota">正常开放</span></span>
+          </span>
+          <span class="chevron" aria-hidden="true"></span>
+        </summary>
+        <div class="fund-detail">
+          <dl class="detail-grid">
+            <div><dt>成立日</dt><dd>2020-04-23</dd></div>
+            <div><dt>机构持有</dt><dd>45.92%</dd></div>
+            <div><dt>规模</dt><dd>11.47 亿元</dd></div>
+            <div><dt>近一年收益</dt><dd class="positive-text">+7.07%</dd></div>
+            <div><dt>近一年回撤</dt><dd class="negative-text">-17.11%</dd></div>
+            <div><dt>近三年收益</dt><dd class="positive-text">+52.82%</dd></div>
+            <div><dt>近三年回撤</dt><dd class="negative-text">-17.11%</dd></div>
+            <div><dt>近五年收益</dt><dd>+2.91%</dd></div>
+            <div><dt>近十年收益</dt><dd>--（净值始于 2020-04-23）</dd></div>
+            <div><dt>持有费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202512151800796628_1.pdf" target="_blank" rel="noopener noreferrer">1.47%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+
+            <div><dt>三年年化收益</dt><dd class="positive-text">+15.15%</dd></div>
+            <div><dt>收益回撤比</dt><dd>0.89</dd></div>
+            <div><dt>美股确认下限</dt><dd>1.13%</dd></div>
+            <div><dt>美股可能上限</dt><dd>1.13%</dd></div>
+          </dl>
+          <section class="benchmark-detail" aria-label="合同基准">
+            <span>合同基准</span>
+            <strong>恒生高股息率指数收益率（经汇率估值调整） *60%+中证红利指数收益率 *30%+中债综合财富指数收益率*10%</strong>
+            <small>解析状态：unrecognized；仅作风格说明，不参与准入。</small>
+          </section>
+          <div class="quota-grid" aria-label="申购额度">
+            <div><span>直销额度</span><span class="source-value">正常开放</span></div>
+            <div><span>代销额度</span><span class="source-value">正常开放</span></div>
+          </div>
+          <dl class="rule-grid">
+            <div><dt>额度计算</dt><dd>不适用</dd></div>
+            <div><dt>完整净值历史</dt><dd>2020-04-23 至 2026-08-19</dd></div>
+            <div><dt>招募说明书日期</dt><dd>2025-12-15</dd></div>
+          </dl>
+          <div class="source-row">
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202512151800796350_1.pdf" target="_blank" rel="noopener noreferrer">招募说明书<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202512151800796628_1.pdf" target="_blank" rel="noopener noreferrer">人民币产品概要<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://fund.eastmoney.com/009108.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607211827192511_1.pdf" target="_blank" rel="noopener noreferrer">定期报告 2026-06-30<span class="external" aria-hidden="true">↗</span></a>
+          </div>
+        </div>
+      </details>
+      <details class="fund-item" data-code="007280" data-list="global_supplement">
+        <summary>
+          <span class="rank" aria-label="排名 7">7</span>
+          <span class="fund-identity">
+            <span class="fund-name-row"><strong>摩根日本精选股票(QDII)A</strong><span class="fund-code">007280</span></span>
+            <span class="benchmark-label">未识别</span>
+            <span class="tags"><span class="tag ">主动</span><span class="tag ">股票/混合</span></span>
+          </span>
+          <span class="summary-metrics">
+
+            <span class="summary-metric fit"><span class="metric-label">收益回撤比</span><span class="metric-value">0.81</span></span>
+            <span class="summary-metric accent"><span class="metric-label">美股确认区间</span><span class="metric-value small">0.00%-0.00%</span></span>
+            <span class="summary-metric positive"><span class="metric-label">近三年</span><span class="metric-value">+50.13%</span></span>
+            <span class="summary-metric"><span class="metric-label">持有费率</span><span class="metric-value quota">1.41%/年</span></span>
+            <span class="summary-metric"><span class="metric-label">直销</span><span class="metric-value quota">1万元</span></span>
+          </span>
+          <span class="chevron" aria-hidden="true"></span>
+        </summary>
+        <div class="fund-detail">
+          <dl class="detail-grid">
+            <div><dt>成立日</dt><dd>2019-07-31</dd></div>
+            <div><dt>机构持有</dt><dd>8.93%</dd></div>
+            <div><dt>规模</dt><dd>23.94 亿元</dd></div>
+            <div><dt>近一年收益</dt><dd class="positive-text">+14.24%</dd></div>
+            <div><dt>近一年回撤</dt><dd class="negative-text">-13.47%</dd></div>
+            <div><dt>近三年收益</dt><dd class="positive-text">+50.13%</dd></div>
+            <div><dt>近三年回撤</dt><dd class="negative-text">-17.88%</dd></div>
+            <div><dt>近五年收益</dt><dd>+65.71%</dd></div>
+            <div><dt>近十年收益</dt><dd>--（净值始于 2019-07-31）</dd></div>
+            <div><dt>持有费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202509301753246817_1.pdf" target="_blank" rel="noopener noreferrer">1.41%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+
+            <div><dt>三年年化收益</dt><dd class="positive-text">+14.46%</dd></div>
+            <div><dt>收益回撤比</dt><dd>0.81</dd></div>
+            <div><dt>美股确认下限</dt><dd>0.00%</dd></div>
+            <div><dt>美股可能上限</dt><dd>0.00%</dd></div>
+          </dl>
+          <section class="benchmark-detail" aria-label="合同基准">
+            <span>合同基准</span>
+            <strong>90%×东京证券交易所股价总指数收益率+ 10% ×税后银行活期存款收益率东京证券交易所股价总指数是以在东京证券交易所市场上市的所有日本企业为对象的市价总额型股价指数， 其走向反映在东京证券交易所上市的所有日本企业的整体走势</strong>
+            <small>解析状态：unrecognized；仅作风格说明，不参与准入。</small>
+          </section>
+          <div class="quota-grid" aria-label="申购额度">
+            <div><span>直销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202605221822662094_1.pdf" target="_blank" rel="noopener noreferrer">1万元<span class="external" aria-hidden="true">↗</span></a></div>
+            <div><span>代销额度</span><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202605221822662094_1.pdf" target="_blank" rel="noopener noreferrer">1万元<span class="external" aria-hidden="true">↗</span></a></div>
+          </div>
+          <dl class="rule-grid">
+            <div><dt>额度计算</dt><dd>不适用</dd></div>
+            <div><dt>完整净值历史</dt><dd>2019-07-31 至 2026-08-20</dd></div>
+            <div><dt>招募说明书日期</dt><dd>2025-09-30</dd></div>
+          </dl>
+          <div class="source-row">
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202509301753246555_1.pdf" target="_blank" rel="noopener noreferrer">招募说明书<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202509301753246817_1.pdf" target="_blank" rel="noopener noreferrer">人民币产品概要<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://fund.eastmoney.com/007280.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607211827192306_1.pdf" target="_blank" rel="noopener noreferrer">定期报告 2026-06-30<span class="external" aria-hidden="true">↗</span></a>
+          </div>
+        </div>
+      </details>
+      <details class="fund-item" data-code="012535" data-list="global_supplement">
+        <summary>
+          <span class="rank" aria-label="排名 8">8</span>
+          <span class="fund-identity">
+            <span class="fund-name-row"><strong>万家全球成长一年持有期混合(QDII)A</strong><span class="fund-code">012535</span></span>
+            <span class="benchmark-label">未识别</span>
+            <span class="tags"><span class="tag ">主动</span><span class="tag ">股票/混合</span></span>
+          </span>
+          <span class="summary-metrics">
+
+            <span class="summary-metric fit"><span class="metric-label">收益回撤比</span><span class="metric-value">0.76</span></span>
+            <span class="summary-metric accent"><span class="metric-label">美股确认区间</span><span class="metric-value small">39.78%-39.78%</span></span>
+            <span class="summary-metric positive"><span class="metric-label">近三年</span><span class="metric-value">+80.63%</span></span>
+            <span class="summary-metric"><span class="metric-label">持有费率</span><span class="metric-value quota">--</span></span>
+            <span class="summary-metric"><span class="metric-label">直销</span><span class="metric-value quota">正常开放</span></span>
+          </span>
+          <span class="chevron" aria-hidden="true"></span>
+        </summary>
+        <div class="fund-detail">
+          <dl class="detail-grid">
+            <div><dt>成立日</dt><dd>2021-09-22</dd></div>
+            <div><dt>机构持有</dt><dd>1.51%</dd></div>
+            <div><dt>规模</dt><dd>7.06 亿元</dd></div>
+            <div><dt>近一年收益</dt><dd class="positive-text">+20.63%</dd></div>
+            <div><dt>近一年回撤</dt><dd class="negative-text">-23.11%</dd></div>
+            <div><dt>近三年收益</dt><dd class="positive-text">+80.63%</dd></div>
+            <div><dt>近三年回撤</dt><dd class="negative-text">-28.48%</dd></div>
+            <div><dt>近五年收益</dt><dd>--（净值始于 2021-09-22）</dd></div>
+            <div><dt>近十年收益</dt><dd>--（净值始于 2021-09-22）</dd></div>
+            <div><dt>持有费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202510211766111961_1.pdf" target="_blank" rel="noopener noreferrer">--<span class="external" aria-hidden="true">↗</span></a></dd></div>
+
+            <div><dt>三年年化收益</dt><dd class="positive-text">+21.74%</dd></div>
+            <div><dt>收益回撤比</dt><dd>0.76</dd></div>
+            <div><dt>美股确认下限</dt><dd>39.78%</dd></div>
+            <div><dt>美股可能上限</dt><dd>39.78%</dd></div>
+          </dl>
+          <section class="benchmark-detail" aria-label="合同基准">
+            <span>合同基准</span>
+            <strong>未识别</strong>
+            <small>解析状态：unreadable；仅作风格说明，不参与准入。</small>
+          </section>
+          <div class="quota-grid" aria-label="申购额度">
+            <div><span>直销额度</span><span class="source-value">正常开放</span></div>
+            <div><span>代销额度</span><span class="source-value">正常开放</span></div>
+          </div>
+          <dl class="rule-grid">
+            <div><dt>额度计算</dt><dd>不适用</dd></div>
+            <div><dt>完整净值历史</dt><dd>2021-09-22 至 2026-08-19</dd></div>
+            <div><dt>招募说明书日期</dt><dd>2025-10-21</dd></div>
+          </dl>
+          <div class="source-row">
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202510211766111966_1.pdf" target="_blank" rel="noopener noreferrer">招募说明书<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202510211766111961_1.pdf" target="_blank" rel="noopener noreferrer">人民币产品概要<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://fund.eastmoney.com/012535.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
+            <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607211827181247_1.pdf" target="_blank" rel="noopener noreferrer">定期报告 2026-06-30<span class="external" aria-hidden="true">↗</span></a>
           </div>
         </div>
       </details></section>
 
       <details class="warnings">
-        <summary>数据警告 <span>29</span></summary>
-        <ul><li>跳过未完整披露的持有人报告期 2026-06-30：仅 1 只基金，低于上一完整报告期 2025-12-31（24419 只）的 95%。</li><li>合同基准剔除 009108：performance benchmark is not in the recognized catalog</li><li>合同基准剔除 008253：performance benchmark contains multiple market benchmarks: 恒生指数、标普500指数</li><li>合同基准剔除 163813：dominant benchmark weight 60% is below 80%</li><li>合同基准剔除 006373：performance benchmark contains multiple market benchmarks: MSCI全球信息科技指数、中证海外中国互联网指数</li><li>合同基准剔除 100055：performance benchmark contains multiple market benchmarks: 中证海外中国互联网指数、纳斯达克100指数</li><li>合同基准剔除 012060：dominant benchmark weight 40% is below 80%</li><li>合同基准剔除 010644：dominant benchmark weight 45% is below 80%</li><li>合同基准剔除 007280：performance benchmark is not in the recognized catalog</li><li>合同基准剔除 270023：performance benchmark contains multiple market benchmarks: MSCI世界指数、恒生指数</li><li>合同基准剔除 017730：performance benchmark contains multiple market benchmarks: MSCI所有国家世界指数、沪深300指数</li><li>合同基准剔除 501312：performance benchmark contains multiple market benchmarks: 恒生科技指数、纳斯达克100指数</li><li>合同基准剔除 161815：performance benchmark is not in the recognized catalog</li><li>合同基准剔除 012535：Could not locate the current performance benchmark statement</li><li>合同基准剔除 002891：performance benchmark contains multiple market benchmarks: 中证境内及香港主题指数、中证海外中国互联网指数</li><li>合同基准剔除 005698：performance benchmark contains multiple market benchmarks: 中证境内及香港主题指数、中证香港美国上市中美科技指数</li><li>合同基准剔除 000041：performance benchmark contains multiple market benchmarks: MSCI所有国家世界指数、富时中国指数、标普500指数</li><li>合同基准剔除 016664：performance benchmark is not in the recognized catalog</li><li>合同基准剔除 005534：dominant benchmark weight 30% is below 80%</li><li>合同基准剔除 164212：dominant benchmark weight 60% is below 80%</li><li>000043 SPDR Gold Shares 无法按 2026-06-30 的可用数据穿透，其 0.11% 仓位仅计入可能上限。</li><li>000043 VanEck Gold Miners ETF/USA 无法按 2026-06-30 的可用数据穿透，其 0.08% 仓位仅计入可能上限。</li><li>000043 GraniteShares 2x Long NVDA Daily ETF 无法按 2026-06-30 的可用数据穿透，其 0.03% 仓位仅计入可能上限。</li><li>000043 Invesco Golden Dragon China ETF 无法按 2026-06-30 的可用数据穿透，其 0.01% 仓位仅计入可能上限。</li><li>270042 ProShares UltraPro QQQ 无法按 2026-06-30 的可用数据穿透，其 0.95% 仓位仅计入可能上限。</li><li>016452 的申购额度无法确定；引用前请核对关联公告。</li><li>额度剔除 016452：直销额度无法可靠解析。</li><li>美国主榜仅 2 只基金符合全部条件，未放宽门槛。</li><li>全球补充榜仅 1 只基金符合全部条件，未放宽门槛。</li></ul>
+        <summary>数据警告 <span>45</span></summary>
+        <ul><li>跳过未完整披露的持有人报告期 2026-06-30：仅 1 只基金，低于上一完整报告期 2025-12-31（24419 只）的 95%。</li><li>持有费率告警 008253：Could not locate annualized comprehensive operating expense</li><li>持有费率告警 519981：Could not locate annualized comprehensive operating expense</li><li>持有费率告警 501312：Could not locate annualized comprehensive operating expense</li><li>持有费率告警 017436：Could not locate annualized comprehensive operating expense</li><li>合同基准告警 012535：Could not locate the current performance benchmark statement</li><li>持有费率告警 012535：Could not locate annualized comprehensive operating expense</li><li>产品概要告警 012535：Could not locate the current performance benchmark statement</li><li>008253 Direxion Daily Semiconductor Bull 3X ETF 无法按 2026-06-30 的可用数据穿透，其 2.98% 仓位仅计入可能上限。</li><li>008253 Roundhill Memo ry ETF 无法按 2026-06-30 的可用数据穿透，其 2.45% 仓位仅计入可能上限。</li><li>008253 iShares MSCI T aiwan ETF 无法按 2026-06-30 的可用数据穿透，其 0.24% 仓位仅计入可能上限。</li><li>008253 Janus Henderso n Global Adapt ive Multi-Asse t Fund 无法按 2026-06-30 的可用数据穿透，其 0.07% 仓位仅计入可能上限。</li><li>163813 V ANGUA RD TOT WORLD STK ETF 无法按 2026-06-30 的可用数据穿透，其 3.76% 仓位仅计入可能上限。</li><li>163813 前十大基金之外尚有 5.50% 基金仓位未披露，仅计入可能上限。</li><li>100055 南方港韩科技 无法按 2026-06-30 的可用数据穿透，其 0.77% 仓位仅计入可能上限。</li><li>000043 SPDR Gold Shares 无法按 2026-06-30 的可用数据穿透，其 0.11% 仓位仅计入可能上限。</li><li>000043 VanEck Gold Miners ETF/USA 无法按 2026-06-30 的可用数据穿透，其 0.08% 仓位仅计入可能上限。</li><li>000043 GraniteShares 2x Long NVDA Daily ETF 无法按 2026-06-30 的可用数据穿透，其 0.03% 仓位仅计入可能上限。</li><li>000043 Invesco Golden Dragon China ETF 无法按 2026-06-30 的可用数据穿透，其 0.01% 仓位仅计入可能上限。</li><li>270023 KraneShares Public-Private AI &amp; Technology ETF 无法按 2026-06-30 的可用数据穿透，其 0.11% 仓位仅计入可能上限。</li><li>017730 Harvest G2 Tech 50 ETF 无法按 2026-06-30 的可用数据穿透，其 0.09% 仓位仅计入可能上限。</li><li>501312 ARK Innovation ETF 无法按 2026-06-30 的可用数据穿透，其 18.48% 仓位仅计入可能上限。</li><li>501312 ARK Genomic Rev olution ETF 无法按 2026-06-30 的可用数据穿透，其 16.93% 仓位仅计入可能上限。</li><li>501312 ARK Autonomous Technology &amp; Ro botics ETF 无法按 2026-06-30 的可用数据穿透，其 10.15% 仓位仅计入可能上限。</li><li>501312 Global X Artifi cial Intelligen ce &amp; Technology ETF 无法按 2026-06-30 的可用数据穿透，其 6.32% 仓位仅计入可能上限。</li><li>501312 Global X Roboti cs &amp; Artificial Intelligence E TF 无法按 2026-06-30 的可用数据穿透，其 5.05% 仓位仅计入可能上限。</li><li>501312 ARK Space &amp; Def ense Innovation ETF 无法按 2026-06-30 的可用数据穿透，其 5.00% 仓位仅计入可能上限。</li><li>501312 State Street Te chnology Select Sector SPDR ET F 无法按 2026-06-30 的可用数据穿透，其 4.67% 仓位仅计入可能上限。</li><li>501312 iShares Semicon ductor ETF 无法按 2026-06-30 的可用数据穿透，其 3.33% 仓位仅计入可能上限。</li><li>501312 前十大基金之外尚有 7.13% 基金仓位未披露，仅计入可能上限。</li><li>501312 美股占比区间 7.66%-84.72% 跨越 50% 阈值，按确认下限进入全球补充榜。</li><li>000041 ProShares UltraPro QQQ 无法按 2026-06-30 的可用数据穿透，其 2.12% 仓位仅计入可能上限。</li><li>000041 iShares Expanded Tech-Software Sector ETF 无法按 2026-06-30 的可用数据穿透，其 0.82% 仓位仅计入可能上限。</li><li>000041 State Street Utilities Select Sector SPDR ETF 无法按 2026-06-30 的可用数据穿透，其 0.61% 仓位仅计入可能上限。</li><li>000041 State Street SPDR S&amp;P Metals &amp; Mining ETF 无法按 2026-06-30 的可用数据穿透，其 0.29% 仓位仅计入可能上限。</li><li>000041 iShares Semiconductor ETF 无法按 2026-06-30 的可用数据穿透，其 0.22% 仓位仅计入可能上限。</li><li>000041 2x Long VIX 无法按 2026-06-30 的可用数据穿透，其 0.14% 仓位仅计入可能上限。</li><li>016664 CSOP SK Hynix Dai ly 2x Leve raged Prod uct 无法按 2026-06-30 的可用数据穿透，其 7.44% 仓位仅计入可能上限。</li><li>016664 CSOP Sa msung Ele ctronics D aily 2x Le veraged Pr oduct 无法按 2026-06-30 的可用数据穿透，其 1.50% 仓位仅计入可能上限。</li><li>000614 华安国际 龙头 （DAX）交 易型开放 式指数证 券投资基 金 无法按 2026-06-30 的可用数据穿透，其 94.40% 仓位仅计入可能上限。</li><li>000614 美股占比区间 0.00%-94.40% 跨越 50% 阈值，按确认下限进入全球补充榜。</li><li>270042 ProShares UltraPro QQQ 无法按 2026-06-30 的可用数据穿透，其 0.95% 仓位仅计入可能上限。</li><li>016452 的申购额度无法确定；引用前请核对关联公告。</li><li>额度剔除 016452：直销额度无法可靠解析。</li><li>全球补充榜仅 8 只基金符合全部条件，未放宽门槛。</li></ul>
       </details>
     </main>
-    <footer>额度为基金管理人层面的单日单基金账户上限；代销平台可能设置更低限制。</footer>
+    <footer>额度为基金管理人层面的单日单基金账户上限；持有费率为产品概要披露的综合年化运作费率，已反映在净值中。</footer>
   </div>
   <script>
     const tabs = Array.from(document.querySelectorAll('[role="tab"]'));

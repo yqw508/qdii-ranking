@@ -46,6 +46,15 @@ def format_ratio(value: Any) -> str:
     return "∞" if value is None else f"{float(value):.2f}"
 
 
+def format_optional_percentage(value: Any) -> str:
+    return "--" if value is None else format_percentage(value, show_sign=True)
+
+
+def format_holding_cost(cost: Mapping[str, Any]) -> str:
+    value = cost.get("annualized_pct")
+    return "--" if value is None else f"{float(value):.2f}%/年"
+
+
 def format_limit(limit: Mapping[str, Any]) -> str:
     status = limit.get("status")
     if status == "unlimited":
@@ -102,12 +111,14 @@ def material_notes(payload: Mapping[str, Any]) -> list[str]:
     notes: list[str] = []
     for warning in payload.get("warnings", []):
         if warning.startswith("跳过未完整披露的持有人报告期") or (
-            "美股占比区间" in warning and "按保守规则排除" in warning
+            "美股占比区间" in warning
+            and "按确认下限进入全球补充榜" in warning
         ) or warning.startswith(
             (
                 "纳指100基准更新失败，使用完整缓存：",
-                "合同基准剔除 ",
+                "合同基准告警 ",
                 "产品概要告警 ",
+                "持有费率告警 ",
                 "额度剔除 ",
                 "美国主榜仅 ",
                 "全球补充榜仅 ",
@@ -117,7 +128,10 @@ def material_notes(payload: Mapping[str, Any]) -> list[str]:
             "全球补充榜当前没有符合全部条件的基金。",
         }:
             notes.append(warning)
-    for record in payload["records"]:
+    for record in [
+        *payload["records"],
+        *payload["global_supplement"]["records"],
+    ]:
         exposure = record["us_equity_exposure"]
         confirmed = float(exposure["confirmed_pct"])
         possible = float(exposure["possible_pct"])
@@ -144,7 +158,7 @@ def success_plain_text(payload: Mapping[str, Any], page_url: str) -> str:
         f"QDII 美国主榜与全球补充榜已于 {payload['run_date']} 更新并发布。",
         "",
         f"美国主榜（{len(payload['records'])}只）",
-        "排名  基金代码  基金名称  合同基准  纳指相关/Beta  美股下限  近三年收益  直销/代销额度",
+        "排名  基金代码  基金名称  合同基准  纳指相关/Beta  美股区间  3年/5年/10年收益  持有费率  直销/代销额度",
     ]
     for record in payload["records"]:
         lines.append(
@@ -152,8 +166,12 @@ def success_plain_text(payload: Mapping[str, Any], page_url: str) -> str:
             f"{record['contract_benchmark']['benchmark_name']}  "
             f"{format_correlation(record['nasdaq100_fit']['correlation'])}/"
             f"{format_beta(record['nasdaq100_fit']['beta'])}  "
-            f"{format_percentage(record['us_equity_exposure']['confirmed_pct'])}  "
-            f"{format_percentage(record['three_year_return_pct'], show_sign=True)}  "
+            f"{format_percentage(record['us_equity_exposure']['confirmed_pct'])}-"
+            f"{format_percentage(record['us_equity_exposure']['possible_pct'])}  "
+            f"{format_percentage(record['three_year_return_pct'], show_sign=True)}/"
+            f"{format_optional_percentage(record['five_year_return_pct'])}/"
+            f"{format_optional_percentage(record['ten_year_return_pct'])}  "
+            f"{format_holding_cost(record['holding_cost'])}  "
             f"{format_limit(record['direct_limit'])}/{format_limit(record['agency_limit'])}"
         )
     if not payload["records"]:
@@ -162,16 +180,19 @@ def success_plain_text(payload: Mapping[str, Any], page_url: str) -> str:
         [
             "",
             f"全球补充榜（{len(global_records)}只）",
-            "排名  基金代码  基金名称  合同基准  市场/资产  三年收益/回撤  收益回撤比  直销/代销额度",
+            "排名  基金代码  基金名称  合同基准  美股区间  3年/5年/10年收益  持有费率  收益回撤比  直销/代销额度",
         ]
     )
     for record in global_records:
-        contract = record["contract_benchmark"]
         lines.append(
             f"{record['rank']:>2}  {record['code']}  {record['name']}  "
-            f"{contract['benchmark_name']}  {contract['market_label']}/{contract['asset_class']}  "
+            f"{record['contract_benchmark']['benchmark_name']}  "
+            f"{format_percentage(record['us_equity_exposure']['confirmed_pct'])}-"
+            f"{format_percentage(record['us_equity_exposure']['possible_pct'])}  "
             f"{format_percentage(record['three_year_return_pct'], show_sign=True)}/"
-            f"{format_percentage(record['three_year_max_drawdown_pct'])}  "
+            f"{format_optional_percentage(record['five_year_return_pct'])}/"
+            f"{format_optional_percentage(record['ten_year_return_pct'])}  "
+            f"{format_holding_cost(record['holding_cost'])}  "
             f"{format_ratio(record['return_drawdown_ratio'])}  "
             f"{format_limit(record['direct_limit'])}/{format_limit(record['agency_limit'])}"
         )
@@ -198,23 +219,23 @@ def success_html(payload: Mapping[str, Any], page_url: str) -> str:
             f"<br><span>{html.escape(record['code'])}</span></td>"
             f"<td>{html.escape(record['contract_benchmark']['benchmark_name'])}</td>"
             f"<td>{format_correlation(fit['correlation'])}<br>β {format_beta(fit['beta'])}</td>"
-            f"<td>{format_percentage(record['us_equity_exposure']['confirmed_pct'])}</td>"
-            f"<td>{format_percentage(record['three_year_return_pct'], show_sign=True)}</td>"
-            f"<td>{float(record['scale_billion_cny']):.2f} 亿元</td>"
+            f"<td>{format_percentage(record['us_equity_exposure']['confirmed_pct'])}-<br>{format_percentage(record['us_equity_exposure']['possible_pct'])}</td>"
+            f"<td>{format_percentage(record['three_year_return_pct'], show_sign=True)}<br>{format_optional_percentage(record['five_year_return_pct'])}<br>{format_optional_percentage(record['ten_year_return_pct'])}</td>"
+            f"<td>{format_holding_cost(record['holding_cost'])}</td>"
             f"<td>{html.escape(format_limit(record['direct_limit']))}</td>"
             f"<td>{html.escape(format_limit(record['agency_limit']))}</td>"
             "</tr>"
         )
     global_rows: list[str] = []
     for record in payload["global_supplement"]["records"]:
-        contract = record["contract_benchmark"]
         global_rows.append(
             "<tr>"
             f"<td>{record['rank']}</td>"
             f"<td><strong>{html.escape(record['name'])}</strong><br><span>{html.escape(record['code'])}</span></td>"
-            f"<td>{html.escape(contract['benchmark_name'])}<br>{float(contract['benchmark_weight_pct']):.0f}%</td>"
-            f"<td>{html.escape(contract['market_label'])}<br>{html.escape(contract['asset_class'])}</td>"
-            f"<td>{format_percentage(record['three_year_return_pct'], show_sign=True)}<br>回撤 {format_percentage(record['three_year_max_drawdown_pct'])}</td>"
+            f"<td>{html.escape(record['contract_benchmark']['benchmark_name'])}</td>"
+            f"<td>{format_percentage(record['us_equity_exposure']['confirmed_pct'])}-<br>{format_percentage(record['us_equity_exposure']['possible_pct'])}</td>"
+            f"<td>{format_percentage(record['three_year_return_pct'], show_sign=True)}<br>{format_optional_percentage(record['five_year_return_pct'])}<br>{format_optional_percentage(record['ten_year_return_pct'])}</td>"
+            f"<td>{format_holding_cost(record['holding_cost'])}</td>"
             f"<td>{format_ratio(record['return_drawdown_ratio'])}</td>"
             f"<td>{html.escape(format_limit(record['direct_limit']))}</td>"
             f"<td>{html.escape(format_limit(record['agency_limit']))}</td>"
@@ -249,9 +270,9 @@ def success_html(payload: Mapping[str, Any], page_url: str) -> str:
       <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">基金</th>
       <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">合同基准</th>
       <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">纳指相关 / Beta</th>
-      <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">美股下限</th>
-      <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">近三年</th>
-      <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">规模</th>
+      <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">美股区间</th>
+      <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">3年 / 5年 / 10年</th>
+      <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">持有费率</th>
       <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">直销</th>
       <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">代销</th>
     </tr></thead>
@@ -263,13 +284,14 @@ def success_html(payload: Mapping[str, Any], page_url: str) -> str:
       <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">排名</th>
       <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">基金</th>
       <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">合同基准</th>
-      <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">市场 / 资产</th>
-      <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">近三年 / 回撤</th>
+      <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">美股区间</th>
+      <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">3年 / 5年 / 10年</th>
+      <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">持有费率</th>
       <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">收益回撤比</th>
       <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">直销</th>
       <th style="text-align:left;border-bottom:1px solid #bbb;padding:6px">代销</th>
     </tr></thead>
-    <tbody>{''.join(global_rows) if global_rows else '<tr><td colspan="8" style="padding:8px">暂无符合全部条件的基金</td></tr>'}</tbody>
+    <tbody>{''.join(global_rows) if global_rows else '<tr><td colspan="9" style="padding:8px">暂无符合全部条件的基金</td></tr>'}</tbody>
   </table>
   {exclusions_html}
   {notes_html}

@@ -53,7 +53,7 @@ USER_AGENT = (
 )
 SHANGHAI_TZ = timezone(timedelta(hours=8))
 PERFORMANCE_WORKERS = 6
-PERFORMANCE_CACHE_SCHEMA_VERSION = 2
+PERFORMANCE_CACHE_SCHEMA_VERSION = 4
 BENCHMARK_CACHE_SCHEMA_VERSION = 1
 BENCHMARK_WINDOW_YEARS = 3
 BENCHMARK_HISTORY_BUFFER_DAYS = 14
@@ -62,9 +62,8 @@ NASDAQ100_MIN_OBSERVATIONS = 140
 NASDAQ100_MIN_SPAN_DAYS = 1000
 FUND_EXPOSURE_CACHE_SCHEMA_VERSION = 1
 US_EQUITY_METHOD_VERSION = 1
-CONTRACT_BENCHMARK_MIN_WEIGHT_PCT = 80.0
-DEFAULT_MIN_DIRECT_LIMIT_CNY = 1000
-ELIGIBLE_GLOBAL_ASSET_CLASSES = {"equity", "reit", "volatility"}
+DEFAULT_MIN_DIRECT_LIMIT_CNY = 200
+EXCLUDED_FUND_TYPES = {"QDII-纯债", "QDII-混合债", "QDII-商品"}
 NOTICE_TITLE_RE = re.compile(
     r"大额申购|申购.{0,20}(?:限额|业务上限)|(?:限额|业务上限).{0,20}申购|恢复.{0,12}申购"
 )
@@ -77,10 +76,6 @@ AGENCY_CHANNEL_PATTERN = r"非直销销售机构|代销机构|代销渠道"
 
 class DataError(RuntimeError):
     """Raised when source data is incomplete enough to invalidate the ranking."""
-
-
-class BenchmarkConflictError(DataError):
-    """Raised when two current legal documents identify different benchmarks."""
 
 
 class HttpClient:
@@ -375,7 +370,7 @@ def build_holder_candidates(
         meta = metadata[row[0]]
         if not is_otc_share(meta):
             continue
-        if meta["fund_type"] == "QDII-纯债":
+        if meta["fund_type"] in EXCLUDED_FUND_TYPES:
             continue
         if any(keyword and keyword in meta["name"] for keyword in keywords):
             continue
@@ -919,9 +914,16 @@ def fetch_trailing_performance(
     points = parse_performance_page(payload, code)
     output: dict[str, Any] = {"performance_source_url": url}
     warnings: list[str] = []
+    output["nav_history_start_date"] = points[0]["date"].isoformat()
+    output["nav_history_end_date"] = max(
+        (point["date"] for point in points if point["date"] <= as_of),
+        default=points[0]["date"],
+    ).isoformat()
     for years, prefix, label in (
         (1, "one_year", "近一年"),
         (3, "three_year", "近三年"),
+        (5, "five_year", "近五年"),
+        (10, "ten_year", "近十年"),
     ):
         performance = calculate_trailing_performance(points, code, as_of, years)
         if performance is None:
@@ -933,9 +935,10 @@ def fetch_trailing_performance(
                     f"{prefix}_performance_end_date": None,
                 }
             )
-            warnings.append(
-                f"{code} 的净值历史不足 {years} 年，{label}涨幅和最大回撤无法计算。"
-            )
+            if years <= 3:
+                warnings.append(
+                    f"{code} 的净值历史不足 {years} 年，{label}涨幅和最大回撤无法计算。"
+                )
             continue
         output.update(
             {
@@ -989,6 +992,8 @@ class PerformanceResultCache:
             raise DataError("Cached performance payload is incomplete")
         required_fields = {
             "performance_source_url",
+            "nav_history_start_date",
+            "nav_history_end_date",
             "one_year_return_pct",
             "one_year_max_drawdown_pct",
             "one_year_performance_start_date",
@@ -997,6 +1002,14 @@ class PerformanceResultCache:
             "three_year_max_drawdown_pct",
             "three_year_performance_start_date",
             "three_year_performance_end_date",
+            "five_year_return_pct",
+            "five_year_max_drawdown_pct",
+            "five_year_performance_start_date",
+            "five_year_performance_end_date",
+            "ten_year_return_pct",
+            "ten_year_max_drawdown_pct",
+            "ten_year_performance_start_date",
+            "ten_year_performance_end_date",
             "nasdaq100_fit",
             "nasdaq100_fit_error",
         }
@@ -1247,7 +1260,7 @@ def direct_limit_qualifies(limit: dict[str, Any], threshold_cny: int) -> bool:
     return (
         limit.get("status") == "limited"
         and isinstance(limit.get("amount_cny"), int)
-        and int(limit["amount_cny"]) > threshold_cny
+        and int(limit["amount_cny"]) >= threshold_cny
     )
 
 
@@ -1287,6 +1300,16 @@ def global_supplement_sort_key(item: dict[str, Any]) -> tuple[Any, ...]:
         -float(item.get("institution_holding_ratio_pct", 0)),
         -float(item["scale_billion_cny"]),
         item["code"],
+    )
+
+
+def ranking_list_for_exposure(
+    exposure: dict[str, Any], threshold_pct: float
+) -> str:
+    return (
+        "us_main"
+        if float(exposure["confirmed_pct"]) >= threshold_pct
+        else "global_supplement"
     )
 
 
@@ -1651,7 +1674,7 @@ def _is_rmb_product_summary(title: str) -> bool:
 
 def fetch_latest_legal_documents(
     client: HttpClient, code: str, as_of: date
-) -> tuple[LegalDocument, LegalDocument | None]:
+) -> tuple[LegalDocument | None, LegalDocument | None]:
     prospectuses: list[LegalDocument] = []
     summaries: list[LegalDocument] = []
     page = 1
@@ -1703,10 +1726,10 @@ def fetch_latest_legal_documents(
         if not items:
             break
         page += 1
-    if not prospectuses:
-        raise DataError(f"No current prospectus was disclosed by {as_of} for fund {code}")
-    prospectus = max(
-        prospectuses, key=lambda item: (item.published_date, item.announcement_id)
+    prospectus = (
+        max(prospectuses, key=lambda item: (item.published_date, item.announcement_id))
+        if prospectuses
+        else None
     )
     summary = (
         max(summaries, key=lambda item: (item.published_date, item.announcement_id))
@@ -1808,31 +1831,110 @@ def parse_contract_benchmark(
     matches = catalog.match(statement)
     if not matches and "标的指数" in statement:
         matches = catalog.match(f"{fund['name']} {text[:3000]}")
-    if not matches:
-        raise DataError("performance benchmark is not in the recognized catalog")
-    if len(matches) != 1:
-        names = "、".join(sorted(str(item["display_name"]) for item in matches))
-        raise DataError(f"performance benchmark contains multiple market benchmarks: {names}")
-    entry = matches[0]
-    weight = round(_benchmark_weight(statement, entry), 2)
-    if weight < CONTRACT_BENCHMARK_MIN_WEIGHT_PCT:
-        raise DataError(
-            f"dominant benchmark weight {weight:g}% is below "
-            f"{CONTRACT_BENCHMARK_MIN_WEIGHT_PCT:g}%"
-        )
+    components = [
+        {
+            "benchmark_id": entry["id"],
+            "benchmark_name": entry["display_name"],
+            "weight_pct": round(_benchmark_weight(statement, entry), 2),
+            "market_scope": entry["market_scope"],
+            "market_label": entry["market_label"],
+            "asset_class": entry["asset_class"],
+            "style_label": entry["style_label"],
+            "structure": entry["structure"],
+            "excluded_target": bool(entry["excluded_target"]),
+        }
+        for entry in matches
+    ]
+    components.sort(key=lambda item: (-float(item["weight_pct"]), item["benchmark_id"]))
+    single = components[0] if len(components) == 1 else None
+    status = "recognized" if single else "composite" if components else "unrecognized"
     return {
+        "status": status,
         "benchmark_text": statement,
-        "benchmark_id": entry["id"],
-        "benchmark_name": entry["display_name"],
-        "benchmark_weight_pct": weight,
-        "market_scope": entry["market_scope"],
-        "market_label": entry["market_label"],
-        "asset_class": entry["asset_class"],
-        "style_label": entry["style_label"],
-        "structure": detect_product_structure(
-            f"{fund['name']} {statement}", str(entry["structure"])
+        "benchmark_id": single["benchmark_id"] if single else None,
+        "benchmark_name": (
+            single["benchmark_name"]
+            if single
+            else " + ".join(item["benchmark_name"] for item in components)
+            if components
+            else "未识别"
         ),
-        "excluded_target": bool(entry["excluded_target"]),
+        "benchmark_weight_pct": single["weight_pct"] if single else None,
+        "market_scope": single["market_scope"] if single else "composite" if components else "unknown",
+        "market_label": single["market_label"] if single else "复合市场" if components else "未识别",
+        "asset_class": single["asset_class"] if single else "mixed" if components else "unknown",
+        "style_label": single["style_label"] if single else "复合风格" if components else "未识别",
+        "structure": detect_product_structure(
+            f"{fund['name']} {statement}",
+            str(single["structure"]) if single else "standard",
+        ),
+        "excluded_target": bool(components) and all(
+            bool(item["excluded_target"]) for item in components
+        ),
+        "components": components,
+    }
+
+
+def unavailable_holding_cost(
+    summary: LegalDocument | None, status: str = "unavailable"
+) -> dict[str, Any]:
+    return {
+        "status": status,
+        "annualized_pct": None,
+        "measurement_date": None,
+        "source_title": summary.title if summary else None,
+        "source_published_date": summary.published_date.isoformat() if summary else None,
+        "source_url": summary.source_url if summary else None,
+    }
+
+
+def unreadable_contract_benchmark(fund: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "status": "unreadable",
+        "benchmark_text": "未识别",
+        "benchmark_id": None,
+        "benchmark_name": "未识别",
+        "benchmark_weight_pct": None,
+        "market_scope": "unknown",
+        "market_label": "未识别",
+        "asset_class": "unknown",
+        "style_label": "未识别",
+        "structure": detect_product_structure(fund["name"], "standard"),
+        "excluded_target": False,
+        "components": [],
+    }
+
+
+def parse_holding_cost(
+    text: str, summary: LegalDocument, as_of: date
+) -> dict[str, Any]:
+    compact = re.sub(r"\s+", " ", text.replace("\u3000", " ")).strip()
+    rate_match = re.search(
+        r"基金运作综合费率\s*[（(]\s*年化\s*[）)]\s*([0-9]+(?:\.[0-9]+)?)\s*%",
+        compact,
+    )
+    if not rate_match:
+        raise DataError("Could not locate annualized comprehensive operating expense")
+    rate = float(rate_match.group(1))
+    if not math.isfinite(rate) or rate < 0 or rate > 100:
+        raise DataError("Annualized comprehensive operating expense is invalid")
+    date_match = re.search(
+        r"(?:综合费率[^。]{0,80})?测算日期为\s*(\d{4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日",
+        compact,
+    )
+    measurement_date = None
+    if date_match:
+        measured = date(*(int(value) for value in date_match.groups()))
+        if measured > as_of:
+            raise DataError("Holding-cost measurement date is in the future")
+        measurement_date = measured.isoformat()
+    return {
+        "status": "parsed",
+        "annualized_pct": round(rate, 2),
+        "measurement_date": measurement_date,
+        "source_title": summary.title,
+        "source_published_date": summary.published_date.isoformat(),
+        "source_url": summary.source_url,
     }
 
 
@@ -1842,63 +1944,107 @@ def resolve_contract_benchmark(
     as_of: date,
     document_cache: PeriodicReportCache,
     catalog: ContractBenchmarkCatalog,
-) -> tuple[dict[str, Any] | None, list[str]]:
+) -> tuple[dict[str, Any], dict[str, Any], list[str]]:
     code = fund["code"]
     warnings: list[str] = []
-    try:
-        prospectus, summary = fetch_latest_legal_documents(client, code, as_of)
-        prospectus_text = document_cache.get_text(
-            client, prospectus, fund["fund_page_url"]
-        )
-        profile = parse_contract_benchmark(prospectus_text, fund, catalog)
-    except DataError as exc:
-        return None, [f"合同基准剔除 {code}：{exc}"]
-
-    summary_status = "missing"
-    summary_url = None
-    summary_published_date = None
-    if summary is not None:
-        summary_url = summary.source_url
-        summary_published_date = summary.published_date.isoformat()
-        try:
-            summary_text = document_cache.get_text(
-                client, summary, fund["fund_page_url"]
-            )
-            summary_profile = parse_contract_benchmark(summary_text, fund, catalog)
-            same_index = summary_profile["benchmark_id"] == profile["benchmark_id"]
-            same_weight = abs(
-                float(summary_profile["benchmark_weight_pct"])
-                - float(profile["benchmark_weight_pct"])
-            ) <= 0.5
-            if not same_index or not same_weight:
-                raise BenchmarkConflictError(
-                    f"{code} prospectus and RMB product summary disagree on the current benchmark"
-                )
-            summary_status = "matched"
-        except BenchmarkConflictError:
-            raise
-        except DataError as exc:
-            summary_status = "unreadable"
-            warnings.append(f"产品概要告警 {code}：{exc}")
-
     management_style = (
         "passive"
         if fund["fund_type"] == "指数型-海外股票" and "增强" not in fund["name"]
         else "active"
     )
+    try:
+        prospectus, summary = fetch_latest_legal_documents(client, code, as_of)
+    except DataError as exc:
+        profile = unreadable_contract_benchmark(fund)
+        profile.update(
+            {
+                "management_style": management_style,
+                "prospectus_title": None,
+                "prospectus_published_date": None,
+                "source_url": None,
+                "product_summary_status": "unreadable",
+                "product_summary_published_date": None,
+                "product_summary_source_url": None,
+                "catalog_fingerprint": catalog.fingerprint,
+            }
+        )
+        warnings.extend(
+            (
+                f"合同基准告警 {code}：法律文件目录无法读取：{exc}",
+                f"持有费率告警 {code}：法律文件目录无法读取：{exc}",
+            )
+        )
+        return profile, unavailable_holding_cost(None), warnings
+
+    if prospectus is not None:
+        try:
+            prospectus_text = document_cache.get_text(
+                client, prospectus, fund["fund_page_url"]
+            )
+            profile = parse_contract_benchmark(prospectus_text, fund, catalog)
+        except DataError as exc:
+            profile = unreadable_contract_benchmark(fund)
+            warnings.append(f"合同基准告警 {code}：{exc}")
+    else:
+        profile = unreadable_contract_benchmark(fund)
+        warnings.append(f"合同基准告警 {code}：截至 {as_of} 没有可用的招募说明书。")
+
+    summary_status = "missing"
+    summary_url = summary.source_url if summary else None
+    summary_published_date = summary.published_date.isoformat() if summary else None
+    holding_cost = unavailable_holding_cost(summary)
+    if summary is not None:
+        try:
+            summary_text = document_cache.get_text(
+                client, summary, fund["fund_page_url"]
+            )
+        except DataError as exc:
+            summary_status = "unreadable"
+            warnings.append(f"产品概要告警 {code}：{exc}")
+            warnings.append(f"持有费率告警 {code}：{exc}")
+        else:
+            try:
+                holding_cost = parse_holding_cost(summary_text, summary, as_of)
+            except DataError as exc:
+                warnings.append(f"持有费率告警 {code}：{exc}")
+            try:
+                summary_profile = parse_contract_benchmark(summary_text, fund, catalog)
+                prospectus_ids = {
+                    item["benchmark_id"] for item in profile["components"]
+                }
+                summary_ids = {
+                    item["benchmark_id"] for item in summary_profile["components"]
+                }
+                if profile["status"] in {"unreadable", "unrecognized"}:
+                    summary_status = "unreadable"
+                elif prospectus_ids != summary_ids:
+                    summary_status = "conflict"
+                    warnings.append(
+                        f"产品概要告警 {code}：招募说明书与人民币产品概要的合同基准不一致。"
+                    )
+                else:
+                    summary_status = "matched"
+            except DataError as exc:
+                summary_status = "unreadable"
+                warnings.append(f"产品概要告警 {code}：{exc}")
+    else:
+        warnings.append(f"持有费率告警 {code}：截至 {as_of} 没有可用的人民币产品概要。")
+
     profile.update(
         {
             "management_style": management_style,
-            "prospectus_title": prospectus.title,
-            "prospectus_published_date": prospectus.published_date.isoformat(),
-            "source_url": prospectus.source_url,
+            "prospectus_title": prospectus.title if prospectus else None,
+            "prospectus_published_date": (
+                prospectus.published_date.isoformat() if prospectus else None
+            ),
+            "source_url": prospectus.source_url if prospectus else None,
             "product_summary_status": summary_status,
             "product_summary_published_date": summary_published_date,
             "product_summary_source_url": summary_url,
             "catalog_fingerprint": catalog.fingerprint,
         }
     )
-    return profile, warnings
+    return profile, holding_cost, warnings
 
 
 def normalize_instrument_name(value: str) -> str:
@@ -2240,7 +2386,7 @@ def apply_us_equity_threshold(
         status = "ambiguous"
         warnings.append(
             f"美股占比区间 {confirmed:.2f}%-{possible:.2f}% 跨越 {threshold:g}% 阈值，"
-            "按保守规则排除。"
+            "按确认下限进入全球补充榜。"
         )
     return {**exposure, "status": status}, warnings
 
@@ -2605,6 +2751,30 @@ def format_beta(value: float) -> str:
     return f"{value:.2f}"
 
 
+def format_optional_percentage(value: Any, show_sign: bool = False) -> str:
+    if value is None:
+        return "--"
+    return format_percentage(float(value), show_sign=show_sign)
+
+
+def format_holding_cost(cost: dict[str, Any]) -> str:
+    value = cost.get("annualized_pct")
+    return "--" if value is None else f"{float(value):.2f}%/年"
+
+
+def benchmark_display(profile: dict[str, Any]) -> str:
+    if profile["status"] == "recognized" and profile["benchmark_weight_pct"] is not None:
+        return f"{profile['benchmark_name']} · {float(profile['benchmark_weight_pct']):g}%"
+    return str(profile["benchmark_name"])
+
+
+def format_long_return(record: dict[str, Any], prefix: str) -> str:
+    value = record.get(f"{prefix}_return_pct")
+    if value is not None:
+        return format_percentage(float(value), show_sign=True)
+    return f"--（净值始于 {record['nav_history_start_date']}）"
+
+
 def summarize_periods(records: list[dict[str, Any]], prefix: str) -> str:
     periods = sorted(
         {
@@ -2644,9 +2814,11 @@ def write_csv(path: Path, payload: dict[str, Any]) -> None:
         "fund_type",
         "management_style",
         "product_structure_tags",
+        "contract_benchmark_status",
         "contract_benchmark_name",
         "contract_benchmark_text",
         "contract_benchmark_weight_pct",
+        "contract_benchmark_components",
         "contract_market_scope",
         "contract_market_label",
         "contract_asset_class",
@@ -2656,11 +2828,17 @@ def write_csv(path: Path, payload: dict[str, Any]) -> None:
         "contract_source_url",
         "product_summary_status",
         "product_summary_source_url",
+        "holding_cost_status",
+        "holding_cost_annualized_pct",
+        "holding_cost_measurement_date",
+        "holding_cost_source_url",
         "institution_holding_ratio_pct",
         "holder_report_date",
         "inception_date",
         "scale_billion_cny",
         "scale_report_date",
+        "nav_history_start_date",
+        "nav_history_end_date",
         "one_year_return_pct",
         "one_year_max_drawdown_pct",
         "one_year_performance_start_date",
@@ -2669,6 +2847,12 @@ def write_csv(path: Path, payload: dict[str, Any]) -> None:
         "three_year_max_drawdown_pct",
         "three_year_performance_start_date",
         "three_year_performance_end_date",
+        "five_year_return_pct",
+        "five_year_performance_start_date",
+        "five_year_performance_end_date",
+        "ten_year_return_pct",
+        "ten_year_performance_start_date",
+        "ten_year_performance_end_date",
         "nasdaq100_correlation",
         "nasdaq100_beta",
         "nasdaq100_tracking_error_pct",
@@ -2700,13 +2884,18 @@ def write_csv(path: Path, payload: dict[str, Any]) -> None:
             fit = item.get("nasdaq100_fit") or {}
             exposure = item.get("us_equity_exposure") or {}
             contract = item["contract_benchmark"]
+            holding_cost = item["holding_cost"]
             writer.writerow(
                 {
                     **{field: item.get(field) for field in fields},
                     "product_structure_tags": " | ".join(item["product_structure_tags"]),
+                    "contract_benchmark_status": contract["status"],
                     "contract_benchmark_name": contract["benchmark_name"],
                     "contract_benchmark_text": contract["benchmark_text"],
                     "contract_benchmark_weight_pct": contract["benchmark_weight_pct"],
+                    "contract_benchmark_components": json.dumps(
+                        contract["components"], ensure_ascii=False, separators=(",", ":")
+                    ),
                     "contract_market_scope": contract["market_scope"],
                     "contract_market_label": contract["market_label"],
                     "contract_asset_class": contract["asset_class"],
@@ -2720,6 +2909,10 @@ def write_csv(path: Path, payload: dict[str, Any]) -> None:
                     "product_summary_source_url": contract.get(
                         "product_summary_source_url"
                     ),
+                    "holding_cost_status": holding_cost["status"],
+                    "holding_cost_annualized_pct": holding_cost["annualized_pct"],
+                    "holding_cost_measurement_date": holding_cost["measurement_date"],
+                    "holding_cost_source_url": holding_cost["source_url"],
                     "nasdaq100_correlation": fit.get("correlation"),
                     "nasdaq100_beta": fit.get("beta"),
                     "nasdaq100_tracking_error_pct": fit.get("tracking_error_pct"),
@@ -2758,8 +2951,8 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
         f"- 筛选条件：规模 > {payload['filters']['min_scale_billion_cny']:g} 亿元；"
         f"成立超过 {payload['filters']['min_age_years']} 年；"
         f"近三年复权收益 >= {payload['filters']['min_three_year_return_pct']:g}%；"
-        f"直销额度 > {payload['filters']['min_direct_limit_cny_exclusive']:,} 元；"
-        f"合同主基准权重 >= {payload['filters']['min_contract_benchmark_weight_pct']:g}%；"
+        f"直销额度 >= {payload['filters']['min_direct_limit_cny_inclusive']:,} 元；"
+        "合同风格不设硬门槛；"
         f"名称排除 {'、'.join(payload['filters']['exclude_keywords']) or '无'}；"
         "人民币 A 类或无 C/D 标记的人民币主份额；场外可申购",
         f"- 美国主榜：美股确认下限 >= {payload['filters']['min_us_equity_pct']:g}%；按纳指100相关性、Beta 接近 1、美股确认下限、机构持仓、近三年收益和基金代码排序",
@@ -2777,60 +2970,63 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
         "",
         "## 美国主榜",
         "",
-        "| 排名 | 基金 | 成立日 | 机构持有 | 规模 | 近一年涨幅 | 近一年最大回撤 | 近三年涨幅 | 近三年最大回撤 | 纳指相关性 | Beta | 美股占比确认下限 | 直销额度 | 代销额度 | 计算规则 |",
-        "|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|",
+        "| 排名 | 基金 | 近三年 | 近五年 | 近十年 | 持有费率 | 纳指相关性 | Beta | 美股确认区间 | 直销额度 | 代销额度 |",
+        "|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for item in payload["records"]:
         source = item["quota_source_urls"][-1] if item["quota_source_urls"] else item["fund_page_url"]
         rule = format_rule(item["share_class_rule"], item["channel_rule"])
         lines.append(
             f"| {item['rank']} | [{item['name']} {item['code']}]({source}) | "
-            f"{item['inception_date']} | {item['institution_holding_ratio_pct']:.2f}% | "
-            f"{item['scale_billion_cny']:.2f}亿元 | "
-            f"{format_percentage(item['one_year_return_pct'], show_sign=True)} | "
-            f"{format_percentage(item['one_year_max_drawdown_pct'])} | "
             f"{format_percentage(item['three_year_return_pct'], show_sign=True)} | "
-            f"{format_percentage(item['three_year_max_drawdown_pct'])} | "
+            f"{format_optional_percentage(item['five_year_return_pct'], show_sign=True)} | "
+            f"{format_optional_percentage(item['ten_year_return_pct'], show_sign=True)} | "
+            f"{format_holding_cost(item['holding_cost'])} | "
             f"{format_correlation(item['nasdaq100_fit']['correlation'])} | "
             f"{format_beta(item['nasdaq100_fit']['beta'])} | "
-            f"[{format_percentage(item['us_equity_exposure']['confirmed_pct'])}]"
+            f"[{format_percentage(item['us_equity_exposure']['confirmed_pct'])}-"
+            f"{format_percentage(item['us_equity_exposure']['possible_pct'])}]"
             f"({item['us_equity_exposure']['source_url']}) | "
-            f"{format_limit(item['direct_limit'])} | {format_limit(item['agency_limit'])} | {rule} |"
+            f"{format_limit(item['direct_limit'])} | {format_limit(item['agency_limit'])} |"
         )
+        contract = item["contract_benchmark"]
+        contract_source = contract.get("source_url") or item["fund_page_url"]
         lines.append(
-            f"  - 合同基准：[{item['contract_benchmark']['benchmark_name']}]"
-            f"({item['contract_benchmark']['source_url']})，"
-            f"权重 {item['contract_benchmark']['benchmark_weight_pct']:.2f}%，"
-            f"{' / '.join(item['product_structure_tags'])}"
+            f"  - 合同基准：[{benchmark_display(contract)}]({contract_source})，"
+            f"状态 {contract['status']}；产品标签：{' / '.join(item['product_structure_tags'])}；"
+            f"额度计算：{rule}"
         )
     if not records:
-        lines.append("| - | 暂无符合全部条件的基金 | - | - | - | - | - | - | - | - | - | - | - | - | - |")
+        lines.append("| - | 暂无符合全部条件的基金 | - | - | - | - | - | - | - | - | - |")
 
     lines.extend(
         [
             "",
             "## 全球补充榜",
             "",
-            "| 排名 | 基金 | 合同基准 | 市场/资产 | 近三年涨幅 | 年化收益 | 最大回撤 | 收益回撤比 | 直销额度 | 代销额度 |",
-            "|---:|---|---|---|---:|---:|---:|---:|---:|---:|",
+            "| 排名 | 基金 | 合同基准 | 美股确认区间 | 近三年 | 近五年 | 近十年 | 持有费率 | 收益回撤比 | 直销额度 | 代销额度 |",
+            "|---:|---|---|---:|---:|---:|---:|---:|---:|---:|---:|",
         ]
     )
     for item in global_records:
         contract = item["contract_benchmark"]
         source = item["quota_source_urls"][-1] if item["quota_source_urls"] else item["fund_page_url"]
+        contract_source = contract.get("source_url") or item["fund_page_url"]
         ratio = "∞" if item["return_drawdown_ratio"] is None else f"{item['return_drawdown_ratio']:.2f}"
         lines.append(
             f"| {item['rank']} | [{item['name']} {item['code']}]({source}) | "
-            f"[{contract['benchmark_name']}]({contract['source_url']}) {contract['benchmark_weight_pct']:.2f}% | "
-            f"{contract['market_label']} / {contract['asset_class']} / {contract['style_label']} | "
+            f"[{benchmark_display(contract)}]({contract_source}) | "
+            f"{format_percentage(item['us_equity_exposure']['confirmed_pct'])}-"
+            f"{format_percentage(item['us_equity_exposure']['possible_pct'])} | "
             f"{format_percentage(item['three_year_return_pct'], show_sign=True)} | "
-            f"{format_percentage(item['three_year_annualized_return_pct'], show_sign=True)} | "
-            f"{format_percentage(item['three_year_max_drawdown_pct'])} | {ratio} | "
+            f"{format_optional_percentage(item['five_year_return_pct'], show_sign=True)} | "
+            f"{format_optional_percentage(item['ten_year_return_pct'], show_sign=True)} | "
+            f"{format_holding_cost(item['holding_cost'])} | {ratio} | "
             f"{format_limit(item['direct_limit'])} | {format_limit(item['agency_limit'])} |"
         )
         lines.append(f"  - 产品标签：{' / '.join(item['product_structure_tags'])}")
     if not global_records:
-        lines.append("| - | 暂无符合全部条件的基金 | - | - | - | - | - | - | - | - |")
+        lines.append("| - | 暂无符合全部条件的基金 | - | - | - | - | - | - | - | - | - |")
     if payload["warnings"]:
         lines.extend(["", "## 警告", ""])
         lines.extend(f"- {warning}" for warning in payload["warnings"])
@@ -2838,6 +3034,7 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
         [
             "",
             "额度为基金管理人层面的单日单基金账户上限；代销平台可能设置更低限制。",
+            "持有费率为人民币产品概要披露的基金运作综合费率（年化），已反映在基金净值中，不从收益率重复扣减。",
             "",
         ]
     )
@@ -2865,8 +3062,8 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
         f"规模 > {filters['min_scale_billion_cny']:g} 亿元",
         f"成立 > {filters['min_age_years']} 年",
         f"三年收益 ≥ {filters['min_three_year_return_pct']:g}%",
-        f"直销 > {filters['min_direct_limit_cny_exclusive']:,} 元",
-        f"合同基准 ≥ {filters['min_contract_benchmark_weight_pct']:g}%",
+        f"直销 ≥ {filters['min_direct_limit_cny_inclusive']:,} 元",
+        "合同风格不设硬门槛",
     )
     filter_html = "".join(
         f'<span class="filter-condition">{html.escape(part)}</span>'
@@ -2877,6 +3074,8 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
         is_us = item["ranking_list"] == "us_main"
         fit = item["nasdaq100_fit"]
         contract = item["contract_benchmark"]
+        holding_cost = item["holding_cost"]
+        exposure = item["us_equity_exposure"]
         direct_text = format_limit(item["direct_limit"])
         agency_text = format_limit(item["agency_limit"])
         direct_link = html_source_link(direct_text, item["direct_limit"].get("source_url"))
@@ -2886,7 +3085,6 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
             for tag in item["product_structure_tags"]
         )
         if is_us:
-            exposure = item["us_equity_exposure"]
             primary_metrics = f"""
             <span class="summary-metric fit"><span class="metric-label">纳指相关 / β</span><span class="metric-value">{format_correlation(fit['correlation'])} · {format_beta(fit['beta'])}</span></span>
             <span class="summary-metric accent"><span class="metric-label">美股下限</span><span class="metric-value">{format_percentage(exposure['confirmed_pct'])}</span></span>"""
@@ -2910,25 +3108,32 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
             ratio = "∞" if item["return_drawdown_ratio"] is None else f"{item['return_drawdown_ratio']:.2f}"
             primary_metrics = f"""
             <span class="summary-metric fit"><span class="metric-label">收益回撤比</span><span class="metric-value">{ratio}</span></span>
-            <span class="summary-metric accent"><span class="metric-label">市场 / 资产</span><span class="metric-value small">{html.escape(contract['market_label'])} · {html.escape(contract['asset_class'])}</span></span>"""
+            <span class="summary-metric accent"><span class="metric-label">美股确认区间</span><span class="metric-value small">{format_percentage(exposure['confirmed_pct'])}-{format_percentage(exposure['possible_pct'])}</span></span>"""
             list_details = f"""
             <div><dt>三年年化收益</dt><dd class="positive-text">{format_percentage(item['three_year_annualized_return_pct'], show_sign=True)}</dd></div>
             <div><dt>收益回撤比</dt><dd>{ratio}</dd></div>
-            <div><dt>市场</dt><dd>{html.escape(contract['market_label'])}</dd></div>
-            <div><dt>资产类别</dt><dd>{html.escape(contract['asset_class'])}</dd></div>"""
-            extra_sources = ""
+            <div><dt>美股确认下限</dt><dd>{format_percentage(exposure['confirmed_pct'])}</dd></div>
+            <div><dt>美股可能上限</dt><dd>{format_percentage(exposure['possible_pct'])}</dd></div>"""
+            extra_sources = html_source_link(
+                f"定期报告 {exposure['report_date']}", exposure.get("source_url")
+            )
+        holding_cost_link = html_source_link(
+            format_holding_cost(holding_cost), holding_cost.get("source_url")
+        )
+        prospectus_date = contract.get("prospectus_published_date") or "--"
         return f"""
       <details class="fund-item" data-code="{html.escape(item['code'], quote=True)}" data-list="{html.escape(item['ranking_list'], quote=True)}">
         <summary>
           <span class="rank" aria-label="排名 {item['rank']}">{item['rank']}</span>
           <span class="fund-identity">
             <span class="fund-name-row"><strong>{html.escape(item['name'])}</strong><span class="fund-code">{html.escape(item['code'])}</span></span>
-            <span class="benchmark-label">{html.escape(contract['benchmark_name'])} · {contract['benchmark_weight_pct']:.0f}%</span>
+            <span class="benchmark-label">{html.escape(benchmark_display(contract))}</span>
             <span class="tags">{tags}</span>
           </span>
           <span class="summary-metrics">
             {primary_metrics}
             <span class="summary-metric positive"><span class="metric-label">近三年</span><span class="metric-value">{format_percentage(item['three_year_return_pct'], show_sign=True)}</span></span>
+            <span class="summary-metric"><span class="metric-label">持有费率</span><span class="metric-value quota">{format_holding_cost(holding_cost)}</span></span>
             <span class="summary-metric"><span class="metric-label">直销</span><span class="metric-value quota">{direct_text}</span></span>
           </span>
           <span class="chevron" aria-hidden="true"></span>
@@ -2942,11 +3147,15 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
             <div><dt>近一年回撤</dt><dd class="negative-text">{format_percentage(item['one_year_max_drawdown_pct'])}</dd></div>
             <div><dt>近三年收益</dt><dd class="positive-text">{format_percentage(item['three_year_return_pct'], show_sign=True)}</dd></div>
             <div><dt>近三年回撤</dt><dd class="negative-text">{format_percentage(item['three_year_max_drawdown_pct'])}</dd></div>
+            <div><dt>近五年收益</dt><dd>{html.escape(format_long_return(item, 'five_year'))}</dd></div>
+            <div><dt>近十年收益</dt><dd>{html.escape(format_long_return(item, 'ten_year'))}</dd></div>
+            <div><dt>持有费率（年化）</dt><dd>{holding_cost_link}</dd></div>
             {list_details}
           </dl>
           <section class="benchmark-detail" aria-label="合同基准">
             <span>合同基准</span>
             <strong>{html.escape(contract['benchmark_text'])}</strong>
+            <small>解析状态：{html.escape(contract['status'])}；仅作风格说明，不参与准入。</small>
           </section>
           <div class="quota-grid" aria-label="申购额度">
             <div><span>直销额度</span>{direct_link}</div>
@@ -2954,8 +3163,8 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
           </div>
           <dl class="rule-grid">
             <div><dt>额度计算</dt><dd>{html.escape(format_rule(item['share_class_rule'], item['channel_rule']))}</dd></div>
-            <div><dt>净值区间</dt><dd>{html.escape(item['three_year_performance_start_date'])} 至 {html.escape(item['three_year_performance_end_date'])}</dd></div>
-            <div><dt>招募说明书日期</dt><dd>{html.escape(contract['prospectus_published_date'])}</dd></div>
+            <div><dt>完整净值历史</dt><dd>{html.escape(item['nav_history_start_date'])} 至 {html.escape(item['nav_history_end_date'])}</dd></div>
+            <div><dt>招募说明书日期</dt><dd>{html.escape(prospectus_date)}</dd></div>
           </dl>
           <div class="source-row">
             {html_source_link('招募说明书', contract['source_url'])}
@@ -3050,7 +3259,8 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
     .warnings ul {{ margin:0; padding:0 0 0 22px; color:#4c5661; }} .warnings li {{ margin:0 0 9px; }}
     footer {{ margin-top:18px; color:var(--muted); font-size:12px; }}
     [hidden] {{ display:none !important; }}
-    @media (min-width:820px) {{ .page {{ padding-top:28px; }} .meta-grid {{ grid-template-columns:repeat(4,minmax(0,1fr)); }} .fund-item summary {{ grid-template-columns:38px minmax(250px,1fr) minmax(430px,500px) 18px; gap:12px; padding:14px 16px; }} .summary-metrics {{ grid-column:3; grid-row:1; grid-template-columns:repeat(4,minmax(0,1fr)); margin-top:0; }} .chevron {{ grid-column:4; }} .fund-detail {{ padding:18px 66px 20px; }} .detail-grid {{ grid-template-columns:repeat(4,minmax(0,1fr)); }} .rule-grid {{ grid-template-columns:repeat(3,minmax(0,1fr)); }} }}
+    @media (max-width:480px) {{ .title-row {{ gap:8px; }} h1 {{ font-size:20px; }} }}
+    @media (min-width:820px) {{ .page {{ padding-top:28px; }} .meta-grid {{ grid-template-columns:repeat(4,minmax(0,1fr)); }} .fund-item summary {{ grid-template-columns:38px minmax(210px,1fr) minmax(520px,560px) 18px; gap:12px; padding:14px 16px; }} .summary-metrics {{ grid-column:3; grid-row:1; grid-template-columns:repeat(5,minmax(0,1fr)); margin-top:0; }} .chevron {{ grid-column:4; }} .fund-detail {{ padding:18px 66px 20px; }} .detail-grid {{ grid-template-columns:repeat(4,minmax(0,1fr)); }} .rule-grid {{ grid-template-columns:repeat(3,minmax(0,1fr)); }} }}
     @media (prefers-reduced-motion:reduce) {{ .chevron {{ transition:none; }} }}
   </style>
 </head>
@@ -3079,7 +3289,7 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
       <section id="panel-global" class="ranking-list" role="tabpanel" aria-labelledby="tab-global" hidden>{render_list(global_records)}</section>
       {warning_section}
     </main>
-    <footer>额度为基金管理人层面的单日单基金账户上限；代销平台可能设置更低限制。</footer>
+    <footer>额度为基金管理人层面的单日单基金账户上限；持有费率为产品概要披露的综合年化运作费率，已反映在净值中。</footer>
   </div>
   <script>
     const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
@@ -3101,16 +3311,18 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
     temporary.replace(path)
 
 
-def product_structure_tags(profile: dict[str, Any]) -> list[str]:
-    labels = [
-        "被动" if profile["management_style"] == "passive" else "主动",
-        {
-            "equity": "股票",
-            "reit": "REIT",
-            "volatility": "波动率",
-        }.get(str(profile["asset_class"]), str(profile["asset_class"])),
-        str(profile["style_label"]),
-    ]
+def product_structure_tags(profile: dict[str, Any], fund_type: str) -> list[str]:
+    labels = ["被动" if profile["management_style"] == "passive" else "主动"]
+    type_label = {
+        "QDII-REITs": "REIT",
+        "QDII-FOF": "FOF",
+        "指数型-海外股票": "指数",
+    }.get(fund_type, "股票/混合")
+    labels.append(type_label)
+    if profile["style_label"] not in {"未识别", "复合风格"}:
+        labels.append(str(profile["style_label"]))
+    elif profile["status"] == "composite":
+        labels.append("复合风格")
     special = {
         "leveraged": "杠杆",
         "inverse": "反向",
@@ -3131,8 +3343,11 @@ def build_output_record(
         "name": fund["name"],
         "fund_type": fund["fund_type"],
         "management_style": fund["contract_benchmark"]["management_style"],
-        "product_structure_tags": product_structure_tags(fund["contract_benchmark"]),
+        "product_structure_tags": product_structure_tags(
+            fund["contract_benchmark"], fund["fund_type"]
+        ),
         "contract_benchmark": fund["contract_benchmark"],
+        "holding_cost": fund["holding_cost"],
         "institution_holding_ratio_pct": fund["institution_holding_ratio_pct"],
         "holder_report_date": holder_report_date,
         "inception_date": fund["inception_date"],
@@ -3142,6 +3357,8 @@ def build_output_record(
         "purchase_status_text": fund["purchase_status_text"],
         "fund_page_url": fund["fund_page_url"],
         "performance_source_url": fund["performance_source_url"],
+        "nav_history_start_date": fund["nav_history_start_date"],
+        "nav_history_end_date": fund["nav_history_end_date"],
         "one_year_return_pct": fund["one_year_return_pct"],
         "one_year_max_drawdown_pct": fund["one_year_max_drawdown_pct"],
         "one_year_performance_start_date": fund["one_year_performance_start_date"],
@@ -3150,7 +3367,14 @@ def build_output_record(
         "three_year_max_drawdown_pct": fund["three_year_max_drawdown_pct"],
         "three_year_performance_start_date": fund["three_year_performance_start_date"],
         "three_year_performance_end_date": fund["three_year_performance_end_date"],
+        "five_year_return_pct": fund["five_year_return_pct"],
+        "five_year_performance_start_date": fund["five_year_performance_start_date"],
+        "five_year_performance_end_date": fund["five_year_performance_end_date"],
+        "ten_year_return_pct": fund["ten_year_return_pct"],
+        "ten_year_performance_start_date": fund["ten_year_performance_start_date"],
+        "ten_year_performance_end_date": fund["ten_year_performance_end_date"],
         "nasdaq100_fit": fund["nasdaq100_fit"],
+        "us_equity_exposure": fund["us_equity_exposure"],
         **{key: fund[key] for key in (
             "quota_status",
             "quota_confidence",
@@ -3161,9 +3385,7 @@ def build_output_record(
             "quota_source_urls",
         )},
     }
-    if ranking_list == "us_main":
-        record["us_equity_exposure"] = fund["us_equity_exposure"]
-    else:
+    if ranking_list == "global_supplement":
         record["three_year_annualized_return_pct"] = round(
             float(fund["_three_year_annualized_return_pct"]), 2
         )
@@ -3230,19 +3452,12 @@ def build_payload(args: argparse.Namespace, client: HttpClient) -> dict[str, Any
                 fund["code"],
             )
 
-    styled_candidates: list[dict[str, Any]] = []
+    classified_candidates: list[dict[str, Any]] = []
     for fund in performance_qualified:
-        profile, profile_warnings = resolve_contract_benchmark(
+        profile, holding_cost, profile_warnings = resolve_contract_benchmark(
             client, fund, as_of, document_cache, contract_catalog
         )
         warnings.extend(profile_warnings)
-        if profile is None:
-            record_exclusion(
-                "contract_benchmark_unresolved_or_invalid",
-                "合同基准无法识别、权重不足或为复合风格",
-                fund["code"],
-            )
-            continue
         if profile["excluded_target"]:
             record_exclusion(
                 "excluded_target_market",
@@ -3250,29 +3465,13 @@ def build_payload(args: argparse.Namespace, client: HttpClient) -> dict[str, Any
                 fund["code"],
             )
             continue
-        if profile["asset_class"] not in ELIGIBLE_GLOBAL_ASSET_CLASSES:
-            record_exclusion(
-                "excluded_asset_class",
-                "债券或商品资产类别",
-                fund["code"],
-            )
-            continue
-        styled_candidates.append({**fund, "contract_benchmark": profile})
+        classified_candidates.append(
+            {**fund, "contract_benchmark": profile, "holding_cost": holding_cost}
+        )
 
-    us_style_candidates = [
-        fund
-        for fund in styled_candidates
-        if fund["contract_benchmark"]["market_scope"] == "us"
-        and fund["contract_benchmark"]["asset_class"] == "equity"
-    ]
-    global_style_candidates = [
-        fund
-        for fund in styled_candidates
-        if fund not in us_style_candidates
-    ]
-
-    us_exposure_qualified: list[dict[str, Any]] = []
-    for fund in us_style_candidates:
+    us_routed_candidates: list[dict[str, Any]] = []
+    global_routed_candidates: list[dict[str, Any]] = []
+    for fund in classified_candidates:
         exposure, exposure_warnings = fetch_us_equity_exposure(
             client,
             fund,
@@ -3283,19 +3482,16 @@ def build_payload(args: argparse.Namespace, client: HttpClient) -> dict[str, Any
             exposure_cache,
         )
         warnings.extend(f"{fund['code']} {warning}" for warning in exposure_warnings)
-        if exposure["status"] != "qualified":
-            record_exclusion(
-                "us_equity_exposure_below_threshold",
-                "美国权益确认下限低于 50%",
-                fund["code"],
-            )
-            continue
-        if not isinstance(fund.get("nasdaq100_fit"), dict):
-            detail = fund.get("nasdaq100_fit_error") or "unknown calculation error"
-            raise DataError(
-                f"Nasdaq-100 fit is unavailable for qualified fund {fund['code']}: {detail}"
-            )
-        us_exposure_qualified.append({**fund, "us_equity_exposure": exposure})
+        routed = {**fund, "us_equity_exposure": exposure}
+        if ranking_list_for_exposure(exposure, args.min_us_equity_pct) == "us_main":
+            if not isinstance(fund.get("nasdaq100_fit"), dict):
+                detail = fund.get("nasdaq100_fit_error") or "unknown calculation error"
+                raise DataError(
+                    f"Nasdaq-100 fit is unavailable for US-main fund {fund['code']}: {detail}"
+                )
+            us_routed_candidates.append(routed)
+        else:
+            global_routed_candidates.append(routed)
 
     def apply_quota_gate(pool: list[dict[str, Any]]) -> list[dict[str, Any]]:
         qualified: list[dict[str, Any]] = []
@@ -3326,16 +3522,16 @@ def build_payload(args: argparse.Namespace, client: HttpClient) -> dict[str, Any
                 continue
             if not direct_limit_qualifies(direct, args.min_direct_limit_cny):
                 record_exclusion(
-                    "direct_limit_not_above_threshold",
-                    f"直销额度不高于 {args.min_direct_limit_cny:,} 元",
+                    "direct_limit_below_threshold",
+                    f"直销额度低于 {args.min_direct_limit_cny:,} 元",
                     fund["code"],
                 )
                 continue
             qualified.append({**fund, **quota})
         return qualified
 
-    us_quota_qualified = apply_quota_gate(us_exposure_qualified)
-    global_quota_qualified = apply_quota_gate(global_style_candidates)
+    us_quota_qualified = apply_quota_gate(us_routed_candidates)
+    global_quota_qualified = apply_quota_gate(global_routed_candidates)
     for fund in global_quota_qualified:
         score, annualized = calculate_return_drawdown_ratio(fund)
         fund["_return_drawdown_ratio"] = score
@@ -3387,7 +3583,7 @@ def build_payload(args: argparse.Namespace, client: HttpClient) -> dict[str, Any
         "scale_billion_cny desc, code asc"
     )
     return {
-        "schema_version": 8,
+        "schema_version": 9,
         "run_date": as_of.isoformat(),
         "generated_at": datetime.now(SHANGHAI_TZ).isoformat(timespec="seconds"),
         "holder_report_date": selected.report_date,
@@ -3398,28 +3594,36 @@ def build_payload(args: argparse.Namespace, client: HttpClient) -> dict[str, Any
             "min_age_years": args.min_age_years,
             "min_three_year_return_pct": args.min_three_year_return_pct,
             "min_us_equity_pct": args.min_us_equity_pct,
-            "min_direct_limit_cny_exclusive": args.min_direct_limit_cny,
-            "min_contract_benchmark_weight_pct": CONTRACT_BENCHMARK_MIN_WEIGHT_PCT,
+            "min_direct_limit_cny_inclusive": args.min_direct_limit_cny,
             "base_candidates_total": len(preliminary),
             "performance_candidates_scanned": performance_scanned_count,
             "performance_qualified_count": len(performance_qualified),
             "contract_candidates_scanned": len(performance_qualified),
-            "contract_qualified_count": len(styled_candidates),
-            "us_style_candidates_count": len(us_style_candidates),
-            "us_equity_candidates_scanned": len(us_style_candidates),
-            "us_equity_qualified_count": len(us_exposure_qualified),
-            "us_quota_candidates_scanned": len(us_exposure_qualified),
+            "contract_metadata_resolved_count": sum(
+                fund["contract_benchmark"]["status"] in {"recognized", "composite"}
+                for fund in classified_candidates
+            ),
+            "us_equity_candidates_scanned": len(classified_candidates),
+            "us_routed_count": len(us_routed_candidates),
+            "global_routed_count": len(global_routed_candidates),
+            "us_quota_candidates_scanned": len(us_routed_candidates),
             "us_quota_qualified_count": len(us_quota_qualified),
-            "global_style_candidates_count": len(global_style_candidates),
-            "global_quota_candidates_scanned": len(global_style_candidates),
+            "global_quota_candidates_scanned": len(global_routed_candidates),
             "global_quota_qualified_count": len(global_quota_qualified),
-            "full_scan_completed": performance_scanned_count == len(preliminary),
+            "full_scan_completed": (
+                performance_scanned_count == len(preliminary)
+                and len(classified_candidates)
+                + len(exclusions.get("excluded_target_market", {"codes": []})["codes"])
+                == len(performance_qualified)
+                and len(us_routed_candidates) + len(global_routed_candidates)
+                == len(classified_candidates)
+            ),
             "ranking_method": us_ranking_method,
             "global_supplement_ranking_method": global_ranking_method,
-            "us_equity_method": "conservative confirmed lower bound; unresolved positions only increase possible upper bound",
-            "contract_benchmark_method": "latest prospectus; one recognized market benchmark weighted at least 80%; RMB product summary cross-check",
+            "us_equity_method": "conservative confirmed lower bound determines US-main versus global-supplement routing; unresolved positions only increase possible upper bound",
+            "contract_benchmark_method": "latest prospectus metadata only; unresolved, composite, and low-weight styles do not block eligibility",
             "exclude_keywords": args.exclude_keywords,
-            "exclude_fund_types": ["QDII-纯债"],
+            "exclude_fund_types": sorted(EXCLUDED_FUND_TYPES),
             "exclude_asset_classes": ["bond", "commodity"],
             "share_class": "OTC RMB A or explicit RMB primary share without C/D marker",
             "purchasable_only": True,
@@ -3485,7 +3689,7 @@ def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
         "--min-direct-limit-cny",
         type=int,
         default=DEFAULT_MIN_DIRECT_LIMIT_CNY,
-        help="Exclusive minimum manager direct-sale daily limit in CNY",
+        help="Inclusive minimum manager direct-sale daily limit in CNY",
     )
     parser.add_argument(
         "--exclude-keywords",

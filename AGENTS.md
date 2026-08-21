@@ -65,8 +65,9 @@ authorization to complete the full update and publication workflow:
 3. Read `latest.json` and `latest.md`; inspect every warning. Stop without publishing if ranking-critical
    source data fails, a required candidate cannot be evaluated, or generated formats disagree.
 4. Run `python -m unittest discover -s scripts -p "test_*.py"` with the bundled Python runtime.
-5. Run `scripts/validate_qdii_ranking.py`. Verify full-scan counters, both final orderings, benchmark and
-   quota sources, the ranking date, and byte-identical HTML files.
+5. Run `node --test scripts/test_premium_refresh.mjs`, then `scripts/validate_qdii_ranking.py`. Verify
+   full-scan counters, both final orderings, the 25-ETF premium snapshot, benchmark and quota sources,
+   the ranking date, and byte-identical HTML files.
 6. Stage only intended repository changes, commit them, and push `main` to `origin`.
 7. Deploy the verified static page with:
 
@@ -82,7 +83,7 @@ authorization to complete the full update and publication workflow:
    ```
 
 8. Verify the independent application URL returns HTTP 200 and contains the ranking date, every fund
-   code in both lists, and the corresponding direct and agency quotas. Share:
+   code in both lists, all 25 premium-tab ETF codes, and the corresponding direct and agency quotas. Share:
    `https://qdii-ranking-web-run-cool-d2gy0iw957219659c.webapps.tcloudbase.com/?v=<YYYY-MM-DD>`.
 
 Do not deploy a partial or warning-blind result. Explain material unresolved look-through intervals,

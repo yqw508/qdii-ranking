@@ -71,9 +71,9 @@ jobs:
         uses: actions/cache@v6
         with:
           path: output/qdii-ranking/cache
-          key: qdii-ranking-${{ runner.os }}-${{ hashFiles('scripts/update_qdii_ranking.py', 'references/us-equity-instruments.json', 'references/contract-benchmarks.json') }}-${{ github.run_id }}
+          key: qdii-ranking-${{ runner.os }}-${{ hashFiles('scripts/update_qdii_ranking.py', 'scripts/premium_refresh.js', 'references/us-equity-instruments.json', 'references/us-equity-etfs.json', 'references/contract-benchmarks.json') }}-${{ github.run_id }}
           restore-keys: |
-            qdii-ranking-${{ runner.os }}-${{ hashFiles('scripts/update_qdii_ranking.py', 'references/us-equity-instruments.json', 'references/contract-benchmarks.json') }}-
+            qdii-ranking-${{ runner.os }}-${{ hashFiles('scripts/update_qdii_ranking.py', 'scripts/premium_refresh.js', 'references/us-equity-instruments.json', 'references/us-equity-etfs.json', 'references/contract-benchmarks.json') }}-
             qdii-ranking-${{ runner.os }}-
 
       - name: Install Python dependencies
@@ -119,7 +119,9 @@ jobs:
 
       - name: Run unit tests
         id: tests
-        run: python -m unittest discover -s scripts -p "test_*.py"
+        run: |
+          python -m unittest discover -s scripts -p "test_*.py"
+          node --test scripts/test_premium_refresh.mjs
 
       - name: Commit generated page
         id: git_publish

@@ -10,6 +10,47 @@ from unittest.mock import patch
 import update_qdii_ranking as ranking
 
 
+def sample_exchange_premium(run_date="2026-08-20"):
+    entries, fingerprint = ranking.load_exchange_premium_catalog(
+        ranking.DEFAULT_US_EQUITY_ETF_CATALOG
+    )
+    records = []
+    for index, entry in enumerate(entries):
+        premium = round((index - 10) / 10, 2)
+        iopv = 1.0
+        records.append(
+            {
+                **entry,
+                "market_price_cny": round(iopv * (1 + premium / 100), 4),
+                "iopv_cny": iopv,
+                "source_discount_pct": -premium,
+                "premium_pct": premium,
+                "change_pct": round(index / 100, 2),
+                "turnover_cny": float(10_000_000 + index),
+                "quote_date": run_date,
+                "updated_at": f"{run_date}T15:00:00+08:00",
+                "quote_source_url": f"https://example.test/quote/{entry['code']}",
+                "quote_status": "fresh",
+            }
+        )
+    records.sort(key=ranking.exchange_premium_sort_key)
+    return {
+        "schema_version": 1,
+        "status": "fresh",
+        "requested_at": f"{run_date}T07:07:00+08:00",
+        "quote_delay_minutes": 15,
+        "expected_count": len(entries),
+        "fresh_count": len(entries),
+        "cache_hit_count": 0,
+        "catalog_fingerprint": fingerprint,
+        "group_order": list(ranking.ETF_PREMIUM_GROUP_ORDER),
+        "source_name": "东方财富ETF行情",
+        "source_url": ranking.ETF_QUOTE_PAGE_URL,
+        "refresh_url": ranking.exchange_premium_quote_url(entries),
+        "records": records,
+    }
+
+
 class HolderPeriodTests(unittest.TestCase):
     def test_rejects_partial_new_period(self):
         periods = [
@@ -965,6 +1006,103 @@ class PerformanceCacheTests(unittest.TestCase):
             )
 
 
+class ExchangePremiumTests(unittest.TestCase):
+    def test_catalog_contains_the_expected_twenty_five_unique_etfs(self):
+        entries, fingerprint = ranking.load_exchange_premium_catalog(
+            ranking.DEFAULT_US_EQUITY_ETF_CATALOG
+        )
+        self.assertEqual(25, len(entries))
+        self.assertEqual(25, len({entry["code"] for entry in entries}))
+        self.assertEqual(64, len(fingerprint))
+        self.assertEqual(
+            set(ranking.ETF_PREMIUM_GROUP_ORDER),
+            {entry["benchmark_group"] for entry in entries},
+        )
+
+    def test_premium_sort_is_descending_with_missing_quotes_last(self):
+        records = [
+            {"code": "000003", "premium_pct": None},
+            {"code": "000002", "premium_pct": 2.0},
+            {"code": "000001", "premium_pct": 8.0},
+        ]
+        records.sort(key=ranking.exchange_premium_sort_key)
+        self.assertEqual(["000001", "000002", "000003"], [item["code"] for item in records])
+
+    def test_normalizes_discount_as_premium_and_checks_price_iopv(self):
+        entry = {
+            "code": "513500",
+            "name": "标普500ETF博时",
+            "exchange": "SSE",
+            "market_id": 1,
+            "category": "broad_market",
+            "benchmark_group": "标普500",
+            "source_url": "https://example.test",
+        }
+        raw = {
+            "f2": 2.672,
+            "f3": -0.11,
+            "f6": 228746612,
+            "f12": "513500",
+            "f14": "标普500ETF博时",
+            "f124": 1787299916,
+            "f297": 20260821,
+            "f402": -9.09,
+            "f441": 2.4493,
+        }
+        quote = ranking.normalize_exchange_premium_quote(
+            raw, entry, date(2026, 8, 21)
+        )
+        self.assertEqual(9.09, quote["premium_pct"])
+        with self.assertRaisesRegex(ValueError, "future data"):
+            ranking.normalize_exchange_premium_quote(raw, entry, date(2026, 8, 20))
+        with self.assertRaisesRegex(ValueError, "differs from price/IOPV"):
+            ranking.normalize_exchange_premium_quote(
+                {**raw, "f402": -1}, entry, date(2026, 8, 21)
+            )
+
+    def test_source_failure_uses_valid_cache_without_blocking(self):
+        class FailingClient:
+            def get_json(self, *_args, **_kwargs):
+                raise ranking.DataError("temporary quote outage")
+
+        sample = sample_exchange_premium("2026-08-20")
+        with TemporaryDirectory() as directory:
+            cache_path = Path(directory) / "exchange-premium.json"
+            ranking.write_json(
+                cache_path,
+                {
+                    "schema_version": ranking.ETF_PREMIUM_CACHE_SCHEMA_VERSION,
+                    "records": sample["records"],
+                },
+            )
+            section, warnings = ranking.build_exchange_premium_snapshot(
+                FailingClient(),
+                ranking.DEFAULT_US_EQUITY_ETF_CATALOG,
+                cache_path,
+                date(2026, 8, 20),
+            )
+        self.assertEqual("stale", section["status"])
+        self.assertEqual(25, section["cache_hit_count"])
+        self.assertTrue(all(item["quote_status"] == "stale" for item in section["records"]))
+        self.assertTrue(warnings[0].startswith("场内溢价告警："))
+
+    def test_cold_source_failure_keeps_catalog_with_empty_quotes(self):
+        class FailingClient:
+            def get_json(self, *_args, **_kwargs):
+                raise ranking.DataError("temporary quote outage")
+
+        with TemporaryDirectory() as directory:
+            section, _warnings = ranking.build_exchange_premium_snapshot(
+                FailingClient(),
+                ranking.DEFAULT_US_EQUITY_ETF_CATALOG,
+                Path(directory) / "exchange-premium.json",
+                date(2026, 8, 20),
+            )
+        self.assertEqual("unavailable", section["status"])
+        self.assertEqual(25, len(section["records"]))
+        self.assertTrue(all(item["premium_pct"] is None for item in section["records"]))
+
+
 class HtmlOutputTests(unittest.TestCase):
     @staticmethod
     def record(
@@ -1107,6 +1245,7 @@ class HtmlOutputTests(unittest.TestCase):
                 "index_latest_date": "2026-08-19",
                 "fx_latest_date": "2026-08-19",
             },
+            "exchange_premium": sample_exchange_premium(),
             "warnings": ["未知标的 <需要核实>"],
         }
 
@@ -1134,6 +1273,14 @@ class HtmlOutputTests(unittest.TestCase):
         self.assertIn('target="_blank" rel="noopener noreferrer"', document)
         self.assertNotIn("<script src=", document)
         self.assertNotIn("<link rel=", document)
+        self.assertIn("场内溢价", document)
+        self.assertEqual(25, document.count('class="premium-item premium-row'))
+        self.assertEqual(1, document.count('class="premium-table"'))
+        self.assertEqual(25, document.count('class="premium-row-toggle"'))
+        self.assertIn("按溢价从高到低排列", document)
+        self.assertEqual(1, document.count('id="premium-refresh"'))
+        self.assertIn("行情约延迟 15 分钟", document)
+        self.assertIn("QdiiPremiumRefresh", document)
 
     def test_regression_channel_limits_are_correct_in_each_fund(self):
         payload = self.payload()
@@ -1175,7 +1322,7 @@ class HtmlOutputTests(unittest.TestCase):
             self.assertTrue(path.exists())
             self.assertTrue(published_path.exists())
             self.assertEqual(path.read_bytes(), published_path.read_bytes())
-            self.assertIn("QDII 美国主榜与全球补充榜", path.read_text(encoding="utf-8"))
+            self.assertIn("QDII 榜单与场内溢价", path.read_text(encoding="utf-8"))
 
 
 class PeriodicReportTests(unittest.TestCase):

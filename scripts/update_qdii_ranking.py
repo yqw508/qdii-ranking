@@ -44,10 +44,15 @@ ANNOUNCEMENT_PDF_URL = "https://pdf.dfcfw.com/pdf/H2_{announcement_id}_1.pdf"
 NASDAQ100_HISTORY_PAGE_URL = "https://indexes.nasdaq.com/Index/History/XNDX"
 NASDAQ100_HISTORY_DATA_URL = "https://indexes.nasdaq.com/Index/HistoryChartData"
 SAFE_USD_CNY_HISTORY_URL = "https://www.safe.gov.cn/AppStructured/hlw/RMBQuery.do"
+ETF_QUOTE_API_URL = "https://push2delay.eastmoney.com/api/qt/ulist.np/get"
+ETF_QUOTE_PAGE_URL = "https://quote.eastmoney.com/center/gridlist.html#fund_etf"
 DEFAULT_EXCLUDE_KEYWORDS = ["亚洲", "中国", "港"]
 DEFAULT_US_EQUITY_CATALOG = Path(__file__).resolve().parents[1] / "references" / "us-equity-instruments.json"
 DEFAULT_CONTRACT_BENCHMARK_CATALOG = (
     Path(__file__).resolve().parents[1] / "references" / "contract-benchmarks.json"
+)
+DEFAULT_US_EQUITY_ETF_CATALOG = (
+    Path(__file__).resolve().parents[1] / "references" / "us-equity-etfs.json"
 )
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -70,6 +75,10 @@ NASDAQ100_MIN_OBSERVATIONS = 140
 NASDAQ100_MIN_SPAN_DAYS = 1000
 FUND_EXPOSURE_CACHE_SCHEMA_VERSION = 1
 US_EQUITY_METHOD_VERSION = 1
+ETF_PREMIUM_CACHE_SCHEMA_VERSION = 1
+ETF_PREMIUM_CATALOG_SCHEMA_VERSION = 1
+ETF_PREMIUM_DELAY_MINUTES = 15
+ETF_PREMIUM_GROUP_ORDER = ("标普500", "纳指100", "美国50", "道琼斯", "行业主题")
 DEFAULT_MIN_DIRECT_LIMIT_CNY = 200
 DEFAULT_MIN_THREE_YEAR_RETURN_PCT = 30.0
 DEFAULT_MIN_FIVE_YEAR_RETURN_PCT = 60.0
@@ -146,6 +155,8 @@ class HttpClient:
             return "holder_data"
         if "indexes.nasdaq.com" in url or "safe.gov.cn" in url:
             return "benchmark"
+        if url.startswith(ETF_QUOTE_API_URL):
+            return "exchange_premium"
         if url.startswith("https://fund.eastmoney.com/") and url.endswith(".html"):
             return "fund_page"
         if url == FUND_LIST_URL:
@@ -3759,6 +3770,300 @@ def write_json(path: Path, payload: dict[str, Any]) -> None:
     temporary.replace(path)
 
 
+def load_exchange_premium_catalog(path: Path) -> tuple[list[dict[str, Any]], str]:
+    try:
+        raw = path.read_bytes()
+        payload = json.loads(raw.decode("utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise DataError(f"Could not read US-equity ETF catalog {path}: {exc}") from exc
+    if (
+        not isinstance(payload, dict)
+        or payload.get("schema_version") != ETF_PREMIUM_CATALOG_SCHEMA_VERSION
+        or not isinstance(payload.get("entries"), list)
+    ):
+        raise DataError("US-equity ETF catalog has an unsupported schema")
+    entries: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for raw_entry in payload["entries"]:
+        if not isinstance(raw_entry, dict):
+            raise DataError("US-equity ETF catalog entries must be objects")
+        code = str(raw_entry.get("code", ""))
+        name = str(raw_entry.get("name", "")).strip()
+        exchange = str(raw_entry.get("exchange", ""))
+        market_id = raw_entry.get("market_id")
+        category = str(raw_entry.get("category", ""))
+        benchmark_group = str(raw_entry.get("benchmark_group", ""))
+        source_url = str(raw_entry.get("source_url", ""))
+        if not re.fullmatch(r"\d{6}", code) or code in seen:
+            raise DataError(f"Invalid or duplicate ETF code in catalog: {code!r}")
+        if not name:
+            raise DataError(f"ETF catalog name is missing for {code}")
+        if exchange not in {"SSE", "SZSE"} or market_id not in {0, 1}:
+            raise DataError(f"ETF catalog exchange is invalid for {code}")
+        if (exchange == "SSE") != (market_id == 1):
+            raise DataError(f"ETF catalog market ID differs from exchange for {code}")
+        if category not in {"broad_market", "sector_theme"}:
+            raise DataError(f"ETF catalog category is invalid for {code}")
+        if benchmark_group not in ETF_PREMIUM_GROUP_ORDER:
+            raise DataError(f"ETF catalog benchmark group is invalid for {code}")
+        if not source_url.startswith("https://"):
+            raise DataError(f"ETF catalog source URL is invalid for {code}")
+        seen.add(code)
+        entries.append(
+            {
+                "code": code,
+                "name": name,
+                "exchange": exchange,
+                "market_id": int(market_id),
+                "category": category,
+                "benchmark_group": benchmark_group,
+                "source_url": source_url,
+            }
+        )
+    if not entries:
+        raise DataError("US-equity ETF catalog is empty")
+    order = {group: index for index, group in enumerate(ETF_PREMIUM_GROUP_ORDER)}
+    entries.sort(key=lambda item: (order[item["benchmark_group"]], item["code"]))
+    return entries, hashlib.sha256(raw).hexdigest()
+
+
+def exchange_premium_quote_url(entries: list[dict[str, Any]]) -> str:
+    params = {
+        "fltt": "2",
+        "invt": "2",
+        "ut": "bd1d9ddb04089700cf9c27f6f7426281",
+        "secids": ",".join(
+            f"{entry['market_id']}.{entry['code']}" for entry in entries
+        ),
+        "fields": "f2,f3,f6,f12,f13,f14,f18,f124,f297,f402,f441",
+    }
+    return f"{ETF_QUOTE_API_URL}?{urllib.parse.urlencode(params)}"
+
+
+def _finite_quote_number(value: Any, label: str, code: str) -> float:
+    try:
+        number = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{code} {label} is missing or non-numeric") from exc
+    if not math.isfinite(number):
+        raise ValueError(f"{code} {label} is not finite")
+    return number
+
+
+def normalize_exchange_premium_quote(
+    raw: dict[str, Any], catalog_entry: dict[str, Any], as_of: date
+) -> dict[str, Any]:
+    code = catalog_entry["code"]
+    if str(raw.get("f12", "")) != code:
+        raise ValueError(f"Quote code differs from requested ETF {code}")
+    price = _finite_quote_number(raw.get("f2"), "price", code)
+    iopv = _finite_quote_number(raw.get("f441"), "IOPV", code)
+    source_discount = _finite_quote_number(raw.get("f402"), "discount rate", code)
+    change_pct = _finite_quote_number(raw.get("f3"), "change percentage", code)
+    turnover_cny = _finite_quote_number(raw.get("f6"), "turnover", code)
+    if price <= 0 or iopv <= 0 or turnover_cny < 0:
+        raise ValueError(f"{code} price, IOPV, or turnover is outside its valid range")
+    try:
+        quote_date = datetime.strptime(str(raw.get("f297")), "%Y%m%d").date()
+        updated_timestamp = int(raw.get("f124"))
+        updated_at = datetime.fromtimestamp(updated_timestamp, SHANGHAI_TZ)
+    except (TypeError, ValueError, OSError) as exc:
+        raise ValueError(f"{code} quote date or timestamp is invalid") from exc
+    if quote_date > as_of or updated_at.date() > as_of:
+        raise ValueError(f"{code} quote contains future data")
+    premium_pct = -source_discount
+    calculated_premium = (price / iopv - 1) * 100
+    tolerance_pct_points = max(0.05, 0.0005 / iopv * 100 + 0.01)
+    if abs(premium_pct - calculated_premium) > tolerance_pct_points:
+        raise ValueError(
+            f"{code} premium differs from price/IOPV calculation by "
+            f"{abs(premium_pct - calculated_premium):.3f} percentage points"
+        )
+    return {
+        **catalog_entry,
+        "name": str(raw.get("f14") or catalog_entry["name"]).strip(),
+        "market_price_cny": round(price, 4),
+        "iopv_cny": round(iopv, 4),
+        "source_discount_pct": round(source_discount, 2),
+        "premium_pct": round(premium_pct, 2),
+        "change_pct": round(change_pct, 2),
+        "turnover_cny": round(turnover_cny, 3),
+        "quote_date": quote_date.isoformat(),
+        "updated_at": updated_at.isoformat(timespec="seconds"),
+        "quote_source_url": (
+            f"https://quote.eastmoney.com/{'sh' if catalog_entry['market_id'] == 1 else 'sz'}{code}.html"
+        ),
+    }
+
+
+def _cached_exchange_quote_valid(
+    record: Any, entry: dict[str, Any], as_of: date
+) -> bool:
+    if not isinstance(record, dict) or record.get("code") != entry["code"]:
+        return False
+    try:
+        quote_date = parse_date(str(record.get("quote_date", "")))
+        updated_at = datetime.fromisoformat(str(record.get("updated_at", "")))
+        numeric = (
+            float(record["market_price_cny"]),
+            float(record["iopv_cny"]),
+            float(record["premium_pct"]),
+            float(record["change_pct"]),
+            float(record["turnover_cny"]),
+        )
+    except (KeyError, TypeError, ValueError):
+        return False
+    return (
+        quote_date <= as_of
+        and updated_at.date() <= as_of
+        and all(math.isfinite(value) for value in numeric)
+        and numeric[0] > 0
+        and numeric[1] > 0
+        and numeric[4] >= 0
+    )
+
+
+def _load_exchange_premium_cache(
+    path: Path, entries: list[dict[str, Any]], as_of: date
+) -> dict[str, dict[str, Any]]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    if (
+        not isinstance(payload, dict)
+        or payload.get("schema_version") != ETF_PREMIUM_CACHE_SCHEMA_VERSION
+        or not isinstance(payload.get("records"), list)
+    ):
+        return {}
+    entry_by_code = {entry["code"]: entry for entry in entries}
+    cached: dict[str, dict[str, Any]] = {}
+    for record in payload["records"]:
+        code = str(record.get("code", "")) if isinstance(record, dict) else ""
+        entry = entry_by_code.get(code)
+        if entry and code not in cached and _cached_exchange_quote_valid(record, entry, as_of):
+            cached[code] = {**entry, **record}
+    return cached
+
+
+def exchange_premium_sort_key(record: dict[str, Any]) -> tuple[Any, ...]:
+    premium = record.get("premium_pct")
+    return (
+        premium is None,
+        -float(premium) if premium is not None else math.inf,
+        record["code"],
+    )
+
+
+def build_exchange_premium_snapshot(
+    client: HttpClient,
+    catalog_path: Path,
+    cache_path: Path,
+    as_of: date,
+) -> tuple[dict[str, Any], list[str]]:
+    entries, catalog_fingerprint = load_exchange_premium_catalog(catalog_path)
+    cached = _load_exchange_premium_cache(cache_path, entries, as_of)
+    entry_by_code = {entry["code"]: entry for entry in entries}
+    warnings: list[str] = []
+    fresh: dict[str, dict[str, Any]] = {}
+    quote_url = exchange_premium_quote_url(entries)
+    try:
+        payload = client.get_json(quote_url, referer=ETF_QUOTE_PAGE_URL)
+        rows = ((payload.get("data") or {}).get("diff")) if isinstance(payload, dict) else None
+        if not isinstance(rows, list):
+            raise DataError("ETF quote response does not contain a record list")
+        invalid: list[str] = []
+        seen_response: set[str] = set()
+        for raw in rows:
+            code = str(raw.get("f12", "")) if isinstance(raw, dict) else ""
+            entry = entry_by_code.get(code)
+            if entry is None:
+                continue
+            if code in seen_response:
+                invalid.append(f"{code} duplicate response")
+                fresh.pop(code, None)
+                continue
+            seen_response.add(code)
+            try:
+                fresh[code] = normalize_exchange_premium_quote(raw, entry, as_of)
+            except ValueError as exc:
+                invalid.append(str(exc))
+        missing = [entry["code"] for entry in entries if entry["code"] not in seen_response]
+        if missing:
+            invalid.append("missing " + ", ".join(missing))
+        if invalid:
+            warnings.append("场内溢价告警：部分行情未更新：" + "；".join(invalid))
+    except (DataError, OSError, ValueError) as exc:
+        warnings.append(f"场内溢价告警：行情刷新失败，使用缓存或空值：{exc}")
+
+    records: list[dict[str, Any]] = []
+    cache_hits = 0
+    for entry in entries:
+        code = entry["code"]
+        if code in fresh:
+            record = {**fresh[code], "quote_status": "fresh"}
+        elif code in cached:
+            cache_hits += 1
+            record = {**entry, **cached[code], "quote_status": "stale"}
+        else:
+            record = {
+                **entry,
+                "market_price_cny": None,
+                "iopv_cny": None,
+                "source_discount_pct": None,
+                "premium_pct": None,
+                "change_pct": None,
+                "turnover_cny": None,
+                "quote_date": None,
+                "updated_at": None,
+                "quote_source_url": None,
+                "quote_status": "unavailable",
+            }
+        records.append(record)
+    records.sort(key=exchange_premium_sort_key)
+
+    if fresh and len(fresh) == len(entries):
+        status = "fresh"
+    elif fresh:
+        status = "partial"
+    elif cache_hits:
+        status = "stale"
+    else:
+        status = "unavailable"
+    requested_at = datetime.now(SHANGHAI_TZ).isoformat(timespec="seconds")
+    cache_records = [record for record in records if record["premium_pct"] is not None]
+    try:
+        write_json(
+            cache_path,
+            {
+                "schema_version": ETF_PREMIUM_CACHE_SCHEMA_VERSION,
+                "catalog_fingerprint": catalog_fingerprint,
+                "saved_at": requested_at,
+                "records": cache_records,
+            },
+        )
+    except OSError as exc:
+        warnings.append(f"场内溢价告警：无法保存行情缓存：{exc}")
+    return (
+        {
+            "schema_version": 1,
+            "status": status,
+            "requested_at": requested_at,
+            "quote_delay_minutes": ETF_PREMIUM_DELAY_MINUTES,
+            "expected_count": len(entries),
+            "fresh_count": len(fresh),
+            "cache_hit_count": cache_hits,
+            "catalog_fingerprint": catalog_fingerprint,
+            "group_order": list(ETF_PREMIUM_GROUP_ORDER),
+            "source_name": "东方财富ETF行情",
+            "source_url": ETF_QUOTE_PAGE_URL,
+            "refresh_url": quote_url,
+            "records": records,
+        },
+        warnings,
+    )
+
+
 def all_ranking_records(payload: dict[str, Any]) -> list[dict[str, Any]]:
     return [
         *payload.get("records", []),
@@ -4027,6 +4332,8 @@ def html_source_link(label: str, source_url: str | None) -> str:
 def write_html(path: Path, payload: dict[str, Any]) -> None:
     us_records = payload["records"]
     global_records = payload["global_supplement"]["records"]
+    premium = payload["exchange_premium"]
+    premium_records = premium["records"]
     combined = [*us_records, *global_records]
     filters = payload["filters"]
     scale_dates = "、".join(sorted({item["scale_report_date"] for item in combined})) or "无"
@@ -4163,6 +4470,98 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
             return '<p class="empty-state">暂无符合全部条件的基金</p>'
         return "".join(render_card(item) for item in records)
 
+    def premium_band(value: float | None) -> tuple[str, str]:
+        if value is None:
+            return "unavailable", "--"
+        if value < 0:
+            return "discount", "折价"
+        if value <= 2:
+            return "normal", "0–2%"
+        if value <= 5:
+            return "elevated", "2–5%"
+        return "high", ">5%高溢价"
+
+    def format_premium_value(value: Any, digits: int = 2) -> str:
+        if value is None:
+            return "--"
+        numeric = float(value)
+        return f"{numeric:+.{digits}f}%"
+
+    def format_turnover(value: Any) -> str:
+        if value is None:
+            return "--"
+        numeric = float(value)
+        if numeric >= 100_000_000:
+            return f"{numeric / 100_000_000:.2f}亿元"
+        if numeric >= 10_000:
+            return f"{numeric / 10_000:.0f}万元"
+        return f"{numeric:.0f}元"
+
+    def format_quote_time(value: str | None) -> str:
+        return "--" if not value else value[:16].replace("T", " ")
+
+    def render_premium_row(item: dict[str, Any]) -> str:
+        value = item["premium_pct"]
+        band_key, band_label = premium_band(value)
+        quote_status = item["quote_status"]
+        row_classes = ["premium-row"]
+        if quote_status == "stale":
+            row_classes.append("is-stale")
+        elif quote_status == "unavailable":
+            row_classes.append("is-unavailable")
+        stale_text = "旧值" if quote_status == "stale" else ("暂无行情" if quote_status == "unavailable" else "")
+        source_url = item.get("quote_source_url") or item["source_url"]
+        premium_data = "NaN" if value is None else f"{float(value):.8g}"
+        detail_id = f"premium-detail-{item['code']}"
+        return f"""
+          <tbody class="premium-item {' '.join(row_classes)}" data-etf-code="{item['code']}" data-premium="{premium_data}" data-quote-status="{quote_status}">
+            <tr class="premium-summary-row">
+              <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="{detail_id}"><span><strong data-field="name">{html.escape(item['name'])}</strong><span class="fund-code">{item['code']} · {item['exchange']}</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
+              <td data-label="基准"><span class="benchmark-compact">{html.escape(item['benchmark_group'])}</span></td>
+              <td data-label="溢价"><span class="premium-value band-{band_key}" data-field="premium">{format_premium_value(value)}</span><span class="premium-band band-{band_key}" data-field="band">{band_label}</span><span class="stale-label" data-field="stale">{stale_text}</span></td>
+              <td data-label="涨跌"><span data-field="change">{format_premium_value(item['change_pct'])}</span></td>
+            </tr>
+            <tr class="premium-detail-row" id="{detail_id}" hidden>
+              <td colspan="4">
+                <dl class="premium-detail-grid">
+                  <div><dt>价格</dt><dd data-field="price">{'--' if item['market_price_cny'] is None else f"{float(item['market_price_cny']):.3f}"}</dd></div>
+                  <div><dt>IOPV</dt><dd data-field="iopv">{'--' if item['iopv_cny'] is None else f"{float(item['iopv_cny']):.4f}"}</dd></div>
+                  <div><dt>成交额</dt><dd data-field="turnover">{format_turnover(item['turnover_cny'])}</dd></div>
+                  <div><dt>行情时间</dt><dd><time data-field="updated">{format_quote_time(item['updated_at'])}</time></dd></div>
+                  <div><dt>交易所</dt><dd>{item['exchange']}</dd></div>
+                  <div><dt>分类</dt><dd>{'行业主题' if item['category'] == 'sector_theme' else '宽基'}</dd></div>
+                </dl>
+                <a class="premium-source-link" href="{html.escape(source_url, quote=True)}" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+              </td>
+            </tr>
+          </tbody>"""
+
+    premium_rows = "".join(render_premium_row(item) for item in premium_records)
+    premium_status_labels = {
+        "fresh": "日报快照完整",
+        "partial": "部分ETF使用旧值",
+        "stale": "当前显示缓存行情",
+        "unavailable": "日报快照暂不可用",
+    }
+    premium_status_text = premium_status_labels.get(premium["status"], "行情状态未知")
+    premium_config = {
+        "refreshUrl": premium["refresh_url"],
+        "entries": [
+            {
+                "code": item["code"],
+                "name": item["name"],
+                "benchmarkGroup": item["benchmark_group"],
+            }
+            for item in premium_records
+        ],
+    }
+    premium_config_json = json.dumps(
+        premium_config, ensure_ascii=False, separators=(",", ":")
+    ).replace("</", "<\\/")
+    browser_script = (Path(__file__).with_name("premium_refresh.js")).read_text(
+        encoding="utf-8"
+    )
+
     warning_section = ""
     if payload["warnings"]:
         warning_items = "".join(
@@ -4180,7 +4579,7 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light">
-  <title>QDII 双榜 · {html.escape(payload['run_date'])}</title>
+  <title>QDII 榜单与场内溢价 · {html.escape(payload['run_date'])}</title>
   <style>
     :root {{ color-scheme: light; --bg:#f3f5f7; --surface:#fff; --text:#18222c; --muted:#66727e; --border:#d7dde3; --accent:#086b58; --accent-soft:#e8f3ef; --blue:#195c9b; --blue-soft:#edf4fa; --positive:#147a4b; --negative:#b42318; --warning:#8a4b08; }}
     * {{ box-sizing:border-box; }}
@@ -4200,11 +4599,11 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
     .meta-grid {{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 14px; margin:14px 0 0; }}
     .meta-grid div, .detail-grid div, .rule-grid div {{ min-width:0; }}
     dd {{ margin:2px 0 0; font-weight:650; }}
-    .tabs {{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px; margin:0 0 12px; padding:4px; border:1px solid var(--border); border-radius:6px; background:#e9edf1; }}
+    .tabs {{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px; margin:0 0 12px; padding:4px; border:1px solid var(--border); border-radius:6px; background:#e9edf1; }}
     .tab {{ min-height:42px; border:0; border-radius:4px; color:#42505d; background:transparent; cursor:pointer; font-weight:700; }}
     .tab[aria-selected="true"] {{ color:var(--text); background:var(--surface); box-shadow:0 1px 2px rgba(20,32,44,.12); }}
     .tab-count {{ margin-left:6px; color:var(--muted); font-variant-numeric:tabular-nums; }}
-    .tab:focus-visible,.fund-item summary:focus-visible {{ outline:3px solid #86b7e8; outline-offset:2px; }}
+    .tab:focus-visible,.fund-item summary:focus-visible,.refresh-button:focus-visible {{ outline:3px solid #86b7e8; outline-offset:2px; }}
     .ranking-list {{ display:grid; gap:10px; }}
     .fund-item {{ border:1px solid var(--border); border-radius:6px; background:var(--surface); overflow:clip; }}
     .fund-item summary {{ display:grid; grid-template-columns:34px minmax(0,1fr) 18px; align-items:center; gap:0 10px; min-height:72px; padding:12px; cursor:pointer; list-style:none; -webkit-tap-highlight-color:transparent; }}
@@ -4238,20 +4637,74 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
     .rule-grid {{ display:grid; gap:10px; margin:14px 0 0; }}
     .source-row {{ display:flex; flex-wrap:wrap; gap:10px 18px; margin-top:14px; }}
     .empty-state {{ margin:0; padding:28px 4px; color:var(--muted); text-align:center; border-top:1px solid var(--border); border-bottom:1px solid var(--border); }}
+    .premium-panel {{ display:grid; gap:14px; }}
+    .premium-toolbar {{ display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding:4px 2px 0; }}
+    .premium-toolbar h2 {{ margin:0; font-size:17px; }}
+    .premium-toolbar p {{ margin:3px 0 0; color:var(--muted); font-size:12px; }}
+    .refresh-button {{ display:inline-flex; min-width:116px; min-height:40px; align-items:center; justify-content:center; gap:7px; padding:7px 12px; border:1px solid #176451; border-radius:5px; color:#fff; background:#176451; cursor:pointer; font-weight:700; white-space:nowrap; }}
+    .refresh-button:disabled {{ cursor:wait; opacity:.65; }}
+    .refresh-icon {{ font-size:18px; line-height:1; }}
+    .refresh-button[aria-busy="true"] .refresh-icon {{ animation:spin 900ms linear infinite; }}
+    .premium-status {{ min-height:22px; margin:0; padding:7px 10px; border-left:3px solid var(--blue); color:#42505d; background:var(--blue-soft); font-size:12px; }}
+    .premium-table-wrap {{ overflow-x:auto; border:1px solid var(--border); border-radius:6px; background:var(--surface); }}
+    .premium-table {{ width:100%; min-width:650px; border-collapse:collapse; table-layout:fixed; font-variant-numeric:tabular-nums; }}
+    .premium-table th,.premium-summary-row td {{ padding:8px 10px; border-bottom:1px solid #e5e9ed; text-align:right; vertical-align:middle; white-space:nowrap; }}
+    .premium-table th {{ color:#52606d; background:#f7f8fa; font-size:12px; font-weight:700; }}
+    .premium-table th:first-child,.premium-summary-row td:first-child {{ width:42%; text-align:left; }}
+    .premium-table th:nth-child(2),.premium-summary-row td:nth-child(2) {{ width:18%; }}
+    .premium-table th:nth-child(3),.premium-summary-row td:nth-child(3) {{ width:25%; }}
+    .premium-table th:last-child,.premium-summary-row td:last-child {{ width:15%; }}
+    .premium-row-toggle {{ display:flex; width:100%; min-height:38px; align-items:center; justify-content:space-between; gap:12px; padding:0; border:0; color:var(--text); background:transparent; cursor:pointer; text-align:left; }}
+    .premium-row-toggle>span:first-child {{ display:grid; min-width:0; gap:1px; }}
+    .premium-row-toggle strong {{ overflow:hidden; text-overflow:ellipsis; }}
+    .premium-chevron {{ width:8px; height:8px; flex:0 0 auto; border-right:2px solid #7a8793; border-bottom:2px solid #7a8793; transform:rotate(45deg); transition:transform .16s ease; }}
+    .premium-row-toggle[aria-expanded="true"] .premium-chevron {{ transform:rotate(225deg); }}
+    .premium-row-toggle:focus-visible {{ outline:3px solid #86b7e8; outline-offset:3px; }}
+    .benchmark-compact {{ color:#4f5d69; font-size:13px; }}
+    .premium-detail-row td {{ padding:0; border-bottom:1px solid #d9e0e6; background:#f8fafb; }}
+    .premium-detail-grid {{ display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:12px; margin:0; padding:12px 14px 8px; }}
+    .premium-detail-grid dd {{ font-size:13px; }}
+    .premium-source-link {{ display:inline-block; margin:0 14px 12px; font-size:12px; font-weight:700; }}
+    .premium-value {{ margin-right:6px; font-weight:800; }}
+    .premium-band,.stale-label {{ display:inline-block; padding:1px 4px; border-radius:3px; font-size:10px; line-height:1.5; }}
+    .premium-band.band-discount {{ color:#176451; background:#e8f3ef; }}
+    .premium-band.band-normal {{ color:#40505d; background:#edf0f2; }}
+    .premium-band.band-elevated {{ color:#7a4b08; background:#fff4da; }}
+    .premium-band.band-high {{ color:var(--negative); background:#fff0ee; }}
+    .premium-value.band-discount {{ color:#176451; }}
+    .premium-value.band-elevated {{ color:#8a4b08; }}
+    .premium-value.band-high {{ color:var(--negative); }}
+    .stale-label {{ margin-left:5px; color:#755015; background:#fff4da; }}
+    .premium-item.is-unavailable {{ color:var(--muted); }}
     .warnings {{ margin-top:18px; border-top:1px solid var(--border); }}
     .warnings summary {{ display:flex; min-height:48px; align-items:center; justify-content:space-between; color:var(--warning); cursor:pointer; font-weight:700; }}
     .warnings ul {{ margin:0; padding:0 0 0 22px; color:#4c5661; }} .warnings li {{ margin:0 0 9px; }}
     footer {{ margin-top:18px; color:var(--muted); font-size:12px; }}
     [hidden] {{ display:none !important; }}
-    @media (max-width:480px) {{ .title-row {{ gap:8px; }} h1 {{ font-size:20px; }} }}
+    @keyframes spin {{ to {{ transform:rotate(360deg); }} }}
+    @media (max-width:700px) {{
+      .title-row {{ gap:8px; }} h1 {{ font-size:20px; }}
+      .tab {{ min-height:50px; padding:5px 2px; font-size:13px; }} .tab-count {{ display:block; margin-left:0; font-size:11px; }}
+      .premium-toolbar {{ align-items:stretch; flex-direction:column; gap:9px; }} .refresh-button {{ align-self:flex-start; }}
+      .premium-table-wrap {{ overflow:visible; border:0; background:transparent; }} .premium-table {{ min-width:0; table-layout:auto; }}
+      .premium-table thead {{ display:none; }} .premium-table,.premium-item {{ display:block; }}
+      .premium-item {{ margin-bottom:7px; border:1px solid var(--border); border-radius:6px; background:var(--surface); overflow:hidden; }}
+      .premium-summary-row {{ display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:6px 12px; padding:9px 11px; }}
+      .premium-summary-row td,.premium-summary-row td:first-child,.premium-summary-row td:nth-child(2),.premium-summary-row td:nth-child(3),.premium-summary-row td:last-child {{ display:grid; width:auto; padding:0; border:0; text-align:left; white-space:normal; }}
+      .premium-summary-row td::before {{ content:attr(data-label); color:var(--muted); font-size:10px; }}
+      .premium-summary-row td:first-child {{ grid-column:1/-1; padding-bottom:6px; border-bottom:1px solid #e8ebee; }} .premium-summary-row td:first-child::before {{ display:none; }}
+      .premium-summary-row td:nth-child(2) {{ min-width:68px; }} .premium-summary-row td:nth-child(3) {{ min-width:94px; }} .premium-summary-row td:nth-child(4) {{ min-width:50px; }}
+      .premium-detail-row {{ display:table-row; }} .premium-detail-row[hidden] {{ display:none; }} .premium-detail-row td {{ display:block; padding:0; border:0; }}
+      .premium-detail-grid {{ grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 16px; padding:11px 12px 8px; border-top:1px solid #e5e9ed; }} .premium-source-link {{ margin:0 12px 11px; }}
+    }}
     @media (min-width:820px) {{ .page {{ padding-top:28px; }} .meta-grid {{ grid-template-columns:repeat(4,minmax(0,1fr)); }} .fund-item summary {{ grid-template-columns:38px minmax(210px,1fr) minmax(520px,560px) 18px; gap:12px; padding:14px 16px; }} .summary-metrics {{ grid-column:3; grid-row:1; grid-template-columns:repeat(5,minmax(0,1fr)); margin-top:0; }} .chevron {{ grid-column:4; }} .fund-detail {{ padding:18px 66px 20px; }} .detail-grid {{ grid-template-columns:repeat(4,minmax(0,1fr)); }} .rule-grid {{ grid-template-columns:repeat(3,minmax(0,1fr)); }} }}
-    @media (prefers-reduced-motion:reduce) {{ .chevron {{ transition:none; }} }}
+    @media (prefers-reduced-motion:reduce) {{ .chevron {{ transition:none; }} .refresh-button[aria-busy="true"] .refresh-icon {{ animation:none; }} }}
   </style>
 </head>
 <body>
   <div class="page">
     <header class="page-header">
-      <div class="title-row"><h1>QDII 美国主榜与全球补充榜</h1><time class="run-date" datetime="{html.escape(payload['run_date'], quote=True)}">{html.escape(payload['run_date'])}</time></div>
+      <div class="title-row"><h1>QDII 榜单与场内溢价</h1><time class="run-date" datetime="{html.escape(payload['run_date'], quote=True)}">{html.escape(payload['run_date'])}</time></div>
       <p class="filter-line">{filter_html}</p>
       <dl class="meta-grid">
         <div><dt>机构持仓报告期</dt><dd>{html.escape(payload['holder_report_date'])}</dd></div>
@@ -4268,12 +4721,26 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
       <div class="tabs" role="tablist" aria-label="榜单切换">
         <button class="tab" id="tab-us" type="button" role="tab" aria-selected="true" aria-controls="panel-us" data-panel="panel-us">美国主榜<span class="tab-count">{len(us_records)}</span></button>
         <button class="tab" id="tab-global" type="button" role="tab" aria-selected="false" aria-controls="panel-global" data-panel="panel-global">全球补充榜<span class="tab-count">{len(global_records)}</span></button>
+        <button class="tab" id="tab-premium" type="button" role="tab" aria-selected="false" aria-controls="panel-premium" data-panel="panel-premium">场内溢价<span class="tab-count">{len(premium_records)}</span></button>
       </div>
       <section id="panel-us" class="ranking-list" role="tabpanel" aria-labelledby="tab-us">{render_list(us_records)}</section>
       <section id="panel-global" class="ranking-list" role="tabpanel" aria-labelledby="tab-global" hidden>{render_list(global_records)}</section>
+      <section id="panel-premium" class="premium-panel" role="tabpanel" aria-labelledby="tab-premium" hidden>
+        <div class="premium-toolbar">
+          <div><h2>场内美股ETF</h2><p>按溢价从高到低排列；点击ETF展开价格、IOPV和行情详情。</p></div>
+          <button class="refresh-button" id="premium-refresh" type="button" aria-busy="false"><span class="refresh-icon" aria-hidden="true">↻</span><span>刷新行情</span></button>
+        </div>
+        <p class="premium-status" id="premium-refresh-status" role="status" aria-live="polite">{html.escape(premium_status_text)}；日报请求于 {html.escape(format_quote_time(premium['requested_at']))}，行情约延迟 {premium['quote_delay_minutes']} 分钟。</p>
+        <div class="premium-table-wrap">
+          <table class="premium-table">
+            <thead><tr><th>ETF</th><th>基准</th><th>溢价</th><th>涨跌</th></tr></thead>
+            {premium_rows}
+          </table>
+        </div>
+      </section>
       {warning_section}
     </main>
-    <footer>额度为基金管理人层面的单日单基金账户上限；持有费率为产品概要披露的综合年化运作费率，已反映在净值中。</footer>
+    <footer>额度为基金管理人层面的单日单基金账户上限；持有费率已反映在净值中；场内溢价为约15分钟延迟的价格相对IOPV偏离。</footer>
   </div>
   <script>
     const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
@@ -4284,6 +4751,8 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
         document.getElementById(item.dataset.panel).hidden = !active;
       }});
     }}));
+    globalThis.__ETF_PREMIUM_CONFIG__ = {premium_config_json};
+{browser_script}
   </script>
 </body>
 </html>
@@ -4638,6 +5107,15 @@ def build_payload(
     if not records and not global_records:
         raise DataError("Both QDII ranking lists are empty after applying all filters")
 
+    with metrics.phase("exchange_premium"):
+        exchange_premium, premium_warnings = build_exchange_premium_snapshot(
+            client,
+            args.us_equity_etf_catalog.resolve(),
+            cache_root / "exchange-premium.json",
+            as_of,
+        )
+    warnings.extend(premium_warnings)
+
     us_ranking_method = (
         "nasdaq100_correlation desc, abs(nasdaq100_beta - 1) asc, "
         "us_equity_confirmed_pct desc, institution_holding_ratio_pct desc, "
@@ -4649,7 +5127,7 @@ def build_payload(
         "scale_billion_cny desc, code asc"
     )
     return {
-        "schema_version": 10,
+        "schema_version": 11,
         "run_date": as_of.isoformat(),
         "generated_at": datetime.now(SHANGHAI_TZ).isoformat(timespec="seconds"),
         "holder_report_date": selected.report_date,
@@ -4704,8 +5182,14 @@ def build_payload(
             "quota_notices": quota_notice_cache.stats(),
             "announcement_pdfs": document_cache.stats(),
             "underlying_exposures": resolver.stats(),
+            "exchange_premium": {
+                "fresh": exchange_premium["fresh_count"],
+                "hits": exchange_premium["cache_hit_count"],
+                "expected": exchange_premium["expected_count"],
+            },
         },
         "benchmark": benchmark.metadata(),
+        "exchange_premium": exchange_premium,
         "records": records,
         "global_supplement": {
             "ranking_method": global_ranking_method,
@@ -4727,6 +5211,8 @@ def build_payload(
             "legal_documents": ANNOUNCEMENT_API_URL,
             "us_equity_instrument_catalog": str(args.us_equity_catalog.resolve()),
             "contract_benchmark_catalog": str(args.contract_benchmark_catalog.resolve()),
+            "us_equity_etf_catalog": str(args.us_equity_etf_catalog.resolve()),
+            "exchange_premium": ETF_QUOTE_PAGE_URL,
         },
     }
 
@@ -4812,6 +5298,12 @@ def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
         type=Path,
         default=DEFAULT_CONTRACT_BENCHMARK_CATALOG,
         help="Contract benchmark classification catalog",
+    )
+    parser.add_argument(
+        "--us-equity-etf-catalog",
+        type=Path,
+        default=DEFAULT_US_EQUITY_ETF_CATALOG,
+        help="China-listed US-equity ETF catalog used by the premium tab",
     )
     parser.add_argument("--as-of", help="Evaluation date in YYYY-MM-DD format")
     parser.add_argument(

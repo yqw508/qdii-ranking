@@ -13,6 +13,46 @@ import validate_qdii_ranking as validator
 RUN_DATE = "2026-08-20"
 
 
+def make_exchange_premium():
+    entries, fingerprint = ranking.load_exchange_premium_catalog(
+        ranking.DEFAULT_US_EQUITY_ETF_CATALOG
+    )
+    records = []
+    for index, entry in enumerate(entries):
+        premium = round((index - 10) / 10, 2)
+        records.append(
+            {
+                **entry,
+                "market_price_cny": round(1 + premium / 100, 4),
+                "iopv_cny": 1.0,
+                "source_discount_pct": -premium,
+                "premium_pct": premium,
+                "change_pct": round(index / 100, 2),
+                "turnover_cny": float(10_000_000 + index),
+                "quote_date": RUN_DATE,
+                "updated_at": f"{RUN_DATE}T15:00:00+08:00",
+                "quote_source_url": f"https://example.test/quote/{entry['code']}",
+                "quote_status": "fresh",
+            }
+        )
+    records.sort(key=ranking.exchange_premium_sort_key)
+    return {
+        "schema_version": 1,
+        "status": "fresh",
+        "requested_at": f"{RUN_DATE}T07:07:00+08:00",
+        "quote_delay_minutes": 15,
+        "expected_count": len(entries),
+        "fresh_count": len(entries),
+        "cache_hit_count": 0,
+        "catalog_fingerprint": fingerprint,
+        "group_order": list(ranking.ETF_PREMIUM_GROUP_ORDER),
+        "source_name": "东方财富ETF行情",
+        "source_url": ranking.ETF_QUOTE_PAGE_URL,
+        "refresh_url": ranking.exchange_premium_quote_url(entries),
+        "records": records,
+    }
+
+
 class PerformanceReportingTests(unittest.TestCase):
     def test_report_quantifies_latency_requests_and_pdf_work(self):
         baseline = {
@@ -201,7 +241,7 @@ def make_global_record(rank):
 
 def make_payload():
     return {
-        "schema_version": 10,
+        "schema_version": 11,
         "run_date": RUN_DATE,
         "generated_at": "2026-08-20T09:08:00+08:00",
         "holder_report_date": "2025-12-31",
@@ -271,6 +311,7 @@ def make_payload():
             "fx_start_date": "2023-08-06",
             "fx_latest_date": "2026-08-19",
         },
+        "exchange_premium": make_exchange_premium(),
         "records": [make_record(rank) for rank in range(1, 4)],
         "global_supplement": {
             "ranking_method": validator.EXPECTED_GLOBAL_RANKING_METHOD,
@@ -322,7 +363,29 @@ class RankingValidatorTests(unittest.TestCase):
         payload, warnings = self.validate()
         self.assertEqual(3, len(payload["records"]))
         self.assertEqual(3, len(payload["global_supplement"]["records"]))
+        self.assertEqual(25, len(payload["exchange_premium"]["records"]))
         self.assertEqual(3, len(warnings))
+
+    def test_accepts_non_blocking_exchange_premium_warning(self):
+        payload = make_payload()
+        payload["warnings"].append(
+            "场内溢价告警：行情刷新失败，使用缓存或空值：temporary outage"
+        )
+        _validated, warnings = self.validate(payload)
+        self.assertTrue(any(item.startswith("场内溢价告警：") for item in warnings))
+
+    def test_rejects_exchange_premium_formula_difference(self):
+        payload = make_payload()
+        payload["exchange_premium"]["records"][0]["premium_pct"] = 20.0
+        payload["exchange_premium"]["records"][0]["source_discount_pct"] = -20.0
+        with self.assertRaisesRegex(validator.ValidationError, "price/IOPV"):
+            self.validate(payload)
+
+    def test_rejects_missing_exchange_premium_code(self):
+        payload = make_payload()
+        payload["exchange_premium"]["records"].pop()
+        with self.assertRaisesRegex(validator.ValidationError, "25 records"):
+            self.validate(payload)
 
     def test_rejects_missing_three_year_history_warning(self):
         payload = make_payload()

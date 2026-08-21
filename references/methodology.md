@@ -128,8 +128,18 @@ Every run writes an unpublished `run-metrics.json` with phase durations, categor
 bytes, retries, conditional responses, PDF extractions, and cache statistics. GitHub Actions compares it
 with the versioned pre-optimization baseline; performance misses warn but never bypass data validation.
 
-JSON schema 10 is the structured source of truth. `records` contains the US main list,
+The exchange-premium tab uses the versioned `us-equity-etfs.json` allowlist. One delayed Eastmoney batch
+quote supplies market price, IOPV, discount rate, change, turnover, and timestamps for all entries.
+Displayed premium is the negated source discount rate and must agree with `price / IOPV - 1` within the
+price-tick tolerance. The daily run caches valid records individually; quote failure falls back per ETF
+with a visible timestamp and reportable warning but never weakens or blocks ranking validation. The
+browser refresh uses the same validation rules and keeps the rendered value when a row fails. Static
+and refreshed records share one compact table sorted by premium descending, with unavailable quotes
+last; per-ETF price, IOPV, turnover, timestamp, and source are disclosed on row expansion.
+
+JSON schema 11 is the structured source of truth. `records` contains the US main list,
 `global_supplement.records` contains the supplement, and `exclusion_summary` records reason counts and
-codes. Each record has a `routing_reason`; filters expose `us_main_exclude_keywords` and an empty
+codes. `exchange_premium.records` contains the auxiliary 25-ETF snapshot. Each ranking record has a
+`routing_reason`; filters expose `us_main_exclude_keywords` and an empty
 `global_exclude_keywords`. CSV and Markdown combine both lists with explicit list and routing fields. `latest.html` and
 `public/index.html` are generated from the same payload and must be byte-identical.

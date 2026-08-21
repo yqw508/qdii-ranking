@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "method": "Curated China-listed ETFs whose stated benchmark primarily represents US equities; bonds, commodities, and non-US equity products are excluded.",
+  "entries": [
+    {"code":"513500","name":"标普500ETF博时","exchange":"SSE","market_id":1,"category":"broad_market","benchmark_group":"标普500","source_url":"https://www.sse.com.cn/assortment/fund/etf/home/"},
+    {"code":"159612","name":"标普500ETF国泰","exchange":"SZSE","market_id":0,"category":"broad_market","benchmark_group":"标普500","source_url":"https://www.szse.cn/market/product/list/etfList/index.html"},
+    {"code":"159655","name":"标普500ETF华夏","exchange":"SZSE","market_id":0,"category":"broad_market","benchmark_group":"标普500","source_url":"https://www.szse.cn/market/product/list/etfList/index.html"},
+    {"code":"513650","name":"标普500ETF南方","exchange":"SSE","market_id":1,"category":"broad_market","benchmark_group":"标普500","source_url":"https://www.sse.com.cn/assortment/fund/etf/home/"},
+
+    {"code":"159513","name":"纳斯达克100ETF大成","exchange":"SZSE","market_id":0,"category":"broad_market","benchmark_group":"纳指100","source_url":"https://www.szse.cn/market/product/list/etfList/index.html"},
+    {"code":"159659","name":"纳斯达克100ETF招商","exchange":"SZSE","market_id":0,"category":"broad_market","benchmark_group":"纳指100","source_url":"https://www.szse.cn/market/product/list/etfList/index.html"},
+    {"code":"159632","name":"纳斯达克ETF华安","exchange":"SZSE","market_id":0,"category":"broad_market","benchmark_group":"纳指100","source_url":"https://www.szse.cn/market/product/list/etfList/index.html"},
+    {"code":"513300","name":"纳斯达克ETF华夏","exchange":"SSE","market_id":1,"category":"broad_market","benchmark_group":"纳指100","source_url":"https://www.sse.com.cn/assortment/fund/etf/home/"},
+    {"code":"513390","name":"纳指100ETF博时","exchange":"SSE","market_id":1,"category":"broad_market","benchmark_group":"纳指100","source_url":"https://www.sse.com.cn/assortment/fund/etf/home/"},
+    {"code":"513870","name":"纳指ETF富国","exchange":"SSE","market_id":1,"category":"broad_market","benchmark_group":"纳指100","source_url":"https://www.sse.com.cn/assortment/fund/etf/home/"},
+    {"code":"159941","name":"纳指ETF广发","exchange":"SZSE","market_id":0,"category":"broad_market","benchmark_group":"纳指100","source_url":"https://www.szse.cn/market/product/list/etfList/index.html"},
+    {"code":"513100","name":"纳指ETF国泰","exchange":"SSE","market_id":1,"category":"broad_market","benchmark_group":"纳指100","source_url":"https://www.sse.com.cn/assortment/fund/etf/home/"},
+    {"code":"513110","name":"纳指ETF华泰柏瑞","exchange":"SSE","market_id":1,"category":"broad_market","benchmark_group":"纳指100","source_url":"https://www.sse.com.cn/assortment/fund/etf/home/"},
+    {"code":"159660","name":"纳指ETF汇添富","exchange":"SZSE","market_id":0,"category":"broad_market","benchmark_group":"纳指100","source_url":"https://www.szse.cn/market/product/list/etfList/index.html"},
+    {"code":"159501","name":"纳指ETF嘉实","exchange":"SZSE","market_id":0,"category":"broad_market","benchmark_group":"纳指100","source_url":"https://www.szse.cn/market/product/list/etfList/index.html"},
+    {"code":"159696","name":"纳指ETF易方达","exchange":"SZSE","market_id":0,"category":"broad_market","benchmark_group":"纳指100","source_url":"https://www.szse.cn/market/product/list/etfList/index.html"},
+
+    {"code":"159577","name":"美国50ETF汇添富","exchange":"SZSE","market_id":0,"category":"broad_market","benchmark_group":"美国50","source_url":"https://www.szse.cn/market/product/list/etfList/index.html"},
+    {"code":"513850","name":"美国50ETF易方达","exchange":"SSE","market_id":1,"category":"broad_market","benchmark_group":"美国50","source_url":"https://www.sse.com.cn/assortment/fund/etf/home/"},
+    {"code":"513400","name":"道琼斯ETF鹏华","exchange":"SSE","market_id":1,"category":"broad_market","benchmark_group":"道琼斯","source_url":"https://www.sse.com.cn/assortment/fund/etf/home/"},
+
+    {"code":"159509","name":"纳指科技ETF景顺","exchange":"SZSE","market_id":0,"category":"sector_theme","benchmark_group":"行业主题","source_url":"https://www.szse.cn/market/product/list/etfList/index.html"},
+    {"code":"513290","name":"纳指生物科技ETF汇添富","exchange":"SSE","market_id":1,"category":"sector_theme","benchmark_group":"行业主题","source_url":"https://www.sse.com.cn/assortment/fund/etf/home/"},
+    {"code":"159502","name":"标普生物科技ETF嘉实","exchange":"SZSE","market_id":0,"category":"sector_theme","benchmark_group":"行业主题","source_url":"https://www.szse.cn/market/product/list/etfList/index.html"},
+    {"code":"159529","name":"标普消费ETF景顺","exchange":"SZSE","market_id":0,"category":"sector_theme","benchmark_group":"行业主题","source_url":"https://www.szse.cn/market/product/list/etfList/index.html"},
+    {"code":"513350","name":"标普油气ETF富国","exchange":"SSE","market_id":1,"category":"sector_theme","benchmark_group":"行业主题","source_url":"https://www.sse.com.cn/assortment/fund/etf/home/"},
+    {"code":"159518","name":"标普油气ETF嘉实","exchange":"SZSE","market_id":0,"category":"sector_theme","benchmark_group":"行业主题","source_url":"https://www.szse.cn/market/product/list/etfList/index.html"}
+  ]
+}

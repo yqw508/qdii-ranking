@@ -11,6 +11,7 @@ import re
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import date, datetime, timedelta, timezone
 from html.parser import HTMLParser
@@ -47,6 +48,15 @@ EXPECTED_GLOBAL_RANKING_METHOD = (
 )
 NASDAQ100_MIN_OBSERVATIONS = 140
 NASDAQ100_MIN_SPAN_DAYS = 1000
+EXPECTED_PREMIUM_GROUP_ORDER = ("标普500", "纳指100", "美国50", "道琼斯", "行业主题")
+EXPECTED_PREMIUM_CODES = {
+    "513500", "159612", "159655", "513650",
+    "159513", "159659", "159632", "513300", "513390", "513870",
+    "159941", "513100", "513110", "159660", "159501", "159696",
+    "159577", "513850", "513400", "159509", "513290", "159502",
+    "159529", "513350", "159518",
+}
+ETF_QUOTE_API_URL = "https://push2delay.eastmoney.com/api/qt/ulist.np/get"
 MARKDOWN_ROW_RE = re.compile(
     r"^\|\s*(\d+)\s*\|\s*\[(.+)\s+(\d{6})\]\([^)]+\)\s*\|"
 )
@@ -63,15 +73,31 @@ class RankingHtmlParser(HTMLParser):
         self.lists: list[str] = []
         self.routing_reasons: list[str] = []
         self.blocks: dict[str, str] = {}
+        self.premium_codes: list[str] = []
+        self.premium_blocks: dict[str, str] = {}
+        self.refresh_button_count = 0
+        self.premium_tab_count = 0
+        self.premium_table_count = 0
+        self.premium_toggle_count = 0
         self.all_text: list[str] = []
         self._current_code: str | None = None
         self._current_text: list[str] = []
+        self._current_premium_code: str | None = None
+        self._current_premium_text: list[str] = []
 
     def handle_starttag(
         self, tag: str, attrs: list[tuple[str, str | None]]
     ) -> None:
         attributes = dict(attrs)
         classes = set((attributes.get("class") or "").split())
+        if tag == "button" and attributes.get("id") == "premium-refresh":
+            self.refresh_button_count += 1
+        if tag == "button" and attributes.get("id") == "tab-premium":
+            self.premium_tab_count += 1
+        if tag == "table" and "premium-table" in classes:
+            self.premium_table_count += 1
+        if tag == "button" and "premium-row-toggle" in classes:
+            self.premium_toggle_count += 1
         if tag == "details" and "fund-item" in classes:
             code = attributes.get("data-code")
             if not code or self._current_code is not None:
@@ -80,6 +106,12 @@ class RankingHtmlParser(HTMLParser):
             self.lists.append(attributes.get("data-list") or "")
             self.routing_reasons.append(attributes.get("data-routing-reason") or "")
             self._current_text = []
+        if tag == "tbody" and "premium-item" in classes:
+            code = attributes.get("data-etf-code")
+            if not code or self._current_premium_code is not None:
+                raise ValidationError("HTML contains an invalid nested premium record")
+            self._current_premium_code = code
+            self._current_premium_text = []
 
     def handle_endtag(self, tag: str) -> None:
         if tag == "details" and self._current_code is not None:
@@ -88,11 +120,19 @@ class RankingHtmlParser(HTMLParser):
             self.blocks[self._current_code] = text
             self._current_code = None
             self._current_text = []
+        if tag == "tbody" and self._current_premium_code is not None:
+            text = " ".join(" ".join(self._current_premium_text).split())
+            self.premium_codes.append(self._current_premium_code)
+            self.premium_blocks[self._current_premium_code] = text
+            self._current_premium_code = None
+            self._current_premium_text = []
 
     def handle_data(self, data: str) -> None:
         self.all_text.append(data)
         if self._current_code is not None:
             self._current_text.append(data)
+        if self._current_premium_code is not None:
+            self._current_premium_text.append(data)
 
 
 def current_shanghai_date() -> str:
@@ -172,6 +212,8 @@ def is_reportable_warning(warning: str) -> bool:
     if "quota notice could not be parsed" in warning:
         return True
     if warning.startswith(("美国主榜仅 ", "全球补充榜仅 ")):
+        return True
+    if warning.startswith("场内溢价告警："):
         return True
     if warning in {
         "美国主榜当前没有符合全部条件的基金。",
@@ -858,6 +900,148 @@ def parse_html(document: str) -> RankingHtmlParser:
     return parser
 
 
+def premium_band(value: float | None) -> str:
+    if value is None:
+        return "--"
+    if value < 0:
+        return "折价"
+    if value <= 2:
+        return "0–2%"
+    if value <= 5:
+        return "2–5%"
+    return ">5%高溢价"
+
+
+def format_premium_value(value: Any) -> str:
+    if value is None:
+        return "--"
+    numeric = as_number(value, "premium value")
+    return f"{numeric:+.2f}%"
+
+
+def format_premium_turnover(value: Any) -> str:
+    if value is None:
+        return "--"
+    numeric = as_number(value, "premium turnover")
+    if numeric >= 100_000_000:
+        return f"{numeric / 100_000_000:.2f}亿元"
+    if numeric >= 10_000:
+        return f"{numeric / 10_000:.0f}万元"
+    return f"{numeric:.0f}元"
+
+
+def validate_exchange_premium(section: Any, run_date: date) -> list[dict[str, Any]]:
+    require(isinstance(section, dict), "exchange_premium must be an object")
+    require(section.get("schema_version") == 1, "Unexpected exchange premium schema")
+    status = section.get("status")
+    require(status in {"fresh", "partial", "stale", "unavailable"}, "Invalid exchange premium status")
+    require(section.get("quote_delay_minutes") == 15, "Unexpected ETF quote delay")
+    require(section.get("expected_count") == 25, "ETF premium expected count differs")
+    require(section.get("group_order") == list(EXPECTED_PREMIUM_GROUP_ORDER), "ETF premium group order differs")
+    requested_at = str(section.get("requested_at", ""))
+    try:
+        requested = datetime.fromisoformat(requested_at)
+    except ValueError as exc:
+        raise ValidationError("ETF premium requested_at is invalid") from exc
+    require(requested.date() == run_date, "ETF premium request date differs from ranking date")
+    require(
+        isinstance(section.get("catalog_fingerprint"), str)
+        and re.fullmatch(r"[0-9a-f]{64}", section["catalog_fingerprint"]) is not None,
+        "ETF premium catalog fingerprint is invalid",
+    )
+    refresh_url = str(section.get("refresh_url", ""))
+    parsed_url = urllib.parse.urlparse(refresh_url)
+    require(
+        f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}" == ETF_QUOTE_API_URL,
+        "ETF premium refresh URL differs",
+    )
+    query = urllib.parse.parse_qs(parsed_url.query)
+    secids = query.get("secids", [""])[0].split(",")
+    require(
+        {item.split(".", 1)[-1] for item in secids if "." in item} == EXPECTED_PREMIUM_CODES,
+        "ETF premium refresh URL codes differ",
+    )
+    records = section.get("records")
+    require(isinstance(records, list) and len(records) == 25, "ETF premium must contain 25 records")
+    codes = [str(record.get("code", "")) for record in records if isinstance(record, dict)]
+    require(len(codes) == 25 and set(codes) == EXPECTED_PREMIUM_CODES, "ETF premium codes differ")
+    require(len(codes) == len(set(codes)), "ETF premium codes are duplicated")
+    fresh_count = 0
+    stale_count = 0
+    group_order = {group: index for index, group in enumerate(EXPECTED_PREMIUM_GROUP_ORDER)}
+    for record in records:
+        require(isinstance(record, dict), "ETF premium records must be objects")
+        code = record["code"]
+        require(isinstance(record.get("name"), str) and record["name"].strip(), f"ETF {code} name is missing")
+        exchange = record.get("exchange")
+        market_id = record.get("market_id")
+        require(exchange in {"SSE", "SZSE"}, f"ETF {code} exchange is invalid")
+        require((exchange == "SSE") == (market_id == 1), f"ETF {code} market ID differs")
+        group = record.get("benchmark_group")
+        category = record.get("category")
+        require(group in group_order, f"ETF {code} benchmark group is invalid")
+        require(category in {"broad_market", "sector_theme"}, f"ETF {code} category is invalid")
+        require((group == "行业主题") == (category == "sector_theme"), f"ETF {code} category and group differ")
+        require(str(record.get("source_url", "")).startswith("https://"), f"ETF {code} source URL is invalid")
+        quote_status = record.get("quote_status")
+        require(quote_status in {"fresh", "stale", "unavailable"}, f"ETF {code} quote status is invalid")
+        value_fields = (
+            "market_price_cny",
+            "iopv_cny",
+            "source_discount_pct",
+            "premium_pct",
+            "change_pct",
+            "turnover_cny",
+            "quote_date",
+            "updated_at",
+        )
+        if quote_status == "unavailable":
+            require(all(record.get(field) is None for field in value_fields), f"ETF {code} unavailable quote has values")
+            continue
+        if quote_status == "fresh":
+            fresh_count += 1
+        else:
+            stale_count += 1
+        price = as_number(record.get("market_price_cny"), f"ETF {code} price")
+        iopv = as_number(record.get("iopv_cny"), f"ETF {code} IOPV")
+        source_discount = as_number(record.get("source_discount_pct"), f"ETF {code} discount")
+        premium = as_number(record.get("premium_pct"), f"ETF {code} premium")
+        _change = as_number(record.get("change_pct"), f"ETF {code} change")
+        turnover = as_number(record.get("turnover_cny"), f"ETF {code} turnover")
+        require(price > 0 and iopv > 0 and turnover >= 0, f"ETF {code} quote values are outside range")
+        require(abs(source_discount + premium) <= 0.011, f"ETF {code} discount/premium sign differs")
+        calculated = (price / iopv - 1) * 100
+        tolerance = max(0.05, 0.0005 / iopv * 100 + 0.01)
+        require(abs(premium - calculated) <= tolerance, f"ETF {code} premium differs from price/IOPV")
+        try:
+            quote_date = parse_date(str(record.get("quote_date", "")))
+            updated_at = datetime.fromisoformat(str(record.get("updated_at", "")))
+        except ValueError as exc:
+            raise ValidationError(f"ETF {code} quote timestamp is invalid") from exc
+        require(quote_date <= run_date and updated_at.date() <= run_date, f"ETF {code} quote contains future data")
+        require(str(record.get("quote_source_url", "")).startswith("https://"), f"ETF {code} quote URL is invalid")
+
+    expected_order = sorted(
+        records,
+        key=lambda item: (
+            item.get("premium_pct") is None,
+            -float(item["premium_pct"]) if item.get("premium_pct") is not None else math.inf,
+            item["code"],
+        ),
+    )
+    require(codes == [item["code"] for item in expected_order], "ETF premium record order differs")
+    require(section.get("fresh_count") == fresh_count, "ETF premium fresh count differs")
+    require(section.get("cache_hit_count") == stale_count, "ETF premium cache-hit count differs")
+    expected_status = (
+        "fresh" if fresh_count == 25 else
+        "partial" if fresh_count else
+        "stale" if stale_count else
+        "unavailable"
+    )
+    require(status == expected_status, "ETF premium aggregate status differs")
+    return records
+
+
 def validate_html_document(
     document: str, payload: dict[str, Any], records: list[dict[str, Any]], label: str
 ) -> None:
@@ -874,7 +1058,53 @@ def validate_html_document(
         f"{label} routing reasons differ from JSON",
     )
     all_text = " ".join(parser.all_text)
-    require("美国主榜" in all_text and "全球补充榜" in all_text, f"{label} tabs are missing")
+    require(
+        "美国主榜" in all_text and "全球补充榜" in all_text and "场内溢价" in all_text,
+        f"{label} tabs are missing",
+    )
+    premium_records = payload["exchange_premium"]["records"]
+    require(
+        parser.premium_codes == [record["code"] for record in premium_records],
+        f"{label} ETF premium order differs from JSON",
+    )
+    require(parser.premium_tab_count == 1, f"{label} premium tab is missing or duplicated")
+    require(parser.refresh_button_count == 1, f"{label} premium refresh button is missing or duplicated")
+    require(parser.premium_table_count == 1, f"{label} must contain one premium table")
+    require(parser.premium_toggle_count == 25, f"{label} ETF detail toggles differ")
+    require("约15分钟" in all_text or "约 15 分钟" in all_text, f"{label} quote delay disclosure is missing")
+    for record in premium_records:
+        code = record["code"]
+        block = parser.premium_blocks[code]
+        expected = [
+            record["name"],
+            code,
+            record["exchange"],
+            record["benchmark_group"],
+            (
+                "--"
+                if record["market_price_cny"] is None
+                else f"{float(record['market_price_cny']):.3f}"
+            ),
+            (
+                "--"
+                if record["iopv_cny"] is None
+                else f"{float(record['iopv_cny']):.4f}"
+            ),
+            format_premium_value(record["premium_pct"]),
+            premium_band(record["premium_pct"]),
+            format_premium_value(record["change_pct"]),
+            format_premium_turnover(record["turnover_cny"]),
+            (
+                "--"
+                if not record["updated_at"]
+                else str(record["updated_at"])[:16].replace("T", " ")
+            ),
+        ]
+        if record["quote_status"] == "stale":
+            expected.append("旧值")
+        elif record["quote_status"] == "unavailable":
+            expected.append("暂无行情")
+        require(all(value in block for value in expected), f"{label} ETF premium metrics differ for {code}")
     for record in records:
         code = record["code"]
         block = parser.blocks[code]
@@ -965,7 +1195,7 @@ def validate_local_artifacts(
     output_dir: Path, publish_dir: Path, expected_date: str
 ) -> tuple[dict[str, Any], list[str]]:
     payload = load_payload(output_dir / "latest.json")
-    require(payload.get("schema_version") == 10, "Unexpected JSON schema version")
+    require(payload.get("schema_version") == 11, "Unexpected JSON schema version")
     require(payload.get("run_date") == expected_date, "Ranking date is not today's Shanghai date")
     require(
         str(payload.get("generated_at", ""))[:10] == expected_date,
@@ -974,6 +1204,7 @@ def validate_local_artifacts(
     validate_filters(payload.get("filters"))
     validate_exclusion_summary(payload.get("exclusion_summary"))
     validate_benchmark(payload.get("benchmark"), parse_date(expected_date))
+    validate_exchange_premium(payload.get("exchange_premium"), parse_date(expected_date))
     global_section = payload.get("global_supplement")
     require(isinstance(global_section, dict), "global_supplement must be an object")
     require(

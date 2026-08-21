@@ -17,6 +17,11 @@
 长期收益按上述条件参与筛选但不参与排序，费率只展示。完整规则见
 [`references/methodology.md`](references/methodology.md)。
 
+网页另有“场内溢价”页签，展示 25 只中国场内美股权益 ETF 的价格、IOPV、溢价率、涨跌幅、
+成交额和行情时间。07:07 日报保存上一交易日快照；页签内可以手动刷新约 15 分钟延迟行情。
+页面使用一张紧凑表格按溢价从高到低排列，点击单只 ETF 可展开价格、IOPV、成交额和行情来源。
+该辅助数据失败不会阻止基金榜单发布，但页面会保留旧值并明确显示行情时间。
+
 ## 本地更新
 
 使用包含 `pypdf` 的 Python 环境在仓库根目录执行：
@@ -35,9 +40,11 @@ python scripts/validate_qdii_ranking.py `
   --publish-dir .\public `
   --expected-date <北京时间当天日期>
 python -m unittest discover -s scripts -p "test_*.py"
+node --test scripts/test_premium_refresh.mjs
 ```
 
-JSON schema 为 10：顶层 `records` 是美国主榜，`global_supplement.records` 是全球补充榜，
+JSON schema 为 11：顶层 `records` 是美国主榜，`global_supplement.records` 是全球补充榜，
+`exchange_premium.records` 是场内美股 ETF 溢价快照，
 每条记录的 `routing_reason` 说明按美股确认占比分流或按地域名称覆盖分流；
 `exclusion_summary` 汇总候选剔除原因。CSV、Markdown、`latest.html` 和 `public/index.html` 均由
 同一份 JSON 数据生成，两个 HTML 必须字节一致。

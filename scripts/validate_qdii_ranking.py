@@ -213,7 +213,7 @@ def is_reportable_warning(warning: str) -> bool:
         return True
     if warning.startswith(("美国主榜仅 ", "全球补充榜仅 ")):
         return True
-    if warning.startswith("场内溢价告警："):
+    if warning.startswith(("场内溢价告警：", "场内费率告警 ")):
         return True
     if warning in {
         "美国主榜当前没有符合全部条件的基金。",
@@ -456,15 +456,46 @@ def validate_contract_benchmark(
     )
 
 
-def validate_holding_cost(cost: Any, code: str, run_date: date) -> None:
+def validate_holding_cost(
+    cost: Any, code: str, run_date: date, *, allow_stale: bool = False
+) -> None:
     require(isinstance(cost, dict), f"{code} holding cost must be an object")
-    require(cost.get("status") in {"parsed", "unavailable"}, f"{code} holding cost status is invalid")
-    if cost["status"] == "parsed":
+    statuses = {"parsed", "unavailable"}
+    if allow_stale:
+        statuses.add("stale")
+    require(cost.get("status") in statuses, f"{code} holding cost status is invalid")
+    if cost["status"] in {"parsed", "stale"}:
         value = as_number(cost.get("annualized_pct"), f"{code} holding cost")
         require(0 <= value <= 100, f"{code} holding cost is outside [0, 100]")
-        require(bool(cost.get("source_url")), f"{code} holding cost has no source")
+        require(
+            isinstance(cost.get("source_title"), str) and cost["source_title"].strip(),
+            f"{code} holding cost has no source title",
+        )
+        require(
+            str(cost.get("source_url") or "").startswith("https://"),
+            f"{code} holding cost has no valid source",
+        )
+        require(
+            isinstance(cost.get("source_published_date"), str),
+            f"{code} holding cost has no source date",
+        )
     else:
         require(cost.get("annualized_pct") is None, f"{code} unavailable holding cost must be null")
+        source_values = (
+            cost.get("source_title"),
+            cost.get("source_published_date"),
+            cost.get("source_url"),
+        )
+        require(
+            all(value is None for value in source_values)
+            or (
+                isinstance(source_values[0], str)
+                and bool(source_values[0].strip())
+                and isinstance(source_values[1], str)
+                and str(source_values[2] or "").startswith("https://")
+            ),
+            f"{code} unavailable holding-cost source is incomplete",
+        )
     for field in ("measurement_date", "source_published_date"):
         if cost.get(field) is not None:
             require(parse_date(str(cost[field])) <= run_date, f"{code} holding cost uses a future date")
@@ -932,7 +963,7 @@ def format_premium_turnover(value: Any) -> str:
 
 def validate_exchange_premium(section: Any, run_date: date) -> list[dict[str, Any]]:
     require(isinstance(section, dict), "exchange_premium must be an object")
-    require(section.get("schema_version") == 1, "Unexpected exchange premium schema")
+    require(section.get("schema_version") == 2, "Unexpected exchange premium schema")
     status = section.get("status")
     require(status in {"fresh", "partial", "stale", "unavailable"}, "Invalid exchange premium status")
     require(section.get("quote_delay_minutes") == 15, "Unexpected ETF quote delay")
@@ -983,6 +1014,9 @@ def validate_exchange_premium(section: Any, run_date: date) -> list[dict[str, An
         require(category in {"broad_market", "sector_theme"}, f"ETF {code} category is invalid")
         require((group == "行业主题") == (category == "sector_theme"), f"ETF {code} category and group differ")
         require(str(record.get("source_url", "")).startswith("https://"), f"ETF {code} source URL is invalid")
+        validate_holding_cost(
+            record.get("holding_cost"), f"ETF {code}", run_date, allow_stale=True
+        )
         quote_status = record.get("quote_status")
         require(quote_status in {"fresh", "stale", "unavailable"}, f"ETF {code} quote status is invalid")
         value_fields = (
@@ -1094,6 +1128,8 @@ def validate_html_document(
             premium_band(record["premium_pct"]),
             format_premium_value(record["change_pct"]),
             format_premium_turnover(record["turnover_cny"]),
+            mailer.format_holding_cost(record["holding_cost"]),
+            str(record["holding_cost"].get("source_published_date") or "--"),
             (
                 "--"
                 if not record["updated_at"]
@@ -1104,6 +1140,10 @@ def validate_html_document(
             expected.append("旧值")
         elif record["quote_status"] == "unavailable":
             expected.append("暂无行情")
+        if record["holding_cost"]["status"] == "stale":
+            expected.append("旧值")
+        if record["holding_cost"].get("source_url"):
+            expected.append("查看费率来源")
         require(all(value in block for value in expected), f"{label} ETF premium metrics differ for {code}")
     for record in records:
         code = record["code"]
@@ -1195,7 +1235,7 @@ def validate_local_artifacts(
     output_dir: Path, publish_dir: Path, expected_date: str
 ) -> tuple[dict[str, Any], list[str]]:
     payload = load_payload(output_dir / "latest.json")
-    require(payload.get("schema_version") == 11, "Unexpected JSON schema version")
+    require(payload.get("schema_version") == 12, "Unexpected JSON schema version")
     require(payload.get("run_date") == expected_date, "Ranking date is not today's Shanghai date")
     require(
         str(payload.get("generated_at", ""))[:10] == expected_date,

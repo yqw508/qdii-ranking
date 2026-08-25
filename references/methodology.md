@@ -135,9 +135,14 @@ price-tick tolerance. The daily run caches valid records individually; quote fai
 with a visible timestamp and reportable warning but never weakens or blocks ranking validation. The
 browser refresh uses the same validation rules and keeps the rendered value when a row fails. Static
 and refreshed records share one compact table sorted by premium descending, with unavailable quotes
-last; per-ETF price, IOPV, turnover, timestamp, and source are disclosed on row expansion.
+last. The daily run revalidates the current announcement index for all 25 ETFs, selects the latest
+product summary available by the ranking date, and parses the disclosed annualized comprehensive fund
+operating expense. An unchanged summary may reuse its parsed cache. A new unreadable summary replaces
+the old value with unavailable; only an announcement-index outage may reuse the last parsed value, which
+is visibly marked stale. This expense is display-only, is already reflected in fund assets, and excludes
+investor-specific brokerage commissions.
 
-JSON schema 11 is the structured source of truth. `records` contains the US main list,
+JSON schema 12 is the structured source of truth. `records` contains the US main list,
 `global_supplement.records` contains the supplement, and `exclusion_summary` records reason counts and
 codes. `exchange_premium.records` contains the auxiliary 25-ETF snapshot. Each ranking record has a
 `routing_reason`; filters expose `us_main_exclude_keywords` and an empty

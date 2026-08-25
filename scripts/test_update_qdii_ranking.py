@@ -31,11 +31,19 @@ def sample_exchange_premium(run_date="2026-08-20"):
                 "updated_at": f"{run_date}T15:00:00+08:00",
                 "quote_source_url": f"https://example.test/quote/{entry['code']}",
                 "quote_status": "fresh",
+                "holding_cost": {
+                    "status": "parsed",
+                    "annualized_pct": round(0.6 + index / 100, 2),
+                    "measurement_date": None,
+                    "source_title": f"{entry['name']}基金产品资料概要更新",
+                    "source_published_date": run_date,
+                    "source_url": f"https://example.test/fee/{entry['code']}.pdf",
+                },
             }
         )
     records.sort(key=ranking.exchange_premium_sort_key)
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "status": "fresh",
         "requested_at": f"{run_date}T07:07:00+08:00",
         "quote_delay_minutes": 15,
@@ -468,6 +476,20 @@ class ContractBenchmarkTests(unittest.TestCase):
         self.assertEqual(0.66, result["annualized_pct"])
         self.assertEqual("2026-08-13", result["measurement_date"])
 
+    def test_parses_official_holding_cost_layout_variants(self):
+        summary = ranking.LegalDocument(
+            "s", "产品概要", date(2026, 8, 14), "https://example.test/s.pdf", "product_summary"
+        )
+        fixtures = (
+            ("基金运作综合费率（年化）基金运作综合费率 0.80%", 0.8),
+            ("基金运作综合费率（年化）5 / 7 基金运作综合费率 0.66%", 0.66),
+            ("基金运作综合费率（年化）- 0.66%", 0.66),
+        )
+        for text, expected in fixtures:
+            with self.subTest(text=text):
+                result = ranking.parse_holding_cost(text, summary, date(2026, 8, 20))
+                self.assertEqual(expected, result["annualized_pct"])
+
     def test_rejects_missing_or_future_holding_cost_data(self):
         summary = ranking.LegalDocument(
             "s", "产品概要", date(2026, 8, 14), "https://example.test/s.pdf", "product_summary"
@@ -478,6 +500,22 @@ class ContractBenchmarkTests(unittest.TestCase):
             ranking.parse_holding_cost(
                 "基金运作综合费率（年化）1.20% 测算日期为2026年08月21日",
                 summary,
+                date(2026, 8, 20),
+            )
+        with self.assertRaisesRegex(ranking.DataError, "outside"):
+            ranking.parse_holding_cost(
+                "基金运作综合费率（年化）101.00%", summary, date(2026, 8, 20)
+            )
+        with self.assertRaisesRegex(ranking.DataError, "publication date"):
+            ranking.parse_holding_cost(
+                "基金运作综合费率（年化）1.00%",
+                ranking.LegalDocument(
+                    "future",
+                    "未来产品概要",
+                    date(2026, 8, 21),
+                    "https://example.test/future.pdf",
+                    "product_summary",
+                ),
                 date(2026, 8, 20),
             )
 
@@ -1007,6 +1045,43 @@ class PerformanceCacheTests(unittest.TestCase):
 
 
 class ExchangePremiumTests(unittest.TestCase):
+    @staticmethod
+    def entry():
+        return {
+            "code": "513500",
+            "name": "标普500ETF博时",
+            "exchange": "SSE",
+            "market_id": 1,
+            "category": "broad_market",
+            "benchmark_group": "标普500",
+            "source_url": "https://example.test",
+        }
+
+    @staticmethod
+    def holding_cost(value=0.8):
+        return {
+            "status": "parsed",
+            "annualized_pct": value,
+            "measurement_date": None,
+            "source_title": "标普500ETF博时基金产品资料概要更新",
+            "source_published_date": "2026-08-18",
+            "source_url": "https://example.test/summary.pdf",
+        }
+
+    @staticmethod
+    def announcement_cache(summary_id="summary"):
+        record = ranking.AnnouncementRecord(
+            summary_id,
+            "标普500ETF博时基金产品资料概要更新",
+            date(2026, 8, 18),
+        )
+
+        class Cache:
+            def get(self, _client, code, as_of):
+                return ranking.FundAnnouncementSnapshot(code, as_of, (record,))
+
+        return Cache()
+
     def test_catalog_contains_the_expected_twenty_five_unique_etfs(self):
         entries, fingerprint = ranking.load_exchange_premium_catalog(
             ranking.DEFAULT_US_EQUITY_ETF_CATALOG
@@ -1029,15 +1104,7 @@ class ExchangePremiumTests(unittest.TestCase):
         self.assertEqual(["000001", "000002", "000003"], [item["code"] for item in records])
 
     def test_normalizes_discount_as_premium_and_checks_price_iopv(self):
-        entry = {
-            "code": "513500",
-            "name": "标普500ETF博时",
-            "exchange": "SSE",
-            "market_id": 1,
-            "category": "broad_market",
-            "benchmark_group": "标普500",
-            "source_url": "https://example.test",
-        }
+        entry = self.entry()
         raw = {
             "f2": 2.672,
             "f3": -0.11,
@@ -1059,6 +1126,83 @@ class ExchangePremiumTests(unittest.TestCase):
             ranking.normalize_exchange_premium_quote(
                 {**raw, "f402": -1}, entry, date(2026, 8, 21)
             )
+
+    def test_holding_cost_cache_hit_avoids_reparsing_unchanged_summary(self):
+        class DocumentCache:
+            def get_text(self, *_args):
+                raise AssertionError("unchanged summary should use the parsed cache")
+
+        with TemporaryDirectory() as directory:
+            result_cache = ranking.ExchangePremiumHoldingCostCache(Path(directory))
+            result_cache.save("513500", "summary", self.holding_cost())
+            cost, warnings = ranking.resolve_exchange_premium_holding_cost(
+                object(),
+                self.entry(),
+                date(2026, 8, 20),
+                self.announcement_cache(),
+                DocumentCache(),
+                result_cache,
+            )
+        self.assertEqual("parsed", cost["status"])
+        self.assertEqual(0.8, cost["annualized_pct"])
+        self.assertEqual([], warnings)
+        self.assertEqual(1, result_cache.stats()["hits"])
+
+    def test_new_unparseable_summary_does_not_fall_back_to_old_fee(self):
+        class DocumentCache:
+            def get_text(self, *_args):
+                return "最新概要未披露可解析的综合费率"
+
+        with TemporaryDirectory() as directory:
+            result_cache = ranking.ExchangePremiumHoldingCostCache(Path(directory))
+            result_cache.save("513500", "old-summary", self.holding_cost())
+            cost, warnings = ranking.resolve_exchange_premium_holding_cost(
+                object(),
+                self.entry(),
+                date(2026, 8, 20),
+                self.announcement_cache("new-summary"),
+                DocumentCache(),
+                result_cache,
+            )
+            cached = result_cache.load("513500", date(2026, 8, 20))
+        self.assertEqual("unavailable", cost["status"])
+        self.assertIsNone(cost["annualized_pct"])
+        self.assertTrue(any("最新产品概要无法解析" in warning for warning in warnings))
+        self.assertEqual("new-summary", cached[0])
+        self.assertEqual("unavailable", cached[1]["status"])
+
+    def test_announcement_outage_uses_only_a_valid_last_fee(self):
+        class FailingAnnouncementCache:
+            def get(self, *_args):
+                raise ranking.DataError("temporary outage")
+
+        with TemporaryDirectory() as directory:
+            result_cache = ranking.ExchangePremiumHoldingCostCache(Path(directory))
+            result_cache.save("513500", "summary", self.holding_cost())
+            stale, stale_warnings = ranking.resolve_exchange_premium_holding_cost(
+                object(),
+                self.entry(),
+                date(2026, 8, 20),
+                FailingAnnouncementCache(),
+                object(),
+                result_cache,
+            )
+            empty_cache = ranking.ExchangePremiumHoldingCostCache(
+                Path(directory) / "empty"
+            )
+            unavailable, unavailable_warnings = ranking.resolve_exchange_premium_holding_cost(
+                object(),
+                self.entry(),
+                date(2026, 8, 20),
+                FailingAnnouncementCache(),
+                object(),
+                empty_cache,
+            )
+        self.assertEqual("stale", stale["status"])
+        self.assertEqual(0.8, stale["annualized_pct"])
+        self.assertTrue(any("使用上次费率" in warning for warning in stale_warnings))
+        self.assertEqual("unavailable", unavailable["status"])
+        self.assertTrue(any("没有可用旧值" in warning for warning in unavailable_warnings))
 
     def test_source_failure_uses_valid_cache_without_blocking(self):
         class FailingClient:
@@ -1277,6 +1421,12 @@ class HtmlOutputTests(unittest.TestCase):
         self.assertEqual(25, document.count('class="premium-item premium-row'))
         self.assertEqual(1, document.count('class="premium-table"'))
         self.assertEqual(25, document.count('class="premium-row-toggle"'))
+        self.assertEqual(25, document.count('data-label="综合费率"'))
+        self.assertIn("<th>综合费率</th>", document)
+        self.assertIn("0.60%/年", document)
+        self.assertEqual(25, document.count("查看费率来源"))
+        self.assertIn("综合费率（年化）", document)
+        self.assertIn("不含场内券商佣金", document)
         self.assertIn("按溢价从高到低排列", document)
         self.assertEqual(1, document.count('id="premium-refresh"'))
         self.assertIn("行情约延迟 15 分钟", document)

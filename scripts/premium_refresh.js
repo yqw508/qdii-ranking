@@ -255,6 +255,7 @@
     fetchWithRetry,
     premiumBand,
     formatTurnover,
+    updateRow,
     comparePremiumItems,
     sortPremiumRows,
     setupDetailToggles,

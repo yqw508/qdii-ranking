@@ -77,6 +77,8 @@ FUND_EXPOSURE_CACHE_SCHEMA_VERSION = 1
 US_EQUITY_METHOD_VERSION = 1
 ETF_PREMIUM_CACHE_SCHEMA_VERSION = 1
 ETF_PREMIUM_CATALOG_SCHEMA_VERSION = 1
+ETF_HOLDING_COST_CACHE_SCHEMA_VERSION = 1
+ETF_HOLDING_COST_METHOD_VERSION = 1
 ETF_PREMIUM_DELAY_MINUTES = 15
 ETF_PREMIUM_GROUP_ORDER = ("标普500", "纳指100", "美国50", "道琼斯", "行业主题")
 DEFAULT_MIN_DIRECT_LIMIT_CNY = 200
@@ -2515,16 +2517,20 @@ def unreadable_contract_benchmark(fund: dict[str, Any]) -> dict[str, Any]:
 def parse_holding_cost(
     text: str, summary: LegalDocument, as_of: date
 ) -> dict[str, Any]:
+    if summary.published_date > as_of:
+        raise DataError("Holding-cost source publication date is in the future")
     compact = re.sub(r"\s+", " ", text.replace("\u3000", " ")).strip()
     rate_match = re.search(
-        r"基金运作综合费率\s*[（(]\s*年化\s*[）)]\s*([0-9]+(?:\.[0-9]+)?)\s*%",
+        r"基金运作综合费率\s*[（(]\s*年化\s*[）)]"
+        r"(?:\s*(?:基金运作综合费率|\d+\s*/\s*\d+|[-–—])){0,3}"
+        r"\s*([0-9]+(?:\.[0-9]+)?)\s*%",
         compact,
     )
     if not rate_match:
         raise DataError("Could not locate annualized comprehensive operating expense")
     rate = float(rate_match.group(1))
     if not math.isfinite(rate) or rate < 0 or rate > 100:
-        raise DataError("Annualized comprehensive operating expense is invalid")
+        raise DataError("Annualized comprehensive operating expense is outside its valid range")
     date_match = re.search(
         r"(?:综合费率[^。]{0,80})?测算日期为\s*(\d{4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日",
         compact,
@@ -3827,6 +3833,246 @@ def load_exchange_premium_catalog(path: Path) -> tuple[list[dict[str, Any]], str
     return entries, hashlib.sha256(raw).hexdigest()
 
 
+class ExchangePremiumHoldingCostCache:
+    def __init__(self, directory: Path) -> None:
+        self.directory = directory
+        self.hits = 0
+        self.misses = 0
+        self.stale_fallbacks = 0
+        self.writes = 0
+        self.corrupt_rebuilds = 0
+        self._stats_lock = Lock()
+
+    @staticmethod
+    def _decode(
+        payload: dict[str, Any], code: str, as_of: date
+    ) -> tuple[str | None, dict[str, Any]]:
+        if (
+            payload.get("schema_version") != ETF_HOLDING_COST_CACHE_SCHEMA_VERSION
+            or payload.get("method_version") != ETF_HOLDING_COST_METHOD_VERSION
+            or payload.get("code") != code
+            or (
+                payload.get("summary_id") is not None
+                and not isinstance(payload.get("summary_id"), str)
+            )
+            or not isinstance(payload.get("holding_cost"), dict)
+        ):
+            raise DataError("Cached ETF holding-cost identity is invalid")
+        cost = dict(payload["holding_cost"])
+        if set(cost) != {
+            "status",
+            "annualized_pct",
+            "measurement_date",
+            "source_title",
+            "source_published_date",
+            "source_url",
+        } or cost["status"] not in {"parsed", "unavailable"}:
+            raise DataError("Cached ETF holding-cost fields are invalid")
+        value = cost["annualized_pct"]
+        if cost["status"] == "parsed":
+            try:
+                numeric = float(value)
+            except (TypeError, ValueError) as exc:
+                raise DataError("Cached ETF holding cost is non-numeric") from exc
+            if not math.isfinite(numeric) or numeric < 0 or numeric > 100:
+                raise DataError("Cached ETF holding cost is outside its valid range")
+            cost["annualized_pct"] = round(numeric, 2)
+            if (
+                not isinstance(cost["source_title"], str)
+                or not cost["source_title"].strip()
+                or not isinstance(cost["source_published_date"], str)
+                or not str(cost["source_url"] or "").startswith("https://")
+            ):
+                raise DataError("Cached ETF holding-cost source is invalid")
+        else:
+            if value is not None:
+                raise DataError("Unavailable cached ETF holding cost has a value")
+            source_values = (
+                cost["source_title"],
+                cost["source_published_date"],
+                cost["source_url"],
+            )
+            if not (
+                all(item is None for item in source_values)
+                or (
+                    isinstance(source_values[0], str)
+                    and bool(source_values[0].strip())
+                    and isinstance(source_values[1], str)
+                    and str(source_values[2] or "").startswith("https://")
+                )
+            ):
+                raise DataError("Unavailable cached ETF holding-cost source is incomplete")
+        for field in ("measurement_date", "source_published_date"):
+            raw_date = cost[field]
+            if raw_date is not None and parse_date(str(raw_date)) > as_of:
+                raise DataError("Cached ETF holding cost contains future data")
+        return payload.get("summary_id"), cost
+
+    def load(
+        self, code: str, as_of: date
+    ) -> tuple[str | None, dict[str, Any]] | None:
+        path = self.directory / f"{code}.json"
+        if not path.exists():
+            return None
+        try:
+            result = self._decode(
+                json.loads(path.read_text(encoding="utf-8")), code, as_of
+            )
+        except (DataError, OSError, ValueError, json.JSONDecodeError):
+            with self._stats_lock:
+                self.corrupt_rebuilds += 1
+            return None
+        return result
+
+    def save(
+        self, code: str, summary_id: str | None, holding_cost: dict[str, Any]
+    ) -> None:
+        write_json(
+            self.directory / f"{code}.json",
+            {
+                "schema_version": ETF_HOLDING_COST_CACHE_SCHEMA_VERSION,
+                "method_version": ETF_HOLDING_COST_METHOD_VERSION,
+                "code": code,
+                "summary_id": summary_id,
+                "holding_cost": holding_cost,
+            },
+        )
+        with self._stats_lock:
+            self.writes += 1
+
+    def mark_hit(self) -> None:
+        with self._stats_lock:
+            self.hits += 1
+
+    def mark_miss(self) -> None:
+        with self._stats_lock:
+            self.misses += 1
+
+    def mark_stale_fallback(self) -> None:
+        with self._stats_lock:
+            self.stale_fallbacks += 1
+
+    def stats(self) -> dict[str, int]:
+        with self._stats_lock:
+            return {
+                "hits": self.hits,
+                "misses": self.misses,
+                "stale_fallbacks": self.stale_fallbacks,
+                "writes": self.writes,
+                "corrupt_rebuilds": self.corrupt_rebuilds,
+            }
+
+
+def resolve_exchange_premium_holding_cost(
+    client: HttpClient,
+    entry: dict[str, Any],
+    as_of: date,
+    announcement_cache: AnnouncementIndexCache,
+    document_cache: PeriodicReportCache,
+    result_cache: ExchangePremiumHoldingCostCache,
+) -> tuple[dict[str, Any], list[str]]:
+    code = entry["code"]
+    cached = result_cache.load(code, as_of)
+    try:
+        snapshot = announcement_cache.get(client, code, as_of)
+    except (DataError, OSError, ValueError) as exc:
+        if cached is not None and cached[1]["status"] == "parsed":
+            result_cache.mark_stale_fallback()
+            return (
+                {**cached[1], "status": "stale"},
+                [f"场内费率告警 {code}：公告索引无法读取，使用上次费率：{exc}"],
+            )
+        return (
+            unavailable_holding_cost(None),
+            [f"场内费率告警 {code}：公告索引无法读取，且没有可用旧值：{exc}"],
+        )
+
+    try:
+        _prospectus, summary = fetch_latest_legal_documents(
+            client, code, as_of, snapshot=snapshot
+        )
+    except (DataError, OSError, ValueError) as exc:
+        result_cache.mark_miss()
+        return (
+            unavailable_holding_cost(None),
+            [f"场内费率告警 {code}：无法选择最新产品概要：{exc}"],
+        )
+    if summary is None:
+        result_cache.mark_miss()
+        cost = unavailable_holding_cost(None)
+        warnings = [f"场内费率告警 {code}：截至 {as_of} 没有可用的产品概要。"]
+        try:
+            result_cache.save(code, None, cost)
+        except OSError as exc:
+            warnings.append(f"场内费率告警 {code}：无法保存费率缓存：{exc}")
+        return cost, warnings
+
+    if cached is not None and cached[0] == summary.announcement_id and cached[1]["status"] == "parsed":
+        result_cache.mark_hit()
+        return cached[1], []
+
+    result_cache.mark_miss()
+    try:
+        summary_text = document_cache.get_text(
+            client, summary, FUND_PAGE_URL.format(code=code)
+        )
+        cost = parse_holding_cost(summary_text, summary, as_of)
+        warnings: list[str] = []
+    except (DataError, OSError, ValueError) as exc:
+        cost = unavailable_holding_cost(summary)
+        warnings = [f"场内费率告警 {code}：最新产品概要无法解析：{exc}"]
+    try:
+        result_cache.save(code, summary.announcement_id, cost)
+    except OSError as exc:
+        warnings.append(f"场内费率告警 {code}：无法保存费率缓存：{exc}")
+    return cost, warnings
+
+
+def build_exchange_premium_holding_costs(
+    client: HttpClient,
+    entries: list[dict[str, Any]],
+    as_of: date,
+    announcement_cache: AnnouncementIndexCache,
+    document_cache: PeriodicReportCache,
+    result_cache: ExchangePremiumHoldingCostCache,
+) -> tuple[dict[str, dict[str, Any]], list[str]]:
+    costs: dict[str, dict[str, Any]] = {}
+    warnings: list[str] = []
+    with ThreadPoolExecutor(max_workers=min(DOCUMENT_WORKERS, len(entries))) as executor:
+        futures = {
+            executor.submit(
+                resolve_exchange_premium_holding_cost,
+                client,
+                entry,
+                as_of,
+                announcement_cache,
+                document_cache,
+                result_cache,
+            ): entry["code"]
+            for entry in entries
+        }
+        for future in as_completed(futures):
+            code = futures[future]
+            try:
+                cost, item_warnings = future.result()
+            except Exception as exc:  # pragma: no cover - defensive isolation for auxiliary data
+                cost = unavailable_holding_cost(None)
+                item_warnings = [f"场内费率告警 {code}：费率处理失败：{exc}"]
+            costs[code] = cost
+            warnings.extend(item_warnings)
+    return costs, warnings
+
+
+def attach_exchange_premium_holding_costs(
+    section: dict[str, Any], costs: dict[str, dict[str, Any]]
+) -> None:
+    for record in section["records"]:
+        record["holding_cost"] = costs.get(
+            record["code"], unavailable_holding_cost(None)
+        )
+    section["schema_version"] = 2
+
+
 def exchange_premium_quote_url(entries: list[dict[str, Any]]) -> str:
     params = {
         "fltt": "2",
@@ -4504,6 +4750,18 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
         value = item["premium_pct"]
         band_key, band_label = premium_band(value)
         quote_status = item["quote_status"]
+        holding_cost = item["holding_cost"]
+        holding_cost_text = format_holding_cost(holding_cost)
+        holding_cost_status = holding_cost["status"]
+        holding_cost_stale = (
+            '<span class="stale-label">旧值</span>'
+            if holding_cost_status == "stale"
+            else ""
+        )
+        holding_cost_link = html_source_link(
+            holding_cost_text, holding_cost.get("source_url")
+        )
+        holding_cost_date = holding_cost.get("source_published_date") or "--"
         row_classes = ["premium-row"]
         if quote_status == "stale":
             row_classes.append("is-stale")
@@ -4511,6 +4769,13 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
             row_classes.append("is-unavailable")
         stale_text = "旧值" if quote_status == "stale" else ("暂无行情" if quote_status == "unavailable" else "")
         source_url = item.get("quote_source_url") or item["source_url"]
+        holding_cost_source = ""
+        if holding_cost.get("source_url"):
+            holding_cost_source = (
+                f'<a class="premium-source-link" href="{html.escape(holding_cost["source_url"], quote=True)}" '
+                'target="_blank" rel="noopener noreferrer">查看费率来源'
+                '<span class="external" aria-hidden="true">↗</span></a>'
+            )
         premium_data = "NaN" if value is None else f"{float(value):.8g}"
         detail_id = f"premium-detail-{item['code']}"
         return f"""
@@ -4519,10 +4784,11 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
               <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="{detail_id}"><span><strong data-field="name">{html.escape(item['name'])}</strong><span class="fund-code">{item['code']} · {item['exchange']}</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
               <td data-label="基准"><span class="benchmark-compact">{html.escape(item['benchmark_group'])}</span></td>
               <td data-label="溢价"><span class="premium-value band-{band_key}" data-field="premium">{format_premium_value(value)}</span><span class="premium-band band-{band_key}" data-field="band">{band_label}</span><span class="stale-label" data-field="stale">{stale_text}</span></td>
+              <td data-label="综合费率"><span class="premium-cost" data-field="holding-cost">{holding_cost_text}</span>{holding_cost_stale}</td>
               <td data-label="涨跌"><span data-field="change">{format_premium_value(item['change_pct'])}</span></td>
             </tr>
             <tr class="premium-detail-row" id="{detail_id}" hidden>
-              <td colspan="4">
+              <td colspan="5">
                 <dl class="premium-detail-grid">
                   <div><dt>价格</dt><dd data-field="price">{'--' if item['market_price_cny'] is None else f"{float(item['market_price_cny']):.3f}"}</dd></div>
                   <div><dt>IOPV</dt><dd data-field="iopv">{'--' if item['iopv_cny'] is None else f"{float(item['iopv_cny']):.4f}"}</dd></div>
@@ -4530,8 +4796,13 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
                   <div><dt>行情时间</dt><dd><time data-field="updated">{format_quote_time(item['updated_at'])}</time></dd></div>
                   <div><dt>交易所</dt><dd>{item['exchange']}</dd></div>
                   <div><dt>分类</dt><dd>{'行业主题' if item['category'] == 'sector_theme' else '宽基'}</dd></div>
+                  <div><dt>综合费率（年化）</dt><dd>{holding_cost_link}{holding_cost_stale}</dd></div>
+                  <div><dt>费率资料日期</dt><dd>{html.escape(holding_cost_date)}</dd></div>
                 </dl>
-                <a class="premium-source-link" href="{html.escape(source_url, quote=True)}" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                <div class="premium-source-row">
+                  <a class="premium-source-link" href="{html.escape(source_url, quote=True)}" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                  {holding_cost_source}
+                </div>
               </td>
             </tr>
           </tbody>"""
@@ -4647,13 +4918,14 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
     .refresh-button[aria-busy="true"] .refresh-icon {{ animation:spin 900ms linear infinite; }}
     .premium-status {{ min-height:22px; margin:0; padding:7px 10px; border-left:3px solid var(--blue); color:#42505d; background:var(--blue-soft); font-size:12px; }}
     .premium-table-wrap {{ overflow-x:auto; border:1px solid var(--border); border-radius:6px; background:var(--surface); }}
-    .premium-table {{ width:100%; min-width:650px; border-collapse:collapse; table-layout:fixed; font-variant-numeric:tabular-nums; }}
+    .premium-table {{ width:100%; min-width:760px; border-collapse:collapse; table-layout:fixed; font-variant-numeric:tabular-nums; }}
     .premium-table th,.premium-summary-row td {{ padding:8px 10px; border-bottom:1px solid #e5e9ed; text-align:right; vertical-align:middle; white-space:nowrap; }}
     .premium-table th {{ color:#52606d; background:#f7f8fa; font-size:12px; font-weight:700; }}
-    .premium-table th:first-child,.premium-summary-row td:first-child {{ width:42%; text-align:left; }}
-    .premium-table th:nth-child(2),.premium-summary-row td:nth-child(2) {{ width:18%; }}
-    .premium-table th:nth-child(3),.premium-summary-row td:nth-child(3) {{ width:25%; }}
-    .premium-table th:last-child,.premium-summary-row td:last-child {{ width:15%; }}
+    .premium-table th:first-child,.premium-summary-row td:first-child {{ width:34%; text-align:left; }}
+    .premium-table th:nth-child(2),.premium-summary-row td:nth-child(2) {{ width:14%; }}
+    .premium-table th:nth-child(3),.premium-summary-row td:nth-child(3) {{ width:22%; }}
+    .premium-table th:nth-child(4),.premium-summary-row td:nth-child(4) {{ width:18%; }}
+    .premium-table th:last-child,.premium-summary-row td:last-child {{ width:12%; }}
     .premium-row-toggle {{ display:flex; width:100%; min-height:38px; align-items:center; justify-content:space-between; gap:12px; padding:0; border:0; color:var(--text); background:transparent; cursor:pointer; text-align:left; }}
     .premium-row-toggle>span:first-child {{ display:grid; min-width:0; gap:1px; }}
     .premium-row-toggle strong {{ overflow:hidden; text-overflow:ellipsis; }}
@@ -4662,9 +4934,11 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
     .premium-row-toggle:focus-visible {{ outline:3px solid #86b7e8; outline-offset:3px; }}
     .benchmark-compact {{ color:#4f5d69; font-size:13px; }}
     .premium-detail-row td {{ padding:0; border-bottom:1px solid #d9e0e6; background:#f8fafb; }}
-    .premium-detail-grid {{ display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:12px; margin:0; padding:12px 14px 8px; }}
+    .premium-detail-grid {{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin:0; padding:12px 14px 8px; }}
     .premium-detail-grid dd {{ font-size:13px; }}
-    .premium-source-link {{ display:inline-block; margin:0 14px 12px; font-size:12px; font-weight:700; }}
+    .premium-source-row {{ display:flex; flex-wrap:wrap; gap:10px 18px; margin:0 14px 12px; }}
+    .premium-source-link {{ display:inline-block; font-size:12px; font-weight:700; }}
+    .premium-cost {{ font-weight:750; }}
     .premium-value {{ margin-right:6px; font-weight:800; }}
     .premium-band,.stale-label {{ display:inline-block; padding:1px 4px; border-radius:3px; font-size:10px; line-height:1.5; }}
     .premium-band.band-discount {{ color:#176451; background:#e8f3ef; }}
@@ -4689,13 +4963,12 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
       .premium-table-wrap {{ overflow:visible; border:0; background:transparent; }} .premium-table {{ min-width:0; table-layout:auto; }}
       .premium-table thead {{ display:none; }} .premium-table,.premium-item {{ display:block; }}
       .premium-item {{ margin-bottom:7px; border:1px solid var(--border); border-radius:6px; background:var(--surface); overflow:hidden; }}
-      .premium-summary-row {{ display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:6px 12px; padding:9px 11px; }}
-      .premium-summary-row td,.premium-summary-row td:first-child,.premium-summary-row td:nth-child(2),.premium-summary-row td:nth-child(3),.premium-summary-row td:last-child {{ display:grid; width:auto; padding:0; border:0; text-align:left; white-space:normal; }}
+      .premium-summary-row {{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 14px; padding:9px 11px; }}
+      .premium-summary-row td,.premium-summary-row td:first-child,.premium-summary-row td:nth-child(2),.premium-summary-row td:nth-child(3),.premium-summary-row td:nth-child(4),.premium-summary-row td:last-child {{ display:grid; width:auto; min-width:0; padding:0; border:0; text-align:left; white-space:normal; }}
       .premium-summary-row td::before {{ content:attr(data-label); color:var(--muted); font-size:10px; }}
       .premium-summary-row td:first-child {{ grid-column:1/-1; padding-bottom:6px; border-bottom:1px solid #e8ebee; }} .premium-summary-row td:first-child::before {{ display:none; }}
-      .premium-summary-row td:nth-child(2) {{ min-width:68px; }} .premium-summary-row td:nth-child(3) {{ min-width:94px; }} .premium-summary-row td:nth-child(4) {{ min-width:50px; }}
       .premium-detail-row {{ display:table-row; }} .premium-detail-row[hidden] {{ display:none; }} .premium-detail-row td {{ display:block; padding:0; border:0; }}
-      .premium-detail-grid {{ grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 16px; padding:11px 12px 8px; border-top:1px solid #e5e9ed; }} .premium-source-link {{ margin:0 12px 11px; }}
+      .premium-detail-grid {{ grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 16px; padding:11px 12px 8px; border-top:1px solid #e5e9ed; }} .premium-source-row {{ margin:0 12px 11px; }}
     }}
     @media (min-width:820px) {{ .page {{ padding-top:28px; }} .meta-grid {{ grid-template-columns:repeat(4,minmax(0,1fr)); }} .fund-item summary {{ grid-template-columns:38px minmax(210px,1fr) minmax(520px,560px) 18px; gap:12px; padding:14px 16px; }} .summary-metrics {{ grid-column:3; grid-row:1; grid-template-columns:repeat(5,minmax(0,1fr)); margin-top:0; }} .chevron {{ grid-column:4; }} .fund-detail {{ padding:18px 66px 20px; }} .detail-grid {{ grid-template-columns:repeat(4,minmax(0,1fr)); }} .rule-grid {{ grid-template-columns:repeat(3,minmax(0,1fr)); }} }}
     @media (prefers-reduced-motion:reduce) {{ .chevron {{ transition:none; }} .refresh-button[aria-busy="true"] .refresh-icon {{ animation:none; }} }}
@@ -4727,20 +5000,20 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
       <section id="panel-global" class="ranking-list" role="tabpanel" aria-labelledby="tab-global" hidden>{render_list(global_records)}</section>
       <section id="panel-premium" class="premium-panel" role="tabpanel" aria-labelledby="tab-premium" hidden>
         <div class="premium-toolbar">
-          <div><h2>场内美股ETF</h2><p>按溢价从高到低排列；点击ETF展开价格、IOPV和行情详情。</p></div>
+          <div><h2>场内美股ETF</h2><p>按溢价从高到低排列；点击ETF展开行情、综合费率和来源详情。</p></div>
           <button class="refresh-button" id="premium-refresh" type="button" aria-busy="false"><span class="refresh-icon" aria-hidden="true">↻</span><span>刷新行情</span></button>
         </div>
         <p class="premium-status" id="premium-refresh-status" role="status" aria-live="polite">{html.escape(premium_status_text)}；日报请求于 {html.escape(format_quote_time(premium['requested_at']))}，行情约延迟 {premium['quote_delay_minutes']} 分钟。</p>
         <div class="premium-table-wrap">
           <table class="premium-table">
-            <thead><tr><th>ETF</th><th>基准</th><th>溢价</th><th>涨跌</th></tr></thead>
+            <thead><tr><th>ETF</th><th>基准</th><th>溢价</th><th>综合费率</th><th>涨跌</th></tr></thead>
             {premium_rows}
           </table>
         </div>
       </section>
       {warning_section}
     </main>
-    <footer>额度为基金管理人层面的单日单基金账户上限；持有费率已反映在净值中；场内溢价为约15分钟延迟的价格相对IOPV偏离。</footer>
+    <footer>额度为基金管理人层面的单日单基金账户上限；综合费率已从基金资产中扣除，不含场内券商佣金；场内溢价为约15分钟延迟的价格相对IOPV偏离。</footer>
   </div>
   <script>
     const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
@@ -4889,6 +5162,9 @@ def build_payload(
         cache_root / "contract-profiles"
     )
     quota_notice_cache = QuotaNoticeParseCache(cache_root / "quota-notices")
+    etf_holding_cost_cache = ExchangePremiumHoldingCostCache(
+        cache_root / "exchange-premium-holding-costs"
+    )
     benchmark_cache = Nasdaq100BenchmarkCache(
         cache_root / "benchmarks" / "nasdaq100-cny.json"
     )
@@ -5108,12 +5384,25 @@ def build_payload(
         raise DataError("Both QDII ranking lists are empty after applying all filters")
 
     with metrics.phase("exchange_premium"):
+        premium_entries, _premium_catalog_fingerprint = load_exchange_premium_catalog(
+            args.us_equity_etf_catalog.resolve()
+        )
+        premium_costs, premium_cost_warnings = build_exchange_premium_holding_costs(
+            client,
+            premium_entries,
+            as_of,
+            announcement_cache,
+            document_cache,
+            etf_holding_cost_cache,
+        )
         exchange_premium, premium_warnings = build_exchange_premium_snapshot(
             client,
             args.us_equity_etf_catalog.resolve(),
             cache_root / "exchange-premium.json",
             as_of,
         )
+        attach_exchange_premium_holding_costs(exchange_premium, premium_costs)
+    warnings.extend(premium_cost_warnings)
     warnings.extend(premium_warnings)
 
     us_ranking_method = (
@@ -5127,7 +5416,7 @@ def build_payload(
         "scale_billion_cny desc, code asc"
     )
     return {
-        "schema_version": 11,
+        "schema_version": 12,
         "run_date": as_of.isoformat(),
         "generated_at": datetime.now(SHANGHAI_TZ).isoformat(timespec="seconds"),
         "holder_report_date": selected.report_date,
@@ -5187,6 +5476,7 @@ def build_payload(
                 "hits": exchange_premium["cache_hit_count"],
                 "expected": exchange_premium["expected_count"],
             },
+            "exchange_premium_holding_costs": etf_holding_cost_cache.stats(),
         },
         "benchmark": benchmark.metadata(),
         "exchange_premium": exchange_premium,

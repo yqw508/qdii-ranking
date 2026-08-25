@@ -72,13 +72,14 @@
     .refresh-button[aria-busy="true"] .refresh-icon { animation:spin 900ms linear infinite; }
     .premium-status { min-height:22px; margin:0; padding:7px 10px; border-left:3px solid var(--blue); color:#42505d; background:var(--blue-soft); font-size:12px; }
     .premium-table-wrap { overflow-x:auto; border:1px solid var(--border); border-radius:6px; background:var(--surface); }
-    .premium-table { width:100%; min-width:650px; border-collapse:collapse; table-layout:fixed; font-variant-numeric:tabular-nums; }
+    .premium-table { width:100%; min-width:760px; border-collapse:collapse; table-layout:fixed; font-variant-numeric:tabular-nums; }
     .premium-table th,.premium-summary-row td { padding:8px 10px; border-bottom:1px solid #e5e9ed; text-align:right; vertical-align:middle; white-space:nowrap; }
     .premium-table th { color:#52606d; background:#f7f8fa; font-size:12px; font-weight:700; }
-    .premium-table th:first-child,.premium-summary-row td:first-child { width:42%; text-align:left; }
-    .premium-table th:nth-child(2),.premium-summary-row td:nth-child(2) { width:18%; }
-    .premium-table th:nth-child(3),.premium-summary-row td:nth-child(3) { width:25%; }
-    .premium-table th:last-child,.premium-summary-row td:last-child { width:15%; }
+    .premium-table th:first-child,.premium-summary-row td:first-child { width:34%; text-align:left; }
+    .premium-table th:nth-child(2),.premium-summary-row td:nth-child(2) { width:14%; }
+    .premium-table th:nth-child(3),.premium-summary-row td:nth-child(3) { width:22%; }
+    .premium-table th:nth-child(4),.premium-summary-row td:nth-child(4) { width:18%; }
+    .premium-table th:last-child,.premium-summary-row td:last-child { width:12%; }
     .premium-row-toggle { display:flex; width:100%; min-height:38px; align-items:center; justify-content:space-between; gap:12px; padding:0; border:0; color:var(--text); background:transparent; cursor:pointer; text-align:left; }
     .premium-row-toggle>span:first-child { display:grid; min-width:0; gap:1px; }
     .premium-row-toggle strong { overflow:hidden; text-overflow:ellipsis; }
@@ -87,9 +88,11 @@
     .premium-row-toggle:focus-visible { outline:3px solid #86b7e8; outline-offset:3px; }
     .benchmark-compact { color:#4f5d69; font-size:13px; }
     .premium-detail-row td { padding:0; border-bottom:1px solid #d9e0e6; background:#f8fafb; }
-    .premium-detail-grid { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:12px; margin:0; padding:12px 14px 8px; }
+    .premium-detail-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin:0; padding:12px 14px 8px; }
     .premium-detail-grid dd { font-size:13px; }
-    .premium-source-link { display:inline-block; margin:0 14px 12px; font-size:12px; font-weight:700; }
+    .premium-source-row { display:flex; flex-wrap:wrap; gap:10px 18px; margin:0 14px 12px; }
+    .premium-source-link { display:inline-block; font-size:12px; font-weight:700; }
+    .premium-cost { font-weight:750; }
     .premium-value { margin-right:6px; font-weight:800; }
     .premium-band,.stale-label { display:inline-block; padding:1px 4px; border-radius:3px; font-size:10px; line-height:1.5; }
     .premium-band.band-discount { color:#176451; background:#e8f3ef; }
@@ -114,13 +117,12 @@
       .premium-table-wrap { overflow:visible; border:0; background:transparent; } .premium-table { min-width:0; table-layout:auto; }
       .premium-table thead { display:none; } .premium-table,.premium-item { display:block; }
       .premium-item { margin-bottom:7px; border:1px solid var(--border); border-radius:6px; background:var(--surface); overflow:hidden; }
-      .premium-summary-row { display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:6px 12px; padding:9px 11px; }
-      .premium-summary-row td,.premium-summary-row td:first-child,.premium-summary-row td:nth-child(2),.premium-summary-row td:nth-child(3),.premium-summary-row td:last-child { display:grid; width:auto; padding:0; border:0; text-align:left; white-space:normal; }
+      .premium-summary-row { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 14px; padding:9px 11px; }
+      .premium-summary-row td,.premium-summary-row td:first-child,.premium-summary-row td:nth-child(2),.premium-summary-row td:nth-child(3),.premium-summary-row td:nth-child(4),.premium-summary-row td:last-child { display:grid; width:auto; min-width:0; padding:0; border:0; text-align:left; white-space:normal; }
       .premium-summary-row td::before { content:attr(data-label); color:var(--muted); font-size:10px; }
       .premium-summary-row td:first-child { grid-column:1/-1; padding-bottom:6px; border-bottom:1px solid #e8ebee; } .premium-summary-row td:first-child::before { display:none; }
-      .premium-summary-row td:nth-child(2) { min-width:68px; } .premium-summary-row td:nth-child(3) { min-width:94px; } .premium-summary-row td:nth-child(4) { min-width:50px; }
       .premium-detail-row { display:table-row; } .premium-detail-row[hidden] { display:none; } .premium-detail-row td { display:block; padding:0; border:0; }
-      .premium-detail-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 16px; padding:11px 12px 8px; border-top:1px solid #e5e9ed; } .premium-source-link { margin:0 12px 11px; }
+      .premium-detail-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 16px; padding:11px 12px 8px; border-top:1px solid #e5e9ed; } .premium-source-row { margin:0 12px 11px; }
     }
     @media (min-width:820px) { .page { padding-top:28px; } .meta-grid { grid-template-columns:repeat(4,minmax(0,1fr)); } .fund-item summary { grid-template-columns:38px minmax(210px,1fr) minmax(520px,560px) 18px; gap:12px; padding:14px 16px; } .summary-metrics { grid-column:3; grid-row:1; grid-template-columns:repeat(5,minmax(0,1fr)); margin-top:0; } .chevron { grid-column:4; } .fund-detail { padding:18px 66px 20px; } .detail-grid { grid-template-columns:repeat(4,minmax(0,1fr)); } .rule-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
     @media (prefers-reduced-motion:reduce) { .chevron { transition:none; } .refresh-button[aria-busy="true"] .refresh-icon { animation:none; } }
@@ -135,7 +137,7 @@
         <div><dt>机构持仓报告期</dt><dd>2025-12-31</dd></div>
         <div><dt>规模报告期</dt><dd>2026-06-30</dd></div>
         <div><dt>净值区间</dt><dd>2023-08-21 至 2026-08-21、2023-08-24 至 2026-08-24</dd></div>
-        <div><dt>纳指基准更新</dt><dd>XNDX 2026-08-24 · 汇率 2026-08-24</dd></div>
+        <div><dt>纳指基准更新</dt><dd>XNDX 2026-08-24 · 汇率 2026-08-25</dd></div>
         <div><dt>基础候选</dt><dd>110 只</dd></div>
         <div><dt>合同扫描</dt><dd>35 只</dd></div>
         <div><dt>美国 / 全球入榜</dt><dd>9 / 10 只</dd></div>
@@ -190,7 +192,7 @@
           </dl>
           <section class="benchmark-detail" aria-label="合同基准">
             <span>合同基准</span>
-            <strong>95%×罗素1000成长指数收益率+5％×境内银行活期存款税后利率</strong>
+            <strong>95%×罗素1000 成长指数收益率+5％×境内银行活期存款税后利率</strong>
             <small>解析状态：recognized；仅作资料展示，不参与准入或分榜。</small>
           </section>
           <div class="quota-grid" aria-label="申购额度">
@@ -434,7 +436,7 @@
           </dl>
           <section class="benchmark-detail" aria-label="合同基准">
             <span>合同基准</span>
-            <strong>MSCI全球信息科技指数（MSCI ACWI Information Technology Index)收益率*70%+中证海外中国互联网指数（人民币） 收益率*15%+中债-综合全价(1-3年)指数收益率*10%+人民币活期存款基准利率 *5% 1、业绩比较基准的设定及原因 （1）基于基金投资范围以及预期投资的主要资产类别，本基金主要投资于境外股票、债券、现金等资产，相应选取与之匹配的境外股票指数、债券指数与人民币活期存款基准利率作为基准要素</strong>
+            <strong>MSCI 全球信息科技指数（MSCI ACWI Information Technology Index)收益率*70%+中证海外中国互联网指数（人民币） 收益率*15%+中债-综合全价(1-3 年)指数收益率*10%+人民币活期存款基准利率 *5% 1、业绩比较基准的设定及原因 （1）基于基金投资范围以及预期投资的主要资产类别，本基金主要投资于境外股票、债券、现金等资产，相应选取与之匹配的境外股票指数、债券指数与人民币活期存款基准利率作为基准要素</strong>
             <small>解析状态：composite；仅作资料展示，不参与准入或分榜。</small>
           </section>
           <div class="quota-grid" aria-label="申购额度">
@@ -617,7 +619,7 @@
           </dl>
           <section class="benchmark-detail" aria-label="合同基准">
             <span>合同基准</span>
-            <strong>中证全球半导体产业指数收益率*85%+中债总指数收益率*15% 中证全球半导体产业指数从全球主要交易所上市证券中选取业务涉及半导体材料和设备、半导体产品设计、制造和封测等半导体产业领域的上市公司证券作为指数样本，反映全球半导体产业上市公司证券的整体表现</strong>
+            <strong>中证全球半导体产业指数收益率*85%+中债总指数收益率*15% 中证全球半导体产业指数从全球主要交易所上市证券中选取业务涉及半导体材料和设备、 半导体产品设计、 制造和封测等半导体产业领域的上市公司证券作为指数样本，反映全球半导体产业上市公司证券的整体表现</strong>
             <small>解析状态：unrecognized；仅作资料展示，不参与准入或分榜。</small>
           </section>
           <div class="quota-grid" aria-label="申购额度">
@@ -738,7 +740,7 @@
           </dl>
           <section class="benchmark-detail" aria-label="合同基准">
             <span>合同基准</span>
-            <strong>MSCI 全球指数（MSCI All Country World Index）收益率×75%+沪深 300 指数收益率 ×20%+境内银行活期存款利率(税后)×5% MSCI全球指数是摩根士丹利资本国际公司主持开发的全球性证券市场指数，是全球投资组合经理作为投资基准最为广泛应用的指数</strong>
+            <strong>MSCI 全球指数（MSCI All Country World Index）收益率×75%+沪深 300 指数收益率 ×20%+境内银行活期存款利率(税后)×5% MSCI 全球指数是摩根士丹利资本国际公司主持开发的全球性证券市场指数，是全球投资组合经理作为投资基准最为广泛应用的指数</strong>
             <small>解析状态：composite；仅作资料展示，不参与准入或分榜。</small>
           </section>
           <div class="quota-grid" aria-label="申购额度">
@@ -797,7 +799,7 @@
           </dl>
           <section class="benchmark-detail" aria-label="合同基准">
             <span>合同基准</span>
-            <strong>中证海外中国互联网指数（美元）收益率*55%+纳斯达克 100 指数(NASDAQ 100 Index)收益率*30%+中证互联网指数收益率*5%+中债-国债总全价(1-3年)指数收益率*10% 1、业绩比较基准设定的原因 （1）基于基金投资范围以及预期投资的主要资产类别，本基金主要投资于境内境外股票、 债券等资产， 相应选取与之匹配的境外股票指数、A 股股票指数、 债券指数作为基准要素</strong>
+            <strong>中证海外中国互联网指数（美元）收益率*55%+纳斯达克 100 指数(NASDAQ 100 Index)收益率*30%+中证互联网指数收益率*5%+中债-国债总全价(1-3 年)指数收益率*10% 1、业绩比较基准设定的原因 （1）基于基金投资范围以及预期投资的主要资产类别，本基金主要投资于境内境外股票、 债券等资产， 相应选取与之匹配的境外股票指数、A 股股票指数、 债券指数作为基准要素</strong>
             <small>解析状态：composite；仅作资料展示，不参与准入或分榜。</small>
           </section>
           <div class="quota-grid" aria-label="申购额度">
@@ -915,7 +917,7 @@
           </dl>
           <section class="benchmark-detail" aria-label="合同基准">
             <span>合同基准</span>
-            <strong>60%×人民币计价的 MSCI 全球指数（MSCI World Index）+40%× 人民币计价的恒生指数</strong>
+            <strong>60%×人民币计价的 MSCI 全球指数（MSCI World Index ）+40%× 人民币计价的恒生指数</strong>
             <small>解析状态：composite；仅作资料展示，不参与准入或分榜。</small>
           </section>
           <div class="quota-grid" aria-label="申购额度">
@@ -1210,7 +1212,7 @@
           </dl>
           <section class="benchmark-detail" aria-label="合同基准">
             <span>合同基准</span>
-            <strong>90%×东京证券交易所股价总指数收益率+ 10%×税后银行活期存款收益率东京证券交易所股价总指数是以在东京证券交易所市场上市的所有日本企业为对象的市价总额型股价指数，其走向反映在东京证券交易所上市的所有日本企业的整体走势</strong>
+            <strong>90%×东京证券交易所股价总指数收益率+ 10% ×税后银行活期存款收益率东京证券交易所股价总指数是以在东京证券交易所市场上市的所有日本企业为对象的市价总额型股价指数， 其走向反映在东京证券交易所上市的所有日本企业的整体走势</strong>
             <small>解析状态：unrecognized；仅作资料展示，不参与准入或分榜。</small>
           </section>
           <div class="quota-grid" aria-label="申购额度">
@@ -1291,536 +1293,686 @@
       </details></section>
       <section id="panel-premium" class="premium-panel" role="tabpanel" aria-labelledby="tab-premium" hidden>
         <div class="premium-toolbar">
-          <div><h2>场内美股ETF</h2><p>按溢价从高到低排列；点击ETF展开价格、IOPV和行情详情。</p></div>
+          <div><h2>场内美股ETF</h2><p>按溢价从高到低排列；点击ETF展开行情、综合费率和来源详情。</p></div>
           <button class="refresh-button" id="premium-refresh" type="button" aria-busy="false"><span class="refresh-icon" aria-hidden="true">↻</span><span>刷新行情</span></button>
         </div>
-        <p class="premium-status" id="premium-refresh-status" role="status" aria-live="polite">日报快照完整；日报请求于 2026-08-25 07:33，行情约延迟 15 分钟。</p>
+        <p class="premium-status" id="premium-refresh-status" role="status" aria-live="polite">日报快照完整；日报请求于 2026-08-25 10:57，行情约延迟 15 分钟。</p>
         <div class="premium-table-wrap">
           <table class="premium-table">
-            <thead><tr><th>ETF</th><th>基准</th><th>溢价</th><th>涨跌</th></tr></thead>
+            <thead><tr><th>ETF</th><th>基准</th><th>溢价</th><th>综合费率</th><th>涨跌</th></tr></thead>
 
-          <tbody class="premium-item premium-row" data-etf-code="159509" data-premium="22.15" data-quote-status="fresh">
+          <tbody class="premium-item premium-row" data-etf-code="159509" data-premium="24.14" data-quote-status="fresh">
             <tr class="premium-summary-row">
               <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="premium-detail-159509"><span><strong data-field="name">纳指科技ETF景顺</strong><span class="fund-code">159509 · SZSE</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
               <td data-label="基准"><span class="benchmark-compact">行业主题</span></td>
-              <td data-label="溢价"><span class="premium-value band-high" data-field="premium">+22.15%</span><span class="premium-band band-high" data-field="band">>5%高溢价</span><span class="stale-label" data-field="stale"></span></td>
-              <td data-label="涨跌"><span data-field="change">-2.16%</span></td>
+              <td data-label="溢价"><span class="premium-value band-high" data-field="premium">+24.14%</span><span class="premium-band band-high" data-field="band">>5%高溢价</span><span class="stale-label" data-field="stale"></span></td>
+              <td data-label="综合费率"><span class="premium-cost" data-field="holding-cost">1.01%/年</span></td>
+              <td data-label="涨跌"><span data-field="change">+0.48%</span></td>
             </tr>
             <tr class="premium-detail-row" id="premium-detail-159509" hidden>
-              <td colspan="4">
+              <td colspan="5">
                 <dl class="premium-detail-grid">
-                  <div><dt>价格</dt><dd data-field="price">2.722</dd></div>
-                  <div><dt>IOPV</dt><dd data-field="iopv">2.2284</dd></div>
-                  <div><dt>成交额</dt><dd data-field="turnover">6.36亿元</dd></div>
-                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-24 15:34</time></dd></div>
+                  <div><dt>价格</dt><dd data-field="price">2.735</dd></div>
+                  <div><dt>IOPV</dt><dd data-field="iopv">2.2032</dd></div>
+                  <div><dt>成交额</dt><dd data-field="turnover">1.49亿元</dd></div>
+                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-25 10:57</time></dd></div>
                   <div><dt>交易所</dt><dd>SZSE</dd></div>
                   <div><dt>分类</dt><dd>行业主题</dd></div>
+                  <div><dt>综合费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606291826541482_1.pdf" target="_blank" rel="noopener noreferrer">1.01%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+                  <div><dt>费率资料日期</dt><dd>2026-06-30</dd></div>
                 </dl>
-                <a class="premium-source-link" href="https://quote.eastmoney.com/sz159509.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                <div class="premium-source-row">
+                  <a class="premium-source-link" href="https://quote.eastmoney.com/sz159509.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                  <a class="premium-source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606291826541482_1.pdf" target="_blank" rel="noopener noreferrer">查看费率来源<span class="external" aria-hidden="true">↗</span></a>
+                </div>
               </td>
             </tr>
           </tbody>
-          <tbody class="premium-item premium-row" data-etf-code="159501" data-premium="10.59" data-quote-status="fresh">
+          <tbody class="premium-item premium-row" data-etf-code="159501" data-premium="11.75" data-quote-status="fresh">
             <tr class="premium-summary-row">
               <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="premium-detail-159501"><span><strong data-field="name">纳指ETF嘉实</strong><span class="fund-code">159501 · SZSE</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
               <td data-label="基准"><span class="benchmark-compact">纳指100</span></td>
-              <td data-label="溢价"><span class="premium-value band-high" data-field="premium">+10.59%</span><span class="premium-band band-high" data-field="band">>5%高溢价</span><span class="stale-label" data-field="stale"></span></td>
-              <td data-label="涨跌"><span data-field="change">-0.82%</span></td>
+              <td data-label="溢价"><span class="premium-value band-high" data-field="premium">+11.75%</span><span class="premium-band band-high" data-field="band">>5%高溢价</span><span class="stale-label" data-field="stale"></span></td>
+              <td data-label="综合费率"><span class="premium-cost" data-field="holding-cost">0.60%/年</span></td>
+              <td data-label="涨跌"><span data-field="change">+0.10%</span></td>
             </tr>
             <tr class="premium-detail-row" id="premium-detail-159501" hidden>
-              <td colspan="4">
+              <td colspan="5">
                 <dl class="premium-detail-grid">
-                  <div><dt>价格</dt><dd data-field="price">2.058</dd></div>
-                  <div><dt>IOPV</dt><dd data-field="iopv">1.8609</dd></div>
-                  <div><dt>成交额</dt><dd data-field="turnover">6033万元</dd></div>
-                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-24 15:34</time></dd></div>
+                  <div><dt>价格</dt><dd data-field="price">2.060</dd></div>
+                  <div><dt>IOPV</dt><dd data-field="iopv">1.8434</dd></div>
+                  <div><dt>成交额</dt><dd data-field="turnover">1688万元</dd></div>
+                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-25 10:56</time></dd></div>
                   <div><dt>交易所</dt><dd>SZSE</dd></div>
                   <div><dt>分类</dt><dd>宽基</dd></div>
+                  <div><dt>综合费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606231823773321_1.pdf" target="_blank" rel="noopener noreferrer">0.60%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+                  <div><dt>费率资料日期</dt><dd>2026-06-24</dd></div>
                 </dl>
-                <a class="premium-source-link" href="https://quote.eastmoney.com/sz159501.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                <div class="premium-source-row">
+                  <a class="premium-source-link" href="https://quote.eastmoney.com/sz159501.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                  <a class="premium-source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606231823773321_1.pdf" target="_blank" rel="noopener noreferrer">查看费率来源<span class="external" aria-hidden="true">↗</span></a>
+                </div>
               </td>
             </tr>
           </tbody>
-          <tbody class="premium-item premium-row" data-etf-code="513100" data-premium="9.3" data-quote-status="fresh">
+          <tbody class="premium-item premium-row" data-etf-code="513100" data-premium="10.5" data-quote-status="fresh">
             <tr class="premium-summary-row">
               <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="premium-detail-513100"><span><strong data-field="name">纳指ETF国泰</strong><span class="fund-code">513100 · SSE</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
               <td data-label="基准"><span class="benchmark-compact">纳指100</span></td>
-              <td data-label="溢价"><span class="premium-value band-high" data-field="premium">+9.30%</span><span class="premium-band band-high" data-field="band">>5%高溢价</span><span class="stale-label" data-field="stale"></span></td>
-              <td data-label="涨跌"><span data-field="change">-1.32%</span></td>
+              <td data-label="溢价"><span class="premium-value band-high" data-field="premium">+10.50%</span><span class="premium-band band-high" data-field="band">>5%高溢价</span><span class="stale-label" data-field="stale"></span></td>
+              <td data-label="综合费率"><span class="premium-cost" data-field="holding-cost">0.80%/年</span></td>
+              <td data-label="涨跌"><span data-field="change">+0.14%</span></td>
             </tr>
             <tr class="premium-detail-row" id="premium-detail-513100" hidden>
-              <td colspan="4">
+              <td colspan="5">
                 <dl class="premium-detail-grid">
-                  <div><dt>价格</dt><dd data-field="price">2.166</dd></div>
-                  <div><dt>IOPV</dt><dd data-field="iopv">1.9817</dd></div>
-                  <div><dt>成交额</dt><dd data-field="turnover">3.14亿元</dd></div>
-                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-24 16:11</time></dd></div>
+                  <div><dt>价格</dt><dd data-field="price">2.169</dd></div>
+                  <div><dt>IOPV</dt><dd data-field="iopv">1.9629</dd></div>
+                  <div><dt>成交额</dt><dd data-field="turnover">2.16亿元</dd></div>
+                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-25 10:56</time></dd></div>
                   <div><dt>交易所</dt><dd>SSE</dd></div>
                   <div><dt>分类</dt><dd>宽基</dd></div>
+                  <div><dt>综合费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202603181820625784_1.pdf" target="_blank" rel="noopener noreferrer">0.80%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+                  <div><dt>费率资料日期</dt><dd>2026-03-19</dd></div>
                 </dl>
-                <a class="premium-source-link" href="https://quote.eastmoney.com/sh513100.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                <div class="premium-source-row">
+                  <a class="premium-source-link" href="https://quote.eastmoney.com/sh513100.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                  <a class="premium-source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202603181820625784_1.pdf" target="_blank" rel="noopener noreferrer">查看费率来源<span class="external" aria-hidden="true">↗</span></a>
+                </div>
               </td>
             </tr>
           </tbody>
-          <tbody class="premium-item premium-row" data-etf-code="159941" data-premium="8.91" data-quote-status="fresh">
+          <tbody class="premium-item premium-row" data-etf-code="159941" data-premium="10.08" data-quote-status="fresh">
             <tr class="premium-summary-row">
               <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="premium-detail-159941"><span><strong data-field="name">纳指ETF广发</strong><span class="fund-code">159941 · SZSE</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
               <td data-label="基准"><span class="benchmark-compact">纳指100</span></td>
-              <td data-label="溢价"><span class="premium-value band-high" data-field="premium">+8.91%</span><span class="premium-band band-high" data-field="band">>5%高溢价</span><span class="stale-label" data-field="stale"></span></td>
-              <td data-label="涨跌"><span data-field="change">-1.16%</span></td>
+              <td data-label="溢价"><span class="premium-value band-high" data-field="premium">+10.08%</span><span class="premium-band band-high" data-field="band">>5%高溢价</span><span class="stale-label" data-field="stale"></span></td>
+              <td data-label="综合费率"><span class="premium-cost" data-field="holding-cost">1.00%/年</span></td>
+              <td data-label="涨跌"><span data-field="change">+0.12%</span></td>
             </tr>
             <tr class="premium-detail-row" id="premium-detail-159941" hidden>
-              <td colspan="4">
+              <td colspan="5">
                 <dl class="premium-detail-grid">
-                  <div><dt>价格</dt><dd data-field="price">1.616</dd></div>
-                  <div><dt>IOPV</dt><dd data-field="iopv">1.4838</dd></div>
-                  <div><dt>成交额</dt><dd data-field="turnover">10.82亿元</dd></div>
-                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-24 15:34</time></dd></div>
+                  <div><dt>价格</dt><dd data-field="price">1.618</dd></div>
+                  <div><dt>IOPV</dt><dd data-field="iopv">1.4699</dd></div>
+                  <div><dt>成交额</dt><dd data-field="turnover">4.67亿元</dd></div>
+                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-25 10:57</time></dd></div>
                   <div><dt>交易所</dt><dd>SZSE</dd></div>
                   <div><dt>分类</dt><dd>宽基</dd></div>
+                  <div><dt>综合费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607051826729062_1.pdf" target="_blank" rel="noopener noreferrer">1.00%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+                  <div><dt>费率资料日期</dt><dd>2026-07-06</dd></div>
                 </dl>
-                <a class="premium-source-link" href="https://quote.eastmoney.com/sz159941.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                <div class="premium-source-row">
+                  <a class="premium-source-link" href="https://quote.eastmoney.com/sz159941.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                  <a class="premium-source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607051826729062_1.pdf" target="_blank" rel="noopener noreferrer">查看费率来源<span class="external" aria-hidden="true">↗</span></a>
+                </div>
               </td>
             </tr>
           </tbody>
-          <tbody class="premium-item premium-row" data-etf-code="513500" data-premium="8.59" data-quote-status="fresh">
+          <tbody class="premium-item premium-row" data-etf-code="513500" data-premium="9.65" data-quote-status="fresh">
             <tr class="premium-summary-row">
               <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="premium-detail-513500"><span><strong data-field="name">标普500ETF博时</strong><span class="fund-code">513500 · SSE</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
               <td data-label="基准"><span class="benchmark-compact">标普500</span></td>
-              <td data-label="溢价"><span class="premium-value band-high" data-field="premium">+8.59%</span><span class="premium-band band-high" data-field="band">>5%高溢价</span><span class="stale-label" data-field="stale"></span></td>
-              <td data-label="涨跌"><span data-field="change">+0.00%</span></td>
+              <td data-label="溢价"><span class="premium-value band-high" data-field="premium">+9.65%</span><span class="premium-band band-high" data-field="band">>5%高溢价</span><span class="stale-label" data-field="stale"></span></td>
+              <td data-label="综合费率"><span class="premium-cost" data-field="holding-cost">0.80%/年</span></td>
+              <td data-label="涨跌"><span data-field="change">+0.75%</span></td>
             </tr>
             <tr class="premium-detail-row" id="premium-detail-513500" hidden>
-              <td colspan="4">
+              <td colspan="5">
                 <dl class="premium-detail-grid">
-                  <div><dt>价格</dt><dd data-field="price">2.672</dd></div>
-                  <div><dt>IOPV</dt><dd data-field="iopv">2.4606</dd></div>
-                  <div><dt>成交额</dt><dd data-field="turnover">2.83亿元</dd></div>
-                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-24 16:11</time></dd></div>
+                  <div><dt>价格</dt><dd data-field="price">2.692</dd></div>
+                  <div><dt>IOPV</dt><dd data-field="iopv">2.4551</dd></div>
+                  <div><dt>成交额</dt><dd data-field="turnover">1.38亿元</dd></div>
+                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-25 10:57</time></dd></div>
                   <div><dt>交易所</dt><dd>SSE</dd></div>
                   <div><dt>分类</dt><dd>宽基</dd></div>
+                  <div><dt>综合费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606251823857069_1.pdf" target="_blank" rel="noopener noreferrer">0.80%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+                  <div><dt>费率资料日期</dt><dd>2026-06-26</dd></div>
                 </dl>
-                <a class="premium-source-link" href="https://quote.eastmoney.com/sh513500.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                <div class="premium-source-row">
+                  <a class="premium-source-link" href="https://quote.eastmoney.com/sh513500.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                  <a class="premium-source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606251823857069_1.pdf" target="_blank" rel="noopener noreferrer">查看费率来源<span class="external" aria-hidden="true">↗</span></a>
+                </div>
               </td>
             </tr>
           </tbody>
-          <tbody class="premium-item premium-row" data-etf-code="159696" data-premium="8.34" data-quote-status="fresh">
+          <tbody class="premium-item premium-row" data-etf-code="159696" data-premium="9.46" data-quote-status="fresh">
             <tr class="premium-summary-row">
               <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="premium-detail-159696"><span><strong data-field="name">纳指ETF易方达</strong><span class="fund-code">159696 · SZSE</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
               <td data-label="基准"><span class="benchmark-compact">纳指100</span></td>
-              <td data-label="溢价"><span class="premium-value band-high" data-field="premium">+8.34%</span><span class="premium-band band-high" data-field="band">>5%高溢价</span><span class="stale-label" data-field="stale"></span></td>
-              <td data-label="涨跌"><span data-field="change">-1.19%</span></td>
+              <td data-label="溢价"><span class="premium-value band-high" data-field="premium">+9.46%</span><span class="premium-band band-high" data-field="band">>5%高溢价</span><span class="stale-label" data-field="stale"></span></td>
+              <td data-label="综合费率"><span class="premium-cost" data-field="holding-cost">0.61%/年</span></td>
+              <td data-label="涨跌"><span data-field="change">+0.10%</span></td>
             </tr>
             <tr class="premium-detail-row" id="premium-detail-159696" hidden>
-              <td colspan="4">
+              <td colspan="5">
                 <dl class="premium-detail-grid">
-                  <div><dt>价格</dt><dd data-field="price">1.998</dd></div>
-                  <div><dt>IOPV</dt><dd data-field="iopv">1.8442</dd></div>
-                  <div><dt>成交额</dt><dd data-field="turnover">6048万元</dd></div>
-                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-24 15:34</time></dd></div>
+                  <div><dt>价格</dt><dd data-field="price">2.000</dd></div>
+                  <div><dt>IOPV</dt><dd data-field="iopv">1.8271</dd></div>
+                  <div><dt>成交额</dt><dd data-field="turnover">3077万元</dd></div>
+                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-25 10:57</time></dd></div>
                   <div><dt>交易所</dt><dd>SZSE</dd></div>
                   <div><dt>分类</dt><dd>宽基</dd></div>
+                  <div><dt>综合费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608101827818474_1.pdf" target="_blank" rel="noopener noreferrer">0.61%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+                  <div><dt>费率资料日期</dt><dd>2026-08-11</dd></div>
                 </dl>
-                <a class="premium-source-link" href="https://quote.eastmoney.com/sz159696.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                <div class="premium-source-row">
+                  <a class="premium-source-link" href="https://quote.eastmoney.com/sz159696.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                  <a class="premium-source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608101827818474_1.pdf" target="_blank" rel="noopener noreferrer">查看费率来源<span class="external" aria-hidden="true">↗</span></a>
+                </div>
               </td>
             </tr>
           </tbody>
-          <tbody class="premium-item premium-row" data-etf-code="159659" data-premium="7.8" data-quote-status="fresh">
-            <tr class="premium-summary-row">
-              <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="premium-detail-159659"><span><strong data-field="name">纳斯达克100ETF招商</strong><span class="fund-code">159659 · SZSE</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
-              <td data-label="基准"><span class="benchmark-compact">纳指100</span></td>
-              <td data-label="溢价"><span class="premium-value band-high" data-field="premium">+7.80%</span><span class="premium-band band-high" data-field="band">>5%高溢价</span><span class="stale-label" data-field="stale"></span></td>
-              <td data-label="涨跌"><span data-field="change">-1.03%</span></td>
-            </tr>
-            <tr class="premium-detail-row" id="premium-detail-159659" hidden>
-              <td colspan="4">
-                <dl class="premium-detail-grid">
-                  <div><dt>价格</dt><dd data-field="price">2.307</dd></div>
-                  <div><dt>IOPV</dt><dd data-field="iopv">2.1400</dd></div>
-                  <div><dt>成交额</dt><dd data-field="turnover">1.40亿元</dd></div>
-                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-24 15:34</time></dd></div>
-                  <div><dt>交易所</dt><dd>SZSE</dd></div>
-                  <div><dt>分类</dt><dd>宽基</dd></div>
-                </dl>
-                <a class="premium-source-link" href="https://quote.eastmoney.com/sz159659.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
-              </td>
-            </tr>
-          </tbody>
-          <tbody class="premium-item premium-row" data-etf-code="513870" data-premium="7.59" data-quote-status="fresh">
-            <tr class="premium-summary-row">
-              <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="premium-detail-513870"><span><strong data-field="name">纳指ETF富国</strong><span class="fund-code">513870 · SSE</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
-              <td data-label="基准"><span class="benchmark-compact">纳指100</span></td>
-              <td data-label="溢价"><span class="premium-value band-high" data-field="premium">+7.59%</span><span class="premium-band band-high" data-field="band">>5%高溢价</span><span class="stale-label" data-field="stale"></span></td>
-              <td data-label="涨跌"><span data-field="change">-1.17%</span></td>
-            </tr>
-            <tr class="premium-detail-row" id="premium-detail-513870" hidden>
-              <td colspan="4">
-                <dl class="premium-detail-grid">
-                  <div><dt>价格</dt><dd data-field="price">2.030</dd></div>
-                  <div><dt>IOPV</dt><dd data-field="iopv">1.8868</dd></div>
-                  <div><dt>成交额</dt><dd data-field="turnover">8357万元</dd></div>
-                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-24 16:11</time></dd></div>
-                  <div><dt>交易所</dt><dd>SSE</dd></div>
-                  <div><dt>分类</dt><dd>宽基</dd></div>
-                </dl>
-                <a class="premium-source-link" href="https://quote.eastmoney.com/sh513870.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
-              </td>
-            </tr>
-          </tbody>
-          <tbody class="premium-item premium-row" data-etf-code="513650" data-premium="7.57" data-quote-status="fresh">
-            <tr class="premium-summary-row">
-              <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="premium-detail-513650"><span><strong data-field="name">标普500ETF南方</strong><span class="fund-code">513650 · SSE</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
-              <td data-label="基准"><span class="benchmark-compact">标普500</span></td>
-              <td data-label="溢价"><span class="premium-value band-high" data-field="premium">+7.57%</span><span class="premium-band band-high" data-field="band">>5%高溢价</span><span class="stale-label" data-field="stale"></span></td>
-              <td data-label="涨跌"><span data-field="change">+0.55%</span></td>
-            </tr>
-            <tr class="premium-detail-row" id="premium-detail-513650" hidden>
-              <td colspan="4">
-                <dl class="premium-detail-grid">
-                  <div><dt>价格</dt><dd data-field="price">2.017</dd></div>
-                  <div><dt>IOPV</dt><dd data-field="iopv">1.8750</dd></div>
-                  <div><dt>成交额</dt><dd data-field="turnover">5.45亿元</dd></div>
-                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-24 16:11</time></dd></div>
-                  <div><dt>交易所</dt><dd>SSE</dd></div>
-                  <div><dt>分类</dt><dd>宽基</dd></div>
-                </dl>
-                <a class="premium-source-link" href="https://quote.eastmoney.com/sh513650.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
-              </td>
-            </tr>
-          </tbody>
-          <tbody class="premium-item premium-row" data-etf-code="159660" data-premium="7.39" data-quote-status="fresh">
-            <tr class="premium-summary-row">
-              <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="premium-detail-159660"><span><strong data-field="name">纳指ETF汇添富</strong><span class="fund-code">159660 · SZSE</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
-              <td data-label="基准"><span class="benchmark-compact">纳指100</span></td>
-              <td data-label="溢价"><span class="premium-value band-high" data-field="premium">+7.39%</span><span class="premium-band band-high" data-field="band">>5%高溢价</span><span class="stale-label" data-field="stale"></span></td>
-              <td data-label="涨跌"><span data-field="change">-1.23%</span></td>
-            </tr>
-            <tr class="premium-detail-row" id="premium-detail-159660" hidden>
-              <td colspan="4">
-                <dl class="premium-detail-grid">
-                  <div><dt>价格</dt><dd data-field="price">2.325</dd></div>
-                  <div><dt>IOPV</dt><dd data-field="iopv">2.1651</dd></div>
-                  <div><dt>成交额</dt><dd data-field="turnover">8636万元</dd></div>
-                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-24 15:34</time></dd></div>
-                  <div><dt>交易所</dt><dd>SZSE</dd></div>
-                  <div><dt>分类</dt><dd>宽基</dd></div>
-                </dl>
-                <a class="premium-source-link" href="https://quote.eastmoney.com/sz159660.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
-              </td>
-            </tr>
-          </tbody>
-          <tbody class="premium-item premium-row" data-etf-code="513300" data-premium="7.25" data-quote-status="fresh">
-            <tr class="premium-summary-row">
-              <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="premium-detail-513300"><span><strong data-field="name">纳斯达克ETF华夏</strong><span class="fund-code">513300 · SSE</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
-              <td data-label="基准"><span class="benchmark-compact">纳指100</span></td>
-              <td data-label="溢价"><span class="premium-value band-high" data-field="premium">+7.25%</span><span class="premium-band band-high" data-field="band">>5%高溢价</span><span class="stale-label" data-field="stale"></span></td>
-              <td data-label="涨跌"><span data-field="change">-1.28%</span></td>
-            </tr>
-            <tr class="premium-detail-row" id="premium-detail-513300" hidden>
-              <td colspan="4">
-                <dl class="premium-detail-grid">
-                  <div><dt>价格</dt><dd data-field="price">2.630</dd></div>
-                  <div><dt>IOPV</dt><dd data-field="iopv">2.4522</dd></div>
-                  <div><dt>成交额</dt><dd data-field="turnover">3.61亿元</dd></div>
-                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-24 16:11</time></dd></div>
-                  <div><dt>交易所</dt><dd>SSE</dd></div>
-                  <div><dt>分类</dt><dd>宽基</dd></div>
-                </dl>
-                <a class="premium-source-link" href="https://quote.eastmoney.com/sh513300.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
-              </td>
-            </tr>
-          </tbody>
-          <tbody class="premium-item premium-row" data-etf-code="159655" data-premium="7.23" data-quote-status="fresh">
+          <tbody class="premium-item premium-row" data-etf-code="159655" data-premium="9.23" data-quote-status="fresh">
             <tr class="premium-summary-row">
               <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="premium-detail-159655"><span><strong data-field="name">标普500ETF华夏</strong><span class="fund-code">159655 · SZSE</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
               <td data-label="基准"><span class="benchmark-compact">标普500</span></td>
-              <td data-label="溢价"><span class="premium-value band-high" data-field="premium">+7.23%</span><span class="premium-band band-high" data-field="band">>5%高溢价</span><span class="stale-label" data-field="stale"></span></td>
-              <td data-label="涨跌"><span data-field="change">+0.50%</span></td>
+              <td data-label="溢价"><span class="premium-value band-high" data-field="premium">+9.23%</span><span class="premium-band band-high" data-field="band">>5%高溢价</span><span class="stale-label" data-field="stale"></span></td>
+              <td data-label="综合费率"><span class="premium-cost" data-field="holding-cost">0.76%/年</span></td>
+              <td data-label="涨跌"><span data-field="change">+1.64%</span></td>
             </tr>
             <tr class="premium-detail-row" id="premium-detail-159655" hidden>
-              <td colspan="4">
+              <td colspan="5">
                 <dl class="premium-detail-grid">
-                  <div><dt>价格</dt><dd data-field="price">2.013</dd></div>
-                  <div><dt>IOPV</dt><dd data-field="iopv">1.8773</dd></div>
-                  <div><dt>成交额</dt><dd data-field="turnover">2.93亿元</dd></div>
-                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-24 15:34</time></dd></div>
+                  <div><dt>价格</dt><dd data-field="price">2.046</dd></div>
+                  <div><dt>IOPV</dt><dd data-field="iopv">1.8731</dd></div>
+                  <div><dt>成交额</dt><dd data-field="turnover">1.35亿元</dd></div>
+                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-25 10:57</time></dd></div>
                   <div><dt>交易所</dt><dd>SZSE</dd></div>
                   <div><dt>分类</dt><dd>宽基</dd></div>
+                  <div><dt>综合费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202605281822949044_1.pdf" target="_blank" rel="noopener noreferrer">0.76%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+                  <div><dt>费率资料日期</dt><dd>2026-05-29</dd></div>
                 </dl>
-                <a class="premium-source-link" href="https://quote.eastmoney.com/sz159655.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                <div class="premium-source-row">
+                  <a class="premium-source-link" href="https://quote.eastmoney.com/sz159655.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                  <a class="premium-source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202605281822949044_1.pdf" target="_blank" rel="noopener noreferrer">查看费率来源<span class="external" aria-hidden="true">↗</span></a>
+                </div>
               </td>
             </tr>
           </tbody>
-          <tbody class="premium-item premium-row" data-etf-code="513110" data-premium="7.19" data-quote-status="fresh">
+          <tbody class="premium-item premium-row" data-etf-code="513650" data-premium="9.17" data-quote-status="fresh">
             <tr class="premium-summary-row">
-              <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="premium-detail-513110"><span><strong data-field="name">纳指ETF华泰柏瑞</strong><span class="fund-code">513110 · SSE</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
-              <td data-label="基准"><span class="benchmark-compact">纳指100</span></td>
-              <td data-label="溢价"><span class="premium-value band-high" data-field="premium">+7.19%</span><span class="premium-band band-high" data-field="band">>5%高溢价</span><span class="stale-label" data-field="stale"></span></td>
-              <td data-label="涨跌"><span data-field="change">-1.05%</span></td>
+              <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="premium-detail-513650"><span><strong data-field="name">标普500ETF南方</strong><span class="fund-code">513650 · SSE</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
+              <td data-label="基准"><span class="benchmark-compact">标普500</span></td>
+              <td data-label="溢价"><span class="premium-value band-high" data-field="premium">+9.17%</span><span class="premium-band band-high" data-field="band">>5%高溢价</span><span class="stale-label" data-field="stale"></span></td>
+              <td data-label="综合费率"><span class="premium-cost" data-field="holding-cost">0.76%/年</span></td>
+              <td data-label="涨跌"><span data-field="change">+1.24%</span></td>
             </tr>
-            <tr class="premium-detail-row" id="premium-detail-513110" hidden>
-              <td colspan="4">
+            <tr class="premium-detail-row" id="premium-detail-513650" hidden>
+              <td colspan="5">
                 <dl class="premium-detail-grid">
-                  <div><dt>价格</dt><dd data-field="price">2.439</dd></div>
-                  <div><dt>IOPV</dt><dd data-field="iopv">2.2753</dd></div>
-                  <div><dt>成交额</dt><dd data-field="turnover">1.07亿元</dd></div>
-                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-24 16:11</time></dd></div>
+                  <div><dt>价格</dt><dd data-field="price">2.042</dd></div>
+                  <div><dt>IOPV</dt><dd data-field="iopv">1.8704</dd></div>
+                  <div><dt>成交额</dt><dd data-field="turnover">2.63亿元</dd></div>
+                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-25 10:56</time></dd></div>
                   <div><dt>交易所</dt><dd>SSE</dd></div>
                   <div><dt>分类</dt><dd>宽基</dd></div>
+                  <div><dt>综合费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608111827864205_1.pdf" target="_blank" rel="noopener noreferrer">0.76%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+                  <div><dt>费率资料日期</dt><dd>2026-08-12</dd></div>
                 </dl>
-                <a class="premium-source-link" href="https://quote.eastmoney.com/sh513110.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                <div class="premium-source-row">
+                  <a class="premium-source-link" href="https://quote.eastmoney.com/sh513650.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                  <a class="premium-source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608111827864205_1.pdf" target="_blank" rel="noopener noreferrer">查看费率来源<span class="external" aria-hidden="true">↗</span></a>
+                </div>
               </td>
             </tr>
           </tbody>
-          <tbody class="premium-item premium-row" data-etf-code="159612" data-premium="7.16" data-quote-status="fresh">
+          <tbody class="premium-item premium-row" data-etf-code="159659" data-premium="8.91" data-quote-status="fresh">
+            <tr class="premium-summary-row">
+              <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="premium-detail-159659"><span><strong data-field="name">纳斯达克100ETF招商</strong><span class="fund-code">159659 · SZSE</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
+              <td data-label="基准"><span class="benchmark-compact">纳指100</span></td>
+              <td data-label="溢价"><span class="premium-value band-high" data-field="premium">+8.91%</span><span class="premium-band band-high" data-field="band">>5%高溢价</span><span class="stale-label" data-field="stale"></span></td>
+              <td data-label="综合费率"><span class="premium-cost" data-field="holding-cost">0.66%/年</span></td>
+              <td data-label="涨跌"><span data-field="change">+0.09%</span></td>
+            </tr>
+            <tr class="premium-detail-row" id="premium-detail-159659" hidden>
+              <td colspan="5">
+                <dl class="premium-detail-grid">
+                  <div><dt>价格</dt><dd data-field="price">2.309</dd></div>
+                  <div><dt>IOPV</dt><dd data-field="iopv">2.1201</dd></div>
+                  <div><dt>成交额</dt><dd data-field="turnover">7446万元</dd></div>
+                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-25 10:57</time></dd></div>
+                  <div><dt>交易所</dt><dd>SZSE</dd></div>
+                  <div><dt>分类</dt><dd>宽基</dd></div>
+                  <div><dt>综合费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202604091821095299_1.pdf" target="_blank" rel="noopener noreferrer">0.66%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+                  <div><dt>费率资料日期</dt><dd>2026-04-10</dd></div>
+                </dl>
+                <div class="premium-source-row">
+                  <a class="premium-source-link" href="https://quote.eastmoney.com/sz159659.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                  <a class="premium-source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202604091821095299_1.pdf" target="_blank" rel="noopener noreferrer">查看费率来源<span class="external" aria-hidden="true">↗</span></a>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+          <tbody class="premium-item premium-row" data-etf-code="513870" data-premium="8.61" data-quote-status="fresh">
+            <tr class="premium-summary-row">
+              <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="premium-detail-513870"><span><strong data-field="name">纳指ETF富国</strong><span class="fund-code">513870 · SSE</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
+              <td data-label="基准"><span class="benchmark-compact">纳指100</span></td>
+              <td data-label="溢价"><span class="premium-value band-high" data-field="premium">+8.61%</span><span class="premium-band band-high" data-field="band">>5%高溢价</span><span class="stale-label" data-field="stale"></span></td>
+              <td data-label="综合费率"><span class="premium-cost" data-field="holding-cost">0.63%/年</span></td>
+              <td data-label="涨跌"><span data-field="change">+0.00%</span></td>
+            </tr>
+            <tr class="premium-detail-row" id="premium-detail-513870" hidden>
+              <td colspan="5">
+                <dl class="premium-detail-grid">
+                  <div><dt>价格</dt><dd data-field="price">2.030</dd></div>
+                  <div><dt>IOPV</dt><dd data-field="iopv">1.8691</dd></div>
+                  <div><dt>成交额</dt><dd data-field="turnover">3556万元</dd></div>
+                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-25 10:57</time></dd></div>
+                  <div><dt>交易所</dt><dd>SSE</dd></div>
+                  <div><dt>分类</dt><dd>宽基</dd></div>
+                  <div><dt>综合费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608181828115725_1.pdf" target="_blank" rel="noopener noreferrer">0.63%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+                  <div><dt>费率资料日期</dt><dd>2026-08-19</dd></div>
+                </dl>
+                <div class="premium-source-row">
+                  <a class="premium-source-link" href="https://quote.eastmoney.com/sh513870.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                  <a class="premium-source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608181828115725_1.pdf" target="_blank" rel="noopener noreferrer">查看费率来源<span class="external" aria-hidden="true">↗</span></a>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+          <tbody class="premium-item premium-row" data-etf-code="159612" data-premium="8.52" data-quote-status="fresh">
             <tr class="premium-summary-row">
               <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="premium-detail-159612"><span><strong data-field="name">标普500ETF国泰</strong><span class="fund-code">159612 · SZSE</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
               <td data-label="基准"><span class="benchmark-compact">标普500</span></td>
-              <td data-label="溢价"><span class="premium-value band-high" data-field="premium">+7.16%</span><span class="premium-band band-high" data-field="band">>5%高溢价</span><span class="stale-label" data-field="stale"></span></td>
-              <td data-label="涨跌"><span data-field="change">+0.24%</span></td>
+              <td data-label="溢价"><span class="premium-value band-high" data-field="premium">+8.52%</span><span class="premium-band band-high" data-field="band">>5%高溢价</span><span class="stale-label" data-field="stale"></span></td>
+              <td data-label="综合费率"><span class="premium-cost" data-field="holding-cost">0.80%/年</span></td>
+              <td data-label="涨跌"><span data-field="change">+1.06%</span></td>
             </tr>
             <tr class="premium-detail-row" id="premium-detail-159612" hidden>
-              <td colspan="4">
+              <td colspan="5">
                 <dl class="premium-detail-grid">
-                  <div><dt>价格</dt><dd data-field="price">2.069</dd></div>
-                  <div><dt>IOPV</dt><dd data-field="iopv">1.9308</dd></div>
-                  <div><dt>成交额</dt><dd data-field="turnover">7552万元</dd></div>
-                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-24 15:34</time></dd></div>
+                  <div><dt>价格</dt><dd data-field="price">2.091</dd></div>
+                  <div><dt>IOPV</dt><dd data-field="iopv">1.9268</dd></div>
+                  <div><dt>成交额</dt><dd data-field="turnover">2118万元</dd></div>
+                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-25 10:57</time></dd></div>
                   <div><dt>交易所</dt><dd>SZSE</dd></div>
                   <div><dt>分类</dt><dd>宽基</dd></div>
+                  <div><dt>综合费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202603181820622984_1.pdf" target="_blank" rel="noopener noreferrer">0.80%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+                  <div><dt>费率资料日期</dt><dd>2026-03-19</dd></div>
                 </dl>
-                <a class="premium-source-link" href="https://quote.eastmoney.com/sz159612.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                <div class="premium-source-row">
+                  <a class="premium-source-link" href="https://quote.eastmoney.com/sz159612.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                  <a class="premium-source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202603181820622984_1.pdf" target="_blank" rel="noopener noreferrer">查看费率来源<span class="external" aria-hidden="true">↗</span></a>
+                </div>
               </td>
             </tr>
           </tbody>
-          <tbody class="premium-item premium-row" data-etf-code="513390" data-premium="7.01" data-quote-status="fresh">
+          <tbody class="premium-item premium-row" data-etf-code="159660" data-premium="8.44" data-quote-status="fresh">
+            <tr class="premium-summary-row">
+              <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="premium-detail-159660"><span><strong data-field="name">纳指ETF汇添富</strong><span class="fund-code">159660 · SZSE</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
+              <td data-label="基准"><span class="benchmark-compact">纳指100</span></td>
+              <td data-label="溢价"><span class="premium-value band-high" data-field="premium">+8.44%</span><span class="premium-band band-high" data-field="band">>5%高溢价</span><span class="stale-label" data-field="stale"></span></td>
+              <td data-label="综合费率"><span class="premium-cost" data-field="holding-cost">0.66%/年</span></td>
+              <td data-label="涨跌"><span data-field="change">+0.04%</span></td>
+            </tr>
+            <tr class="premium-detail-row" id="premium-detail-159660" hidden>
+              <td colspan="5">
+                <dl class="premium-detail-grid">
+                  <div><dt>价格</dt><dd data-field="price">2.326</dd></div>
+                  <div><dt>IOPV</dt><dd data-field="iopv">2.1450</dd></div>
+                  <div><dt>成交额</dt><dd data-field="turnover">4046万元</dd></div>
+                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-25 10:57</time></dd></div>
+                  <div><dt>交易所</dt><dd>SZSE</dd></div>
+                  <div><dt>分类</dt><dd>宽基</dd></div>
+                  <div><dt>综合费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608161828029909_1.pdf" target="_blank" rel="noopener noreferrer">0.66%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+                  <div><dt>费率资料日期</dt><dd>2026-08-17</dd></div>
+                </dl>
+                <div class="premium-source-row">
+                  <a class="premium-source-link" href="https://quote.eastmoney.com/sz159660.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                  <a class="premium-source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608161828029909_1.pdf" target="_blank" rel="noopener noreferrer">查看费率来源<span class="external" aria-hidden="true">↗</span></a>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+          <tbody class="premium-item premium-row" data-etf-code="513300" data-premium="8.42" data-quote-status="fresh">
+            <tr class="premium-summary-row">
+              <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="premium-detail-513300"><span><strong data-field="name">纳斯达克ETF华夏</strong><span class="fund-code">513300 · SSE</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
+              <td data-label="基准"><span class="benchmark-compact">纳指100</span></td>
+              <td data-label="溢价"><span class="premium-value band-high" data-field="premium">+8.42%</span><span class="premium-band band-high" data-field="band">>5%高溢价</span><span class="stale-label" data-field="stale"></span></td>
+              <td data-label="综合费率"><span class="premium-cost" data-field="holding-cost">0.80%/年</span></td>
+              <td data-label="涨跌"><span data-field="change">+0.15%</span></td>
+            </tr>
+            <tr class="premium-detail-row" id="premium-detail-513300" hidden>
+              <td colspan="5">
+                <dl class="premium-detail-grid">
+                  <div><dt>价格</dt><dd data-field="price">2.634</dd></div>
+                  <div><dt>IOPV</dt><dd data-field="iopv">2.4295</dd></div>
+                  <div><dt>成交额</dt><dd data-field="turnover">1.49亿元</dd></div>
+                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-25 10:57</time></dd></div>
+                  <div><dt>交易所</dt><dd>SSE</dd></div>
+                  <div><dt>分类</dt><dd>宽基</dd></div>
+                  <div><dt>综合费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202605281822956800_1.pdf" target="_blank" rel="noopener noreferrer">0.80%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+                  <div><dt>费率资料日期</dt><dd>2026-05-29</dd></div>
+                </dl>
+                <div class="premium-source-row">
+                  <a class="premium-source-link" href="https://quote.eastmoney.com/sh513300.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                  <a class="premium-source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202605281822956800_1.pdf" target="_blank" rel="noopener noreferrer">查看费率来源<span class="external" aria-hidden="true">↗</span></a>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+          <tbody class="premium-item premium-row" data-etf-code="513110" data-premium="8.26" data-quote-status="fresh">
+            <tr class="premium-summary-row">
+              <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="premium-detail-513110"><span><strong data-field="name">纳指ETF华泰柏瑞</strong><span class="fund-code">513110 · SSE</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
+              <td data-label="基准"><span class="benchmark-compact">纳指100</span></td>
+              <td data-label="溢价"><span class="premium-value band-high" data-field="premium">+8.26%</span><span class="premium-band band-high" data-field="band">>5%高溢价</span><span class="stale-label" data-field="stale"></span></td>
+              <td data-label="综合费率"><span class="premium-cost" data-field="holding-cost">1.04%/年</span></td>
+              <td data-label="涨跌"><span data-field="change">+0.04%</span></td>
+            </tr>
+            <tr class="premium-detail-row" id="premium-detail-513110" hidden>
+              <td colspan="5">
+                <dl class="premium-detail-grid">
+                  <div><dt>价格</dt><dd data-field="price">2.440</dd></div>
+                  <div><dt>IOPV</dt><dd data-field="iopv">2.2539</dd></div>
+                  <div><dt>成交额</dt><dd data-field="turnover">8979万元</dd></div>
+                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-25 10:56</time></dd></div>
+                  <div><dt>交易所</dt><dd>SSE</dd></div>
+                  <div><dt>分类</dt><dd>宽基</dd></div>
+                  <div><dt>综合费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202603171820603675_1.pdf" target="_blank" rel="noopener noreferrer">1.04%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+                  <div><dt>费率资料日期</dt><dd>2026-03-18</dd></div>
+                </dl>
+                <div class="premium-source-row">
+                  <a class="premium-source-link" href="https://quote.eastmoney.com/sh513110.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                  <a class="premium-source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202603171820603675_1.pdf" target="_blank" rel="noopener noreferrer">查看费率来源<span class="external" aria-hidden="true">↗</span></a>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+          <tbody class="premium-item premium-row" data-etf-code="513390" data-premium="8.21" data-quote-status="fresh">
             <tr class="premium-summary-row">
               <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="premium-detail-513390"><span><strong data-field="name">纳指100ETF博时</strong><span class="fund-code">513390 · SSE</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
               <td data-label="基准"><span class="benchmark-compact">纳指100</span></td>
-              <td data-label="溢价"><span class="premium-value band-high" data-field="premium">+7.01%</span><span class="premium-band band-high" data-field="band">>5%高溢价</span><span class="stale-label" data-field="stale"></span></td>
-              <td data-label="涨跌"><span data-field="change">-1.20%</span></td>
+              <td data-label="溢价"><span class="premium-value band-high" data-field="premium">+8.21%</span><span class="premium-band band-high" data-field="band">>5%高溢价</span><span class="stale-label" data-field="stale"></span></td>
+              <td data-label="综合费率"><span class="premium-cost" data-field="holding-cost">0.66%/年</span></td>
+              <td data-label="涨跌"><span data-field="change">+0.17%</span></td>
             </tr>
             <tr class="premium-detail-row" id="premium-detail-513390" hidden>
-              <td colspan="4">
+              <td colspan="5">
                 <dl class="premium-detail-grid">
-                  <div><dt>价格</dt><dd data-field="price">2.380</dd></div>
-                  <div><dt>IOPV</dt><dd data-field="iopv">2.2240</dd></div>
-                  <div><dt>成交额</dt><dd data-field="turnover">1.32亿元</dd></div>
-                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-24 16:11</time></dd></div>
+                  <div><dt>价格</dt><dd data-field="price">2.384</dd></div>
+                  <div><dt>IOPV</dt><dd data-field="iopv">2.2032</dd></div>
+                  <div><dt>成交额</dt><dd data-field="turnover">5746万元</dd></div>
+                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-25 10:57</time></dd></div>
                   <div><dt>交易所</dt><dd>SSE</dd></div>
                   <div><dt>分类</dt><dd>宽基</dd></div>
+                  <div><dt>综合费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606251823858016_1.pdf" target="_blank" rel="noopener noreferrer">0.66%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+                  <div><dt>费率资料日期</dt><dd>2026-06-26</dd></div>
                 </dl>
-                <a class="premium-source-link" href="https://quote.eastmoney.com/sh513390.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                <div class="premium-source-row">
+                  <a class="premium-source-link" href="https://quote.eastmoney.com/sh513390.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                  <a class="premium-source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606251823858016_1.pdf" target="_blank" rel="noopener noreferrer">查看费率来源<span class="external" aria-hidden="true">↗</span></a>
+                </div>
               </td>
             </tr>
           </tbody>
-          <tbody class="premium-item premium-row" data-etf-code="159632" data-premium="7" data-quote-status="fresh">
+          <tbody class="premium-item premium-row" data-etf-code="159632" data-premium="8.16" data-quote-status="fresh">
             <tr class="premium-summary-row">
               <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="premium-detail-159632"><span><strong data-field="name">纳斯达克ETF华安</strong><span class="fund-code">159632 · SZSE</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
               <td data-label="基准"><span class="benchmark-compact">纳指100</span></td>
-              <td data-label="溢价"><span class="premium-value band-high" data-field="premium">+7.00%</span><span class="premium-band band-high" data-field="band">>5%高溢价</span><span class="stale-label" data-field="stale"></span></td>
-              <td data-label="涨跌"><span data-field="change">-1.15%</span></td>
+              <td data-label="溢价"><span class="premium-value band-high" data-field="premium">+8.16%</span><span class="premium-band band-high" data-field="band">>5%高溢价</span><span class="stale-label" data-field="stale"></span></td>
+              <td data-label="综合费率"><span class="premium-cost" data-field="holding-cost">0.80%/年</span></td>
+              <td data-label="涨跌"><span data-field="change">+0.12%</span></td>
             </tr>
             <tr class="premium-detail-row" id="premium-detail-159632" hidden>
-              <td colspan="4">
+              <td colspan="5">
                 <dl class="premium-detail-grid">
-                  <div><dt>价格</dt><dd data-field="price">2.408</dd></div>
-                  <div><dt>IOPV</dt><dd data-field="iopv">2.2504</dd></div>
-                  <div><dt>成交额</dt><dd data-field="turnover">2.09亿元</dd></div>
-                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-24 15:34</time></dd></div>
+                  <div><dt>价格</dt><dd data-field="price">2.411</dd></div>
+                  <div><dt>IOPV</dt><dd data-field="iopv">2.2292</dd></div>
+                  <div><dt>成交额</dt><dd data-field="turnover">9834万元</dd></div>
+                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-25 10:57</time></dd></div>
                   <div><dt>交易所</dt><dd>SZSE</dd></div>
                   <div><dt>分类</dt><dd>宽基</dd></div>
+                  <div><dt>综合费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202603051820304400_1.pdf" target="_blank" rel="noopener noreferrer">0.80%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+                  <div><dt>费率资料日期</dt><dd>2026-03-06</dd></div>
                 </dl>
-                <a class="premium-source-link" href="https://quote.eastmoney.com/sz159632.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                <div class="premium-source-row">
+                  <a class="premium-source-link" href="https://quote.eastmoney.com/sz159632.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                  <a class="premium-source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202603051820304400_1.pdf" target="_blank" rel="noopener noreferrer">查看费率来源<span class="external" aria-hidden="true">↗</span></a>
+                </div>
               </td>
             </tr>
           </tbody>
-          <tbody class="premium-item premium-row" data-etf-code="159513" data-premium="6.95" data-quote-status="fresh">
+          <tbody class="premium-item premium-row" data-etf-code="159513" data-premium="8.06" data-quote-status="fresh">
             <tr class="premium-summary-row">
               <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="premium-detail-159513"><span><strong data-field="name">纳斯达克100ETF大成</strong><span class="fund-code">159513 · SZSE</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
               <td data-label="基准"><span class="benchmark-compact">纳指100</span></td>
-              <td data-label="溢价"><span class="premium-value band-high" data-field="premium">+6.95%</span><span class="premium-band band-high" data-field="band">>5%高溢价</span><span class="stale-label" data-field="stale"></span></td>
-              <td data-label="涨跌"><span data-field="change">-1.23%</span></td>
+              <td data-label="溢价"><span class="premium-value band-high" data-field="premium">+8.06%</span><span class="premium-band band-high" data-field="band">>5%高溢价</span><span class="stale-label" data-field="stale"></span></td>
+              <td data-label="综合费率"><span class="premium-cost" data-field="holding-cost">1.00%/年</span></td>
+              <td data-label="涨跌"><span data-field="change">+0.06%</span></td>
             </tr>
             <tr class="premium-detail-row" id="premium-detail-159513" hidden>
-              <td colspan="4">
+              <td colspan="5">
                 <dl class="premium-detail-grid">
-                  <div><dt>价格</dt><dd data-field="price">1.770</dd></div>
-                  <div><dt>IOPV</dt><dd data-field="iopv">1.6550</dd></div>
-                  <div><dt>成交额</dt><dd data-field="turnover">1.63亿元</dd></div>
-                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-24 15:34</time></dd></div>
+                  <div><dt>价格</dt><dd data-field="price">1.771</dd></div>
+                  <div><dt>IOPV</dt><dd data-field="iopv">1.6389</dd></div>
+                  <div><dt>成交额</dt><dd data-field="turnover">1.00亿元</dd></div>
+                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-25 10:56</time></dd></div>
                   <div><dt>交易所</dt><dd>SZSE</dd></div>
                   <div><dt>分类</dt><dd>宽基</dd></div>
+                  <div><dt>综合费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606291826545203_1.pdf" target="_blank" rel="noopener noreferrer">1.00%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+                  <div><dt>费率资料日期</dt><dd>2026-06-30</dd></div>
                 </dl>
-                <a class="premium-source-link" href="https://quote.eastmoney.com/sz159513.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                <div class="premium-source-row">
+                  <a class="premium-source-link" href="https://quote.eastmoney.com/sz159513.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                  <a class="premium-source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606291826545203_1.pdf" target="_blank" rel="noopener noreferrer">查看费率来源<span class="external" aria-hidden="true">↗</span></a>
+                </div>
               </td>
             </tr>
           </tbody>
-          <tbody class="premium-item premium-row" data-etf-code="513850" data-premium="3.88" data-quote-status="fresh">
+          <tbody class="premium-item premium-row" data-etf-code="513850" data-premium="4.71" data-quote-status="fresh">
             <tr class="premium-summary-row">
               <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="premium-detail-513850"><span><strong data-field="name">美国50ETF易方达</strong><span class="fund-code">513850 · SSE</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
               <td data-label="基准"><span class="benchmark-compact">美国50</span></td>
-              <td data-label="溢价"><span class="premium-value band-elevated" data-field="premium">+3.88%</span><span class="premium-band band-elevated" data-field="band">2–5%</span><span class="stale-label" data-field="stale"></span></td>
-              <td data-label="涨跌"><span data-field="change">-0.72%</span></td>
+              <td data-label="溢价"><span class="premium-value band-elevated" data-field="premium">+4.71%</span><span class="premium-band band-elevated" data-field="band">2–5%</span><span class="stale-label" data-field="stale"></span></td>
+              <td data-label="综合费率"><span class="premium-cost" data-field="holding-cost">0.62%/年</span></td>
+              <td data-label="涨跌"><span data-field="change">+0.44%</span></td>
             </tr>
             <tr class="premium-detail-row" id="premium-detail-513850" hidden>
-              <td colspan="4">
+              <td colspan="5">
                 <dl class="premium-detail-grid">
-                  <div><dt>价格</dt><dd data-field="price">1.800</dd></div>
-                  <div><dt>IOPV</dt><dd data-field="iopv">1.7327</dd></div>
-                  <div><dt>成交额</dt><dd data-field="turnover">7532万元</dd></div>
-                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-24 16:11</time></dd></div>
+                  <div><dt>价格</dt><dd data-field="price">1.808</dd></div>
+                  <div><dt>IOPV</dt><dd data-field="iopv">1.7266</dd></div>
+                  <div><dt>成交额</dt><dd data-field="turnover">2059万元</dd></div>
+                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-25 10:57</time></dd></div>
                   <div><dt>交易所</dt><dd>SSE</dd></div>
                   <div><dt>分类</dt><dd>宽基</dd></div>
+                  <div><dt>综合费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608101827817894_1.pdf" target="_blank" rel="noopener noreferrer">0.62%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+                  <div><dt>费率资料日期</dt><dd>2026-08-11</dd></div>
                 </dl>
-                <a class="premium-source-link" href="https://quote.eastmoney.com/sh513850.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                <div class="premium-source-row">
+                  <a class="premium-source-link" href="https://quote.eastmoney.com/sh513850.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                  <a class="premium-source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608101827817894_1.pdf" target="_blank" rel="noopener noreferrer">查看费率来源<span class="external" aria-hidden="true">↗</span></a>
+                </div>
               </td>
             </tr>
           </tbody>
-          <tbody class="premium-item premium-row" data-etf-code="159577" data-premium="3.53" data-quote-status="fresh">
+          <tbody class="premium-item premium-row" data-etf-code="159577" data-premium="4.42" data-quote-status="fresh">
             <tr class="premium-summary-row">
               <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="premium-detail-159577"><span><strong data-field="name">美国50ETF汇添富</strong><span class="fund-code">159577 · SZSE</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
               <td data-label="基准"><span class="benchmark-compact">美国50</span></td>
-              <td data-label="溢价"><span class="premium-value band-elevated" data-field="premium">+3.53%</span><span class="premium-band band-elevated" data-field="band">2–5%</span><span class="stale-label" data-field="stale"></span></td>
-              <td data-label="涨跌"><span data-field="change">-0.74%</span></td>
+              <td data-label="溢价"><span class="premium-value band-elevated" data-field="premium">+4.42%</span><span class="premium-band band-elevated" data-field="band">2–5%</span><span class="stale-label" data-field="stale"></span></td>
+              <td data-label="综合费率"><span class="premium-cost" data-field="holding-cost">0.67%/年</span></td>
+              <td data-label="涨跌"><span data-field="change">+0.50%</span></td>
             </tr>
             <tr class="premium-detail-row" id="premium-detail-159577" hidden>
-              <td colspan="4">
+              <td colspan="5">
                 <dl class="premium-detail-grid">
-                  <div><dt>价格</dt><dd data-field="price">1.612</dd></div>
-                  <div><dt>IOPV</dt><dd data-field="iopv">1.5570</dd></div>
-                  <div><dt>成交额</dt><dd data-field="turnover">6912万元</dd></div>
-                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-24 15:34</time></dd></div>
+                  <div><dt>价格</dt><dd data-field="price">1.620</dd></div>
+                  <div><dt>IOPV</dt><dd data-field="iopv">1.5514</dd></div>
+                  <div><dt>成交额</dt><dd data-field="turnover">2606万元</dd></div>
+                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-25 10:57</time></dd></div>
                   <div><dt>交易所</dt><dd>SZSE</dd></div>
                   <div><dt>分类</dt><dd>宽基</dd></div>
+                  <div><dt>综合费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202602121819904562_1.pdf" target="_blank" rel="noopener noreferrer">0.67%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+                  <div><dt>费率资料日期</dt><dd>2026-02-13</dd></div>
                 </dl>
-                <a class="premium-source-link" href="https://quote.eastmoney.com/sz159577.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                <div class="premium-source-row">
+                  <a class="premium-source-link" href="https://quote.eastmoney.com/sz159577.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                  <a class="premium-source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202602121819904562_1.pdf" target="_blank" rel="noopener noreferrer">查看费率来源<span class="external" aria-hidden="true">↗</span></a>
+                </div>
               </td>
             </tr>
           </tbody>
-          <tbody class="premium-item premium-row" data-etf-code="513290" data-premium="2.44" data-quote-status="fresh">
-            <tr class="premium-summary-row">
-              <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="premium-detail-513290"><span><strong data-field="name">纳指生物科技ETF汇添富</strong><span class="fund-code">513290 · SSE</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
-              <td data-label="基准"><span class="benchmark-compact">行业主题</span></td>
-              <td data-label="溢价"><span class="premium-value band-elevated" data-field="premium">+2.44%</span><span class="premium-band band-elevated" data-field="band">2–5%</span><span class="stale-label" data-field="stale"></span></td>
-              <td data-label="涨跌"><span data-field="change">+1.05%</span></td>
-            </tr>
-            <tr class="premium-detail-row" id="premium-detail-513290" hidden>
-              <td colspan="4">
-                <dl class="premium-detail-grid">
-                  <div><dt>价格</dt><dd data-field="price">1.823</dd></div>
-                  <div><dt>IOPV</dt><dd data-field="iopv">1.7796</dd></div>
-                  <div><dt>成交额</dt><dd data-field="turnover">7.25亿元</dd></div>
-                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-24 16:11</time></dd></div>
-                  <div><dt>交易所</dt><dd>SSE</dd></div>
-                  <div><dt>分类</dt><dd>行业主题</dd></div>
-                </dl>
-                <a class="premium-source-link" href="https://quote.eastmoney.com/sh513290.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
-              </td>
-            </tr>
-          </tbody>
-          <tbody class="premium-item premium-row" data-etf-code="513400" data-premium="1.37" data-quote-status="fresh">
-            <tr class="premium-summary-row">
-              <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="premium-detail-513400"><span><strong data-field="name">道琼斯ETF鹏华</strong><span class="fund-code">513400 · SSE</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
-              <td data-label="基准"><span class="benchmark-compact">道琼斯</span></td>
-              <td data-label="溢价"><span class="premium-value band-normal" data-field="premium">+1.37%</span><span class="premium-band band-normal" data-field="band">0–2%</span><span class="stale-label" data-field="stale"></span></td>
-              <td data-label="涨跌"><span data-field="change">+0.38%</span></td>
-            </tr>
-            <tr class="premium-detail-row" id="premium-detail-513400" hidden>
-              <td colspan="4">
-                <dl class="premium-detail-grid">
-                  <div><dt>价格</dt><dd data-field="price">1.331</dd></div>
-                  <div><dt>IOPV</dt><dd data-field="iopv">1.3130</dd></div>
-                  <div><dt>成交额</dt><dd data-field="turnover">1.94亿元</dd></div>
-                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-24 16:11</time></dd></div>
-                  <div><dt>交易所</dt><dd>SSE</dd></div>
-                  <div><dt>分类</dt><dd>宽基</dd></div>
-                </dl>
-                <a class="premium-source-link" href="https://quote.eastmoney.com/sh513400.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
-              </td>
-            </tr>
-          </tbody>
-          <tbody class="premium-item premium-row" data-etf-code="159529" data-premium="0.95" data-quote-status="fresh">
+          <tbody class="premium-item premium-row" data-etf-code="159529" data-premium="2.1" data-quote-status="fresh">
             <tr class="premium-summary-row">
               <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="premium-detail-159529"><span><strong data-field="name">标普消费ETF景顺</strong><span class="fund-code">159529 · SZSE</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
               <td data-label="基准"><span class="benchmark-compact">行业主题</span></td>
-              <td data-label="溢价"><span class="premium-value band-normal" data-field="premium">+0.95%</span><span class="premium-band band-normal" data-field="band">0–2%</span><span class="stale-label" data-field="stale"></span></td>
-              <td data-label="涨跌"><span data-field="change">+0.00%</span></td>
+              <td data-label="溢价"><span class="premium-value band-elevated" data-field="premium">+2.10%</span><span class="premium-band band-elevated" data-field="band">2–5%</span><span class="stale-label" data-field="stale"></span></td>
+              <td data-label="综合费率"><span class="premium-cost" data-field="holding-cost">0.86%/年</span></td>
+              <td data-label="涨跌"><span data-field="change">+1.85%</span></td>
             </tr>
             <tr class="premium-detail-row" id="premium-detail-159529" hidden>
-              <td colspan="4">
+              <td colspan="5">
                 <dl class="premium-detail-grid">
-                  <div><dt>价格</dt><dd data-field="price">1.296</dd></div>
-                  <div><dt>IOPV</dt><dd data-field="iopv">1.2838</dd></div>
-                  <div><dt>成交额</dt><dd data-field="turnover">1933万元</dd></div>
-                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-24 15:34</time></dd></div>
+                  <div><dt>价格</dt><dd data-field="price">1.320</dd></div>
+                  <div><dt>IOPV</dt><dd data-field="iopv">1.2928</dd></div>
+                  <div><dt>成交额</dt><dd data-field="turnover">1.07亿元</dd></div>
+                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-25 10:57</time></dd></div>
                   <div><dt>交易所</dt><dd>SZSE</dd></div>
                   <div><dt>分类</dt><dd>行业主题</dd></div>
+                  <div><dt>综合费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606291826541468_1.pdf" target="_blank" rel="noopener noreferrer">0.86%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+                  <div><dt>费率资料日期</dt><dd>2026-06-30</dd></div>
                 </dl>
-                <a class="premium-source-link" href="https://quote.eastmoney.com/sz159529.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                <div class="premium-source-row">
+                  <a class="premium-source-link" href="https://quote.eastmoney.com/sz159529.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                  <a class="premium-source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606291826541468_1.pdf" target="_blank" rel="noopener noreferrer">查看费率来源<span class="external" aria-hidden="true">↗</span></a>
+                </div>
               </td>
             </tr>
           </tbody>
-          <tbody class="premium-item premium-row" data-etf-code="159502" data-premium="0.45" data-quote-status="fresh">
+          <tbody class="premium-item premium-row" data-etf-code="513290" data-premium="1.98" data-quote-status="fresh">
             <tr class="premium-summary-row">
-              <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="premium-detail-159502"><span><strong data-field="name">标普生物科技ETF嘉实</strong><span class="fund-code">159502 · SZSE</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
+              <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="premium-detail-513290"><span><strong data-field="name">纳指生物科技ETF汇添富</strong><span class="fund-code">513290 · SSE</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
               <td data-label="基准"><span class="benchmark-compact">行业主题</span></td>
-              <td data-label="溢价"><span class="premium-value band-normal" data-field="premium">+0.45%</span><span class="premium-band band-normal" data-field="band">0–2%</span><span class="stale-label" data-field="stale"></span></td>
-              <td data-label="涨跌"><span data-field="change">+1.28%</span></td>
+              <td data-label="溢价"><span class="premium-value band-normal" data-field="premium">+1.98%</span><span class="premium-band band-normal" data-field="band">0–2%</span><span class="stale-label" data-field="stale"></span></td>
+              <td data-label="综合费率"><span class="premium-cost" data-field="holding-cost">0.66%/年</span></td>
+              <td data-label="涨跌"><span data-field="change">-0.88%</span></td>
             </tr>
-            <tr class="premium-detail-row" id="premium-detail-159502" hidden>
-              <td colspan="4">
+            <tr class="premium-detail-row" id="premium-detail-513290" hidden>
+              <td colspan="5">
                 <dl class="premium-detail-grid">
-                  <div><dt>价格</dt><dd data-field="price">1.666</dd></div>
-                  <div><dt>IOPV</dt><dd data-field="iopv">1.6586</dd></div>
-                  <div><dt>成交额</dt><dd data-field="turnover">4.36亿元</dd></div>
-                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-24 15:34</time></dd></div>
-                  <div><dt>交易所</dt><dd>SZSE</dd></div>
+                  <div><dt>价格</dt><dd data-field="price">1.807</dd></div>
+                  <div><dt>IOPV</dt><dd data-field="iopv">1.7720</dd></div>
+                  <div><dt>成交额</dt><dd data-field="turnover">1.12亿元</dd></div>
+                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-25 10:57</time></dd></div>
+                  <div><dt>交易所</dt><dd>SSE</dd></div>
                   <div><dt>分类</dt><dd>行业主题</dd></div>
+                  <div><dt>综合费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608131827948065_1.pdf" target="_blank" rel="noopener noreferrer">0.66%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+                  <div><dt>费率资料日期</dt><dd>2026-08-14</dd></div>
                 </dl>
-                <a class="premium-source-link" href="https://quote.eastmoney.com/sz159502.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                <div class="premium-source-row">
+                  <a class="premium-source-link" href="https://quote.eastmoney.com/sh513290.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                  <a class="premium-source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608131827948065_1.pdf" target="_blank" rel="noopener noreferrer">查看费率来源<span class="external" aria-hidden="true">↗</span></a>
+                </div>
               </td>
             </tr>
           </tbody>
-          <tbody class="premium-item premium-row" data-etf-code="513350" data-premium="-0.1" data-quote-status="fresh">
+          <tbody class="premium-item premium-row" data-etf-code="513400" data-premium="1.84" data-quote-status="fresh">
+            <tr class="premium-summary-row">
+              <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="premium-detail-513400"><span><strong data-field="name">道琼斯ETF鹏华</strong><span class="fund-code">513400 · SSE</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
+              <td data-label="基准"><span class="benchmark-compact">道琼斯</span></td>
+              <td data-label="溢价"><span class="premium-value band-normal" data-field="premium">+1.84%</span><span class="premium-band band-normal" data-field="band">0–2%</span><span class="stale-label" data-field="stale"></span></td>
+              <td data-label="综合费率"><span class="premium-cost" data-field="holding-cost">0.68%/年</span></td>
+              <td data-label="涨跌"><span data-field="change">+0.75%</span></td>
+            </tr>
+            <tr class="premium-detail-row" id="premium-detail-513400" hidden>
+              <td colspan="5">
+                <dl class="premium-detail-grid">
+                  <div><dt>价格</dt><dd data-field="price">1.341</dd></div>
+                  <div><dt>IOPV</dt><dd data-field="iopv">1.3168</dd></div>
+                  <div><dt>成交额</dt><dd data-field="turnover">1.04亿元</dd></div>
+                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-25 10:56</time></dd></div>
+                  <div><dt>交易所</dt><dd>SSE</dd></div>
+                  <div><dt>分类</dt><dd>宽基</dd></div>
+                  <div><dt>综合费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202603301820849808_1.pdf" target="_blank" rel="noopener noreferrer">0.68%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+                  <div><dt>费率资料日期</dt><dd>2026-03-30</dd></div>
+                </dl>
+                <div class="premium-source-row">
+                  <a class="premium-source-link" href="https://quote.eastmoney.com/sh513400.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                  <a class="premium-source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202603301820849808_1.pdf" target="_blank" rel="noopener noreferrer">查看费率来源<span class="external" aria-hidden="true">↗</span></a>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+          <tbody class="premium-item premium-row" data-etf-code="513350" data-premium="0.5" data-quote-status="fresh">
             <tr class="premium-summary-row">
               <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="premium-detail-513350"><span><strong data-field="name">标普油气ETF富国</strong><span class="fund-code">513350 · SSE</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
               <td data-label="基准"><span class="benchmark-compact">行业主题</span></td>
-              <td data-label="溢价"><span class="premium-value band-discount" data-field="premium">-0.10%</span><span class="premium-band band-discount" data-field="band">折价</span><span class="stale-label" data-field="stale"></span></td>
-              <td data-label="涨跌"><span data-field="change">+0.37%</span></td>
+              <td data-label="溢价"><span class="premium-value band-normal" data-field="premium">+0.50%</span><span class="premium-band band-normal" data-field="band">0–2%</span><span class="stale-label" data-field="stale"></span></td>
+              <td data-label="综合费率"><span class="premium-cost" data-field="holding-cost">0.68%/年</span></td>
+              <td data-label="涨跌"><span data-field="change">-1.12%</span></td>
             </tr>
             <tr class="premium-detail-row" id="premium-detail-513350" hidden>
-              <td colspan="4">
+              <td colspan="5">
                 <dl class="premium-detail-grid">
-                  <div><dt>价格</dt><dd data-field="price">1.341</dd></div>
-                  <div><dt>IOPV</dt><dd data-field="iopv">1.3423</dd></div>
-                  <div><dt>成交额</dt><dd data-field="turnover">6.73亿元</dd></div>
-                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-24 16:11</time></dd></div>
+                  <div><dt>价格</dt><dd data-field="price">1.326</dd></div>
+                  <div><dt>IOPV</dt><dd data-field="iopv">1.3194</dd></div>
+                  <div><dt>成交额</dt><dd data-field="turnover">2.31亿元</dd></div>
+                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-25 10:57</time></dd></div>
                   <div><dt>交易所</dt><dd>SSE</dd></div>
                   <div><dt>分类</dt><dd>行业主题</dd></div>
+                  <div><dt>综合费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608091827792998_1.pdf" target="_blank" rel="noopener noreferrer">0.68%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+                  <div><dt>费率资料日期</dt><dd>2026-08-10</dd></div>
                 </dl>
-                <a class="premium-source-link" href="https://quote.eastmoney.com/sh513350.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                <div class="premium-source-row">
+                  <a class="premium-source-link" href="https://quote.eastmoney.com/sh513350.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                  <a class="premium-source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608091827792998_1.pdf" target="_blank" rel="noopener noreferrer">查看费率来源<span class="external" aria-hidden="true">↗</span></a>
+                </div>
               </td>
             </tr>
           </tbody>
-          <tbody class="premium-item premium-row" data-etf-code="159518" data-premium="-0.65" data-quote-status="fresh">
+          <tbody class="premium-item premium-row" data-etf-code="159518" data-premium="0.12" data-quote-status="fresh">
             <tr class="premium-summary-row">
               <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="premium-detail-159518"><span><strong data-field="name">标普油气ETF嘉实</strong><span class="fund-code">159518 · SZSE</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
               <td data-label="基准"><span class="benchmark-compact">行业主题</span></td>
-              <td data-label="溢价"><span class="premium-value band-discount" data-field="premium">-0.65%</span><span class="premium-band band-discount" data-field="band">折价</span><span class="stale-label" data-field="stale"></span></td>
-              <td data-label="涨跌"><span data-field="change">+0.63%</span></td>
+              <td data-label="溢价"><span class="premium-value band-normal" data-field="premium">+0.12%</span><span class="premium-band band-normal" data-field="band">0–2%</span><span class="stale-label" data-field="stale"></span></td>
+              <td data-label="综合费率"><span class="premium-cost" data-field="holding-cost">0.62%/年</span></td>
+              <td data-label="涨跌"><span data-field="change">-0.94%</span></td>
             </tr>
             <tr class="premium-detail-row" id="premium-detail-159518" hidden>
-              <td colspan="4">
+              <td colspan="5">
                 <dl class="premium-detail-grid">
-                  <div><dt>价格</dt><dd data-field="price">1.271</dd></div>
-                  <div><dt>IOPV</dt><dd data-field="iopv">1.2793</dd></div>
-                  <div><dt>成交额</dt><dd data-field="turnover">3.24亿元</dd></div>
-                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-24 15:34</time></dd></div>
+                  <div><dt>价格</dt><dd data-field="price">1.259</dd></div>
+                  <div><dt>IOPV</dt><dd data-field="iopv">1.2575</dd></div>
+                  <div><dt>成交额</dt><dd data-field="turnover">1.01亿元</dd></div>
+                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-25 10:57</time></dd></div>
                   <div><dt>交易所</dt><dd>SZSE</dd></div>
                   <div><dt>分类</dt><dd>行业主题</dd></div>
+                  <div><dt>综合费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606101823424722_1.pdf" target="_blank" rel="noopener noreferrer">0.62%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+                  <div><dt>费率资料日期</dt><dd>2026-06-11</dd></div>
                 </dl>
-                <a class="premium-source-link" href="https://quote.eastmoney.com/sz159518.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                <div class="premium-source-row">
+                  <a class="premium-source-link" href="https://quote.eastmoney.com/sz159518.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                  <a class="premium-source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606101823424722_1.pdf" target="_blank" rel="noopener noreferrer">查看费率来源<span class="external" aria-hidden="true">↗</span></a>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+          <tbody class="premium-item premium-row" data-etf-code="159502" data-premium="0.05" data-quote-status="fresh">
+            <tr class="premium-summary-row">
+              <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="premium-detail-159502"><span><strong data-field="name">标普生物科技ETF嘉实</strong><span class="fund-code">159502 · SZSE</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
+              <td data-label="基准"><span class="benchmark-compact">行业主题</span></td>
+              <td data-label="溢价"><span class="premium-value band-normal" data-field="premium">+0.05%</span><span class="premium-band band-normal" data-field="band">0–2%</span><span class="stale-label" data-field="stale"></span></td>
+              <td data-label="综合费率"><span class="premium-cost" data-field="holding-cost">0.61%/年</span></td>
+              <td data-label="涨跌"><span data-field="change">-1.32%</span></td>
+            </tr>
+            <tr class="premium-detail-row" id="premium-detail-159502" hidden>
+              <td colspan="5">
+                <dl class="premium-detail-grid">
+                  <div><dt>价格</dt><dd data-field="price">1.644</dd></div>
+                  <div><dt>IOPV</dt><dd data-field="iopv">1.6432</dd></div>
+                  <div><dt>成交额</dt><dd data-field="turnover">9123万元</dd></div>
+                  <div><dt>行情时间</dt><dd><time data-field="updated">2026-08-25 10:56</time></dd></div>
+                  <div><dt>交易所</dt><dd>SZSE</dd></div>
+                  <div><dt>分类</dt><dd>行业主题</dd></div>
+                  <div><dt>综合费率（年化）</dt><dd><a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606101823424739_1.pdf" target="_blank" rel="noopener noreferrer">0.61%/年<span class="external" aria-hidden="true">↗</span></a></dd></div>
+                  <div><dt>费率资料日期</dt><dd>2026-06-11</dd></div>
+                </dl>
+                <div class="premium-source-row">
+                  <a class="premium-source-link" href="https://quote.eastmoney.com/sz159502.html" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                  <a class="premium-source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606101823424739_1.pdf" target="_blank" rel="noopener noreferrer">查看费率来源<span class="external" aria-hidden="true">↗</span></a>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -1830,10 +1982,10 @@
 
       <details class="warnings">
         <summary>数据警告 <span>47</span></summary>
-        <ul><li>跳过未完整披露的持有人报告期 2026-06-30：仅 1 只基金，低于上一完整报告期 2025-12-31（24419 只）的 95%。</li><li>持有费率告警 017653：Could not locate annualized comprehensive operating expense</li><li>持有费率告警 017144：Could not locate annualized comprehensive operating expense</li><li>持有费率告警 501312：Could not locate annualized comprehensive operating expense</li><li>持有费率告警 017436：Could not locate annualized comprehensive operating expense</li><li>合同基准告警 012535：Could not locate the current performance benchmark statement</li><li>持有费率告警 012535：Could not locate annualized comprehensive operating expense</li><li>产品概要告警 012535：Could not locate the current performance benchmark statement</li><li>产品概要告警 013363：招募说明书与人民币产品概要的合同基准不一致。</li><li>013328 SPDR Gold Shares 无法按 2026-06-30 的可用数据穿透，其 0.23% 仓位仅计入可能上限。</li><li>013328 iShares MSCI India 无法按 2026-06-30 的可用数据穿透，其 0.08% 仓位仅计入可能上限。</li><li>539003 SCOTTISH 无法按 2026-06-30 的可用数据穿透，其 0.69% 仓位仅计入可能上限。</li><li>018078 南方恒生 生物科技 ETF(QDII) 无法按 2026-06-30 的可用数据穿透，其 94.93% 仓位仅计入可能上限。</li><li>018078 美股占比区间 0.00%-94.93% 跨越 50% 阈值，按确认下限进入全球补充榜。</li><li>100055 南方港韩科技 无法按 2026-06-30 的可用数据穿透，其 0.77% 仓位仅计入可能上限。</li><li>017653 ISHARES SEMICON DUCTOR ETF 无法按 2026-06-30 的可用数据穿透，其 4.49% 仓位仅计入可能上限。</li><li>017653 DIREX DAIL SEMI BU 3X ET-USD 无法按 2026-06-30 的可用数据穿透，其 0.39% 仓位仅计入可能上限。</li><li>017653 PROSHAR ES ULTRAPR O QQQ 无法按 2026-06-30 的可用数据穿透，其 0.07% 仓位仅计入可能上限。</li><li>000043 SPDR Gold Shares 无法按 2026-06-30 的可用数据穿透，其 0.11% 仓位仅计入可能上限。</li><li>000043 VanEck Gold Miners ETF/USA 无法按 2026-06-30 的可用数据穿透，其 0.08% 仓位仅计入可能上限。</li><li>000043 GraniteShares 2x Long NVDA Daily ETF 无法按 2026-06-30 的可用数据穿透，其 0.03% 仓位仅计入可能上限。</li><li>000043 Invesco Golden Dragon China ETF 无法按 2026-06-30 的可用数据穿透，其 0.01% 仓位仅计入可能上限。</li><li>270023 KraneShares Public-Private AI &amp; Technology ETF 无法按 2026-06-30 的可用数据穿透，其 0.11% 仓位仅计入可能上限。</li><li>017730 Harvest G2 Tech 50 ETF 无法按 2026-06-30 的可用数据穿透，其 0.09% 仓位仅计入可能上限。</li><li>016970 华夏恒生 生物科技 ETF （QDII） 无法按 2026-06-30 的可用数据穿透，其 93.53% 仓位仅计入可能上限。</li><li>016970 美股占比区间 0.00%-93.53% 跨越 50% 阈值，按确认下限进入全球补充榜。</li><li>501312 ARK Innovation ETF 无法按 2026-06-30 的可用数据穿透，其 18.48% 仓位仅计入可能上限。</li><li>501312 ARK Genomic Rev olution ETF 无法按 2026-06-30 的可用数据穿透，其 16.93% 仓位仅计入可能上限。</li><li>501312 ARK Autonomous Technology &amp; Ro botics ETF 无法按 2026-06-30 的可用数据穿透，其 10.15% 仓位仅计入可能上限。</li><li>501312 Global X Artifi cial Intelligen ce &amp; Technology ETF 无法按 2026-06-30 的可用数据穿透，其 6.32% 仓位仅计入可能上限。</li><li>501312 Global X Roboti cs &amp; Artificial Intelligence E TF 无法按 2026-06-30 的可用数据穿透，其 5.05% 仓位仅计入可能上限。</li><li>501312 ARK Space &amp; Def ense Innovation ETF 无法按 2026-06-30 的可用数据穿透，其 5.00% 仓位仅计入可能上限。</li><li>501312 State Street Te chnology Select Sector SPDR ET F 无法按 2026-06-30 的可用数据穿透，其 4.67% 仓位仅计入可能上限。</li><li>501312 iShares Semicon ductor ETF 无法按 2026-06-30 的可用数据穿透，其 3.33% 仓位仅计入可能上限。</li><li>501312 前十大基金之外尚有 7.13% 基金仓位未披露，仅计入可能上限。</li><li>501312 美股占比区间 7.66%-84.72% 跨越 50% 阈值，按确认下限进入全球补充榜。</li><li>005698 Direxion Daily Semiconductor Bull 3X ETF 无法按 2026-06-30 的可用数据穿透，其 8.57% 仓位仅计入可能上限。</li><li>005698 CSOP SK Hynix Daily 2x Leveraged Product 无法按 2026-06-30 的可用数据穿透，其 1.01% 仓位仅计入可能上限。</li><li>016664 CSOP SK Hynix Dai ly 2x Leve raged Prod uct 无法按 2026-06-30 的可用数据穿透，其 7.44% 仓位仅计入可能上限。</li><li>016664 CSOP Sa msung Ele ctronics D aily 2x Le veraged Pr oduct 无法按 2026-06-30 的可用数据穿透，其 1.50% 仓位仅计入可能上限。</li><li>270042 ProShares UltraPro QQQ 无法按 2026-06-30 的可用数据穿透，其 0.95% 仓位仅计入可能上限。</li><li>164212 CSOP SK Hynix Dai ly 2x Leve raged Prod uct 无法按 2026-06-30 的可用数据穿透，其 4.87% 仓位仅计入可能上限。</li><li>164212 CSOP Sa msung Ele ctronics D aily 2x Le veraged Pr oduct 无法按 2026-06-30 的可用数据穿透，其 1.90% 仓位仅计入可能上限。</li><li>164212 美股占比区间 44.19%-50.96% 跨越 50% 阈值，按确认下限进入全球补充榜。</li><li>016452 的申购额度无法确定；引用前请核对关联公告。</li><li>额度剔除 016452：直销额度无法可靠解析。</li><li>美国主榜仅 9 只基金符合全部条件，未放宽门槛。</li></ul>
+        <ul><li>跳过未完整披露的持有人报告期 2026-06-30：仅 5 只基金，低于上一完整报告期 2025-12-31（24419 只）的 95%。</li><li>持有费率告警 017653：Could not locate annualized comprehensive operating expense</li><li>持有费率告警 017144：Could not locate annualized comprehensive operating expense</li><li>持有费率告警 501312：Could not locate annualized comprehensive operating expense</li><li>持有费率告警 017436：Could not locate annualized comprehensive operating expense</li><li>合同基准告警 012535：Could not locate the current performance benchmark statement</li><li>持有费率告警 012535：Could not locate annualized comprehensive operating expense</li><li>产品概要告警 012535：Could not locate the current performance benchmark statement</li><li>产品概要告警 013363：招募说明书与人民币产品概要的合同基准不一致。</li><li>013328 SPDR Gold Shares 无法按 2026-06-30 的可用数据穿透，其 0.23% 仓位仅计入可能上限。</li><li>013328 iShares MSCI India 无法按 2026-06-30 的可用数据穿透，其 0.08% 仓位仅计入可能上限。</li><li>539003 SCOTTISH 无法按 2026-06-30 的可用数据穿透，其 0.69% 仓位仅计入可能上限。</li><li>018078 南方恒生 生物科技 ETF(QDII) 无法按 2026-06-30 的可用数据穿透，其 94.93% 仓位仅计入可能上限。</li><li>018078 美股占比区间 0.00%-94.93% 跨越 50% 阈值，按确认下限进入全球补充榜。</li><li>100055 南方港韩科技 无法按 2026-06-30 的可用数据穿透，其 0.77% 仓位仅计入可能上限。</li><li>017653 ISHARES SEMICON DUCTOR ETF 无法按 2026-06-30 的可用数据穿透，其 4.49% 仓位仅计入可能上限。</li><li>017653 DIREX DAIL SEMI BU 3X ET-USD 无法按 2026-06-30 的可用数据穿透，其 0.39% 仓位仅计入可能上限。</li><li>017653 PROSHAR ES ULTRAPR O QQQ 无法按 2026-06-30 的可用数据穿透，其 0.07% 仓位仅计入可能上限。</li><li>000043 SPDR Gold Shares 无法按 2026-06-30 的可用数据穿透，其 0.11% 仓位仅计入可能上限。</li><li>000043 VanEck Gold Miners ETF/USA 无法按 2026-06-30 的可用数据穿透，其 0.08% 仓位仅计入可能上限。</li><li>000043 GraniteShares 2x Long NVDA Daily ETF 无法按 2026-06-30 的可用数据穿透，其 0.03% 仓位仅计入可能上限。</li><li>000043 Invesco Golden Dragon China ETF 无法按 2026-06-30 的可用数据穿透，其 0.01% 仓位仅计入可能上限。</li><li>270023 KraneShares Public-Private AI &amp; Technology ETF 无法按 2026-06-30 的可用数据穿透，其 0.11% 仓位仅计入可能上限。</li><li>017730 Harvest G2 Tech 50 ETF 无法按 2026-06-30 的可用数据穿透，其 0.09% 仓位仅计入可能上限。</li><li>016970 华夏恒生 生物科技 ETF （QDII） 无法按 2026-06-30 的可用数据穿透，其 93.53% 仓位仅计入可能上限。</li><li>016970 美股占比区间 0.00%-93.53% 跨越 50% 阈值，按确认下限进入全球补充榜。</li><li>501312 ARK Innovation ETF 无法按 2026-06-30 的可用数据穿透，其 18.48% 仓位仅计入可能上限。</li><li>501312 ARK Genomic Rev olution ETF 无法按 2026-06-30 的可用数据穿透，其 16.93% 仓位仅计入可能上限。</li><li>501312 ARK Autonomous Technology &amp; Ro botics ETF 无法按 2026-06-30 的可用数据穿透，其 10.15% 仓位仅计入可能上限。</li><li>501312 Global X Artifi cial Intelligen ce &amp; Technology ETF 无法按 2026-06-30 的可用数据穿透，其 6.32% 仓位仅计入可能上限。</li><li>501312 Global X Roboti cs &amp; Artificial Intelligence E TF 无法按 2026-06-30 的可用数据穿透，其 5.05% 仓位仅计入可能上限。</li><li>501312 ARK Space &amp; Def ense Innovation ETF 无法按 2026-06-30 的可用数据穿透，其 5.00% 仓位仅计入可能上限。</li><li>501312 State Street Te chnology Select Sector SPDR ET F 无法按 2026-06-30 的可用数据穿透，其 4.67% 仓位仅计入可能上限。</li><li>501312 iShares Semicon ductor ETF 无法按 2026-06-30 的可用数据穿透，其 3.33% 仓位仅计入可能上限。</li><li>501312 前十大基金之外尚有 7.13% 基金仓位未披露，仅计入可能上限。</li><li>501312 美股占比区间 7.66%-84.72% 跨越 50% 阈值，按确认下限进入全球补充榜。</li><li>005698 Direxion Daily Semiconductor Bull 3X ETF 无法按 2026-06-30 的可用数据穿透，其 8.57% 仓位仅计入可能上限。</li><li>005698 CSOP SK Hynix Daily 2x Leveraged Product 无法按 2026-06-30 的可用数据穿透，其 1.01% 仓位仅计入可能上限。</li><li>016664 CSOP SK Hynix Dai ly 2x Leve raged Prod uct 无法按 2026-06-30 的可用数据穿透，其 7.44% 仓位仅计入可能上限。</li><li>016664 CSOP Sa msung Ele ctronics D aily 2x Le veraged Pr oduct 无法按 2026-06-30 的可用数据穿透，其 1.50% 仓位仅计入可能上限。</li><li>270042 ProShares UltraPro QQQ 无法按 2026-06-30 的可用数据穿透，其 0.95% 仓位仅计入可能上限。</li><li>164212 CSOP SK Hynix Dai ly 2x Leve raged Prod uct 无法按 2026-06-30 的可用数据穿透，其 4.87% 仓位仅计入可能上限。</li><li>164212 CSOP Sa msung Ele ctronics D aily 2x Le veraged Pr oduct 无法按 2026-06-30 的可用数据穿透，其 1.90% 仓位仅计入可能上限。</li><li>164212 美股占比区间 44.19%-50.96% 跨越 50% 阈值，按确认下限进入全球补充榜。</li><li>016452 的申购额度无法确定；引用前请核对关联公告。</li><li>额度剔除 016452：直销额度无法可靠解析。</li><li>美国主榜仅 9 只基金符合全部条件，未放宽门槛。</li></ul>
       </details>
     </main>
-    <footer>额度为基金管理人层面的单日单基金账户上限；持有费率已反映在净值中；场内溢价为约15分钟延迟的价格相对IOPV偏离。</footer>
+    <footer>额度为基金管理人层面的单日单基金账户上限；综合费率已从基金资产中扣除，不含场内券商佣金；场内溢价为约15分钟延迟的价格相对IOPV偏离。</footer>
   </div>
   <script>
     const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
@@ -1844,7 +1996,7 @@
         document.getElementById(item.dataset.panel).hidden = !active;
       });
     }));
-    globalThis.__ETF_PREMIUM_CONFIG__ = {"refreshUrl":"https://push2delay.eastmoney.com/api/qt/ulist.np/get?fltt=2&invt=2&ut=bd1d9ddb04089700cf9c27f6f7426281&secids=0.159612%2C0.159655%2C1.513500%2C1.513650%2C0.159501%2C0.159513%2C0.159632%2C0.159659%2C0.159660%2C0.159696%2C0.159941%2C1.513100%2C1.513110%2C1.513300%2C1.513390%2C1.513870%2C0.159577%2C1.513850%2C1.513400%2C0.159502%2C0.159509%2C0.159518%2C0.159529%2C1.513290%2C1.513350&fields=f2%2Cf3%2Cf6%2Cf12%2Cf13%2Cf14%2Cf18%2Cf124%2Cf297%2Cf402%2Cf441","entries":[{"code":"159509","name":"纳指科技ETF景顺","benchmarkGroup":"行业主题"},{"code":"159501","name":"纳指ETF嘉实","benchmarkGroup":"纳指100"},{"code":"513100","name":"纳指ETF国泰","benchmarkGroup":"纳指100"},{"code":"159941","name":"纳指ETF广发","benchmarkGroup":"纳指100"},{"code":"513500","name":"标普500ETF博时","benchmarkGroup":"标普500"},{"code":"159696","name":"纳指ETF易方达","benchmarkGroup":"纳指100"},{"code":"159659","name":"纳斯达克100ETF招商","benchmarkGroup":"纳指100"},{"code":"513870","name":"纳指ETF富国","benchmarkGroup":"纳指100"},{"code":"513650","name":"标普500ETF南方","benchmarkGroup":"标普500"},{"code":"159660","name":"纳指ETF汇添富","benchmarkGroup":"纳指100"},{"code":"513300","name":"纳斯达克ETF华夏","benchmarkGroup":"纳指100"},{"code":"159655","name":"标普500ETF华夏","benchmarkGroup":"标普500"},{"code":"513110","name":"纳指ETF华泰柏瑞","benchmarkGroup":"纳指100"},{"code":"159612","name":"标普500ETF国泰","benchmarkGroup":"标普500"},{"code":"513390","name":"纳指100ETF博时","benchmarkGroup":"纳指100"},{"code":"159632","name":"纳斯达克ETF华安","benchmarkGroup":"纳指100"},{"code":"159513","name":"纳斯达克100ETF大成","benchmarkGroup":"纳指100"},{"code":"513850","name":"美国50ETF易方达","benchmarkGroup":"美国50"},{"code":"159577","name":"美国50ETF汇添富","benchmarkGroup":"美国50"},{"code":"513290","name":"纳指生物科技ETF汇添富","benchmarkGroup":"行业主题"},{"code":"513400","name":"道琼斯ETF鹏华","benchmarkGroup":"道琼斯"},{"code":"159529","name":"标普消费ETF景顺","benchmarkGroup":"行业主题"},{"code":"159502","name":"标普生物科技ETF嘉实","benchmarkGroup":"行业主题"},{"code":"513350","name":"标普油气ETF富国","benchmarkGroup":"行业主题"},{"code":"159518","name":"标普油气ETF嘉实","benchmarkGroup":"行业主题"}]};
+    globalThis.__ETF_PREMIUM_CONFIG__ = {"refreshUrl":"https://push2delay.eastmoney.com/api/qt/ulist.np/get?fltt=2&invt=2&ut=bd1d9ddb04089700cf9c27f6f7426281&secids=0.159612%2C0.159655%2C1.513500%2C1.513650%2C0.159501%2C0.159513%2C0.159632%2C0.159659%2C0.159660%2C0.159696%2C0.159941%2C1.513100%2C1.513110%2C1.513300%2C1.513390%2C1.513870%2C0.159577%2C1.513850%2C1.513400%2C0.159502%2C0.159509%2C0.159518%2C0.159529%2C1.513290%2C1.513350&fields=f2%2Cf3%2Cf6%2Cf12%2Cf13%2Cf14%2Cf18%2Cf124%2Cf297%2Cf402%2Cf441","entries":[{"code":"159509","name":"纳指科技ETF景顺","benchmarkGroup":"行业主题"},{"code":"159501","name":"纳指ETF嘉实","benchmarkGroup":"纳指100"},{"code":"513100","name":"纳指ETF国泰","benchmarkGroup":"纳指100"},{"code":"159941","name":"纳指ETF广发","benchmarkGroup":"纳指100"},{"code":"513500","name":"标普500ETF博时","benchmarkGroup":"标普500"},{"code":"159696","name":"纳指ETF易方达","benchmarkGroup":"纳指100"},{"code":"159655","name":"标普500ETF华夏","benchmarkGroup":"标普500"},{"code":"513650","name":"标普500ETF南方","benchmarkGroup":"标普500"},{"code":"159659","name":"纳斯达克100ETF招商","benchmarkGroup":"纳指100"},{"code":"513870","name":"纳指ETF富国","benchmarkGroup":"纳指100"},{"code":"159612","name":"标普500ETF国泰","benchmarkGroup":"标普500"},{"code":"159660","name":"纳指ETF汇添富","benchmarkGroup":"纳指100"},{"code":"513300","name":"纳斯达克ETF华夏","benchmarkGroup":"纳指100"},{"code":"513110","name":"纳指ETF华泰柏瑞","benchmarkGroup":"纳指100"},{"code":"513390","name":"纳指100ETF博时","benchmarkGroup":"纳指100"},{"code":"159632","name":"纳斯达克ETF华安","benchmarkGroup":"纳指100"},{"code":"159513","name":"纳斯达克100ETF大成","benchmarkGroup":"纳指100"},{"code":"513850","name":"美国50ETF易方达","benchmarkGroup":"美国50"},{"code":"159577","name":"美国50ETF汇添富","benchmarkGroup":"美国50"},{"code":"159529","name":"标普消费ETF景顺","benchmarkGroup":"行业主题"},{"code":"513290","name":"纳指生物科技ETF汇添富","benchmarkGroup":"行业主题"},{"code":"513400","name":"道琼斯ETF鹏华","benchmarkGroup":"道琼斯"},{"code":"513350","name":"标普油气ETF富国","benchmarkGroup":"行业主题"},{"code":"159518","name":"标普油气ETF嘉实","benchmarkGroup":"行业主题"},{"code":"159502","name":"标普生物科技ETF嘉实","benchmarkGroup":"行业主题"}]};
 (function (global) {
   "use strict";
 
@@ -2102,6 +2254,7 @@
     fetchWithRetry,
     premiumBand,
     formatTurnover,
+    updateRow,
     comparePremiumItems,
     sortPremiumRows,
     setupDetailToggles,

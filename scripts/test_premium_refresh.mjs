@@ -86,6 +86,33 @@ test("sorts all ETFs by premium descending with missing values last", () => {
   assert.deepEqual(items.map((value) => value.dataset.etfCode), ["000001", "000002", "000003"]);
 });
 
+test("refreshes quote fields without changing the rendered holding cost", () => {
+  const { api } = loadApi();
+  const fields = new Map([
+    ["name", { textContent: "旧名称" }],
+    ["price", { textContent: "1.000" }],
+    ["iopv", { textContent: "1.0000" }],
+    ["premium", { textContent: "+0.00%", className: "premium-value band-normal" }],
+    ["change", { textContent: "+0.00%" }],
+    ["turnover", { textContent: "1万元" }],
+    ["updated", { textContent: "2026-08-20 15:00" }],
+    ["band", { textContent: "0–2%", className: "premium-band band-normal" }],
+    ["stale", { textContent: "旧值" }],
+    ["holding-cost", { textContent: "0.80%/年" }],
+  ]);
+  const item = {
+    dataset: {},
+    classList: { remove() {} },
+    querySelector(selector) {
+      const match = selector.match(/data-field="([^"]+)"/);
+      return match ? fields.get(match[1]) || null : null;
+    },
+  };
+  api.updateRow(item, api.normalizeQuote(rawQuote, entry, "2026-08-21"));
+  assert.equal(fields.get("holding-cost").textContent, "0.80%/年");
+  assert.equal(fields.get("price").textContent, "2.672");
+});
+
 test("toggles an ETF detail row without opening other rows", () => {
   const { api } = loadApi();
   let handler;

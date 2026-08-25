@@ -33,11 +33,19 @@ def make_exchange_premium():
                 "updated_at": f"{RUN_DATE}T15:00:00+08:00",
                 "quote_source_url": f"https://example.test/quote/{entry['code']}",
                 "quote_status": "fresh",
+                "holding_cost": {
+                    "status": "parsed",
+                    "annualized_pct": round(0.6 + index / 100, 2),
+                    "measurement_date": None,
+                    "source_title": f"{entry['name']}基金产品资料概要更新",
+                    "source_published_date": RUN_DATE,
+                    "source_url": f"https://example.test/fee/{entry['code']}.pdf",
+                },
             }
         )
     records.sort(key=ranking.exchange_premium_sort_key)
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "status": "fresh",
         "requested_at": f"{RUN_DATE}T07:07:00+08:00",
         "quote_delay_minutes": 15,
@@ -241,7 +249,7 @@ def make_global_record(rank):
 
 def make_payload():
     return {
-        "schema_version": 11,
+        "schema_version": 12,
         "run_date": RUN_DATE,
         "generated_at": "2026-08-20T09:08:00+08:00",
         "holder_report_date": "2025-12-31",
@@ -373,6 +381,21 @@ class RankingValidatorTests(unittest.TestCase):
         )
         _validated, warnings = self.validate(payload)
         self.assertTrue(any(item.startswith("场内溢价告警：") for item in warnings))
+
+    def test_accepts_stale_exchange_holding_cost_and_warning(self):
+        payload = make_payload()
+        payload["exchange_premium"]["records"][0]["holding_cost"]["status"] = "stale"
+        payload["warnings"].append(
+            "场内费率告警 513500：公告索引无法读取，使用上次费率：temporary outage"
+        )
+        _validated, warnings = self.validate(payload)
+        self.assertTrue(any(item.startswith("场内费率告警 ") for item in warnings))
+
+    def test_rejects_invalid_exchange_holding_cost(self):
+        payload = make_payload()
+        payload["exchange_premium"]["records"][0]["holding_cost"]["annualized_pct"] = None
+        with self.assertRaisesRegex(validator.ValidationError, "holding cost"):
+            self.validate(payload)
 
     def test_rejects_exchange_premium_formula_difference(self):
         payload = make_payload()

@@ -23,6 +23,13 @@
 产品概要日期和来源。综合费率已从基金资产中扣除，不包含券商收取的场内交易佣金。辅助数据失败不会
 阻止基金榜单发布；行情会按 ETF 保留旧值，费率仅在公告索引不可访问时保留并标记上次成功值。
 
+第四个“估值代理”Tab 使用独立的 `/valuation/` 路由展示 7 个标的。无 `asset` 参数时只显示完整
+估值总表；点击任一标的后通过 `?asset=<id>` 进入独立详情视图，详情顶部可以返回概览或直接切换标的。
+纳指 100、标普 500 和德国 DAX 直取雪球当前估值；标普 500 等权、标普 100 等权和富时 100
+使用 ETF/SPY 相对价格校准 DQYDJ S&P 500 月度 TTM PE；黄金转述中美双锚三因子模型的当前
+数值和因子新鲜度。研究代理使用最近连续 120 个已结束自然月计算中位秩百分位，不输出低估或
+高估判断。富时 100 固定标记为实验代理。估值 JSON、缓存、校验器和页面均与 QDII 榜单 schema 独立。
+
 ## 本地更新
 
 使用包含 `pypdf` 的 Python 环境在仓库根目录执行：
@@ -31,6 +38,10 @@
 python scripts/update_qdii_ranking.py `
   --output-dir .\output\qdii-ranking `
   --publish-dir .\public
+python scripts/update_index_valuation.py `
+  --output-dir .\output\index-valuation `
+  --publish-dir .\public `
+  --cache-dir .\output\qdii-ranking\cache\index-valuation
 ```
 
 更新后检查 `output/qdii-ranking/latest.json`、`latest.md` 和全部警告，再运行：
@@ -40,8 +51,13 @@ python scripts/validate_qdii_ranking.py `
   --output-dir .\output\qdii-ranking `
   --publish-dir .\public `
   --expected-date <北京时间当天日期>
+python scripts/validate_index_valuation.py `
+  --output-dir .\output\index-valuation `
+  --publish-dir .\public `
+  --expected-date <北京时间当天日期>
 python -m unittest discover -s scripts -p "test_*.py"
 node --test scripts/test_premium_refresh.mjs
+node --test scripts/test_valuation_page.mjs
 ```
 
 JSON schema 为 12：顶层 `records` 是美国主榜，`global_supplement.records` 是全球补充榜，
@@ -49,6 +65,12 @@ JSON schema 为 12：顶层 `records` 是美国主榜，`global_supplement.recor
 每条记录的 `routing_reason` 说明按美股确认占比分流或按地域名称覆盖分流；
 `exclusion_summary` 汇总候选剔除原因。CSV、Markdown、`latest.html` 和 `public/index.html` 均由
 同一份 JSON 数据生成，两个 HTML 必须字节一致。
+
+估值页另写 `output/index-valuation/latest.json`、`latest.html`、`run-metrics.json` 和字节一致的
+`public/valuation/index.html`。schema v2 的 `assets` 固定包含 6 个指数和 1 个黄金标的，资产状态为
+`fresh`、`cached_stale` 或 `unavailable`。按来源拆分的规范化缓存位于
+`output/qdii-ranking/cache/index-valuation/`，因此沿用现有 Actions 缓存；公开产物只包含当前快照和
+派生代理序列，不镜像黄金页面的图片、回测或策略内容。
 
 ## 发布
 
@@ -69,6 +91,7 @@ tcb app deploy qdii-ranking-web `
 
 ```text
 https://qdii-ranking-web-run-cool-d2gy0iw957219659c.webapps.tcloudbase.com/?v=<榜单日期>
+https://qdii-ranking-web-run-cool-d2gy0iw957219659c.webapps.tcloudbase.com/valuation/?v=<榜单日期>
 ```
 
 `/qdii` 是 CloudBase 内部部署路径，独立域名直接使用根路径。日期参数用于降低微信命中旧
@@ -78,8 +101,11 @@ https://qdii-ranking-web-run-cool-d2gy0iw957219659c.webapps.tcloudbase.com/?v=<�
 ## 每日自动更新
 
 `.github/workflows/update-ranking.yml` 每天北京时间 07:07 执行，也支持手动触发。流程依次为
-刷新、质量校验、测试、提交生成页、CloudBase 部署、线上验证和 QQ 邮件通知。首次启用时
-先手动运行一次并验收。
+刷新榜单、刷新估值页、两组质量校验、测试、提交生成页、CloudBase 部署、两条路由线上验证和
+QQ 邮件通知。估值热启动并发重验雪球、黄金、DQYDJ 以及 RSP、EQWL、EWU、SPY 四条行情；
+雪球和黄金使用条件请求，Nasdaq 只拉最近约三个月。每个新自然月首次完整成功运行改做十年行情
+全量扫描。来源失败只有在对应缓存仍通过完整性和指纹校验时才允许回退；无缓存时受影响标的显示
+暂不可用，其他标的继续发布，全部 7 个标的不可用才阻止估值发布。
 
 Repository Secrets：
 

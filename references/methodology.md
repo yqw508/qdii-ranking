@@ -148,3 +148,43 @@ codes. `exchange_premium.records` contains the auxiliary 25-ETF snapshot. Each r
 `routing_reason`; filters expose `us_main_exclude_keywords` and an empty
 `global_exclude_keywords`. CSV and Markdown combine both lists with explicit list and routing fields. `latest.html` and
 `public/index.html` are generated from the same payload and must be byte-identical.
+
+## Multi-Asset Valuation Research Page
+
+The independent `/valuation/` route never changes QDII eligibility, routing, ordering, warnings, or
+JSON schema. Its schema v2 overview contains three source modes. Snowball supplies current PE, PB,
+ten-year source percentiles, ROE, dividend yield, and source rating for NDX, SP500, and GDAXI. The page
+does not manufacture a history from these snapshots. The external gold page supplies its USD spot,
+1/3/5/10-year and full-history model percentiles, residual, three factor values, freshness dates, and
+source ratings. No source charts, backtests, position advice, or trading rules are republished.
+
+The route without an `asset` query parameter is an overview-only comparison table. A valid
+`?asset=<id>` opens a detail-only view with a return link and a source-grouped native asset selector.
+Navigation preserves unrelated cache-busting and deployment query parameters. An unknown asset ID is
+removed and returns to the overview instead of silently opening the configured default asset.
+
+The three research proxies use Nasdaq daily closes and the DQYDJ monthly S&P 500 TTM PE series. For a
+target ETF `T`, each model forms `R_m = mean(T)_m / mean(SPY)_m`, calibrates
+`K = C_anchor * R_anchor / target_PE_anchor`, and publishes `PE_proxy_m = C_m * R_m / K`. The catalog
+anchors are RSP 20.82 for 2025-06, EQWL 24.16 for 2026-03, and EWU 17.57 for 2026-07. The EWU path is
+explicitly experimental because EWU tracks MSCI UK rather than FTSE 100, while its anchor comes from an
+ISF FTSE 100 snapshot. It has no claimed error interval. RSP retains the observed 5%-20% external
+snapshot error disclosure.
+
+Each proxy keeps the latest 120 consecutive ended common months. Its percentile is
+`100 * (count below + 0.5 * count equal) / 120`; P30/P50/P70 use inclusive linear interpolation. Proxy
+details never contain source or house low/high labels and never present the values as official index PE.
+
+Normalized source caches are separate files under `output/qdii-ranking/cache/index-valuation/` and are
+fingerprinted by schema, complete asset-catalog hash, source identity, and parser version. Cold runs
+fetch Snowball, gold, DQYDJ, RSP, EQWL, EWU, and SPY concurrently. Hot runs conditionally revalidate
+Snowball and gold, fully reparse DQYDJ, and merge roughly three months of each Nasdaq series. The first
+fully fresh run in a new calendar month performs all four ten-year Nasdaq scans; a failed scan does not
+advance the marker.
+
+A source failure can use only a cache that passes its current fingerprint and structural checks. With
+no cache, dependent assets remain visible as `unavailable`; unaffected assets still publish. A cached
+dependency marks its assets `cached_stale`. Validation blocks only an all-unavailable page or a broken
+artifact contract. Run metrics retain per-source duration, status, bytes, request mode, cache fallback,
+and the hot `<10s`/`<300KB` and cold `<15s` warning targets. `latest.html` and
+`public/valuation/index.html` must remain byte-identical.

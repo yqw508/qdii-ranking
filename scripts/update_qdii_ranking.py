@@ -4870,9 +4870,10 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
     .meta-grid {{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 14px; margin:14px 0 0; }}
     .meta-grid div, .detail-grid div, .rule-grid div {{ min-width:0; }}
     dd {{ margin:2px 0 0; font-weight:650; }}
-    .tabs {{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px; margin:0 0 12px; padding:4px; border:1px solid var(--border); border-radius:6px; background:#e9edf1; }}
-    .tab {{ min-height:42px; border:0; border-radius:4px; color:#42505d; background:transparent; cursor:pointer; font-weight:700; }}
+    .tabs {{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:4px; margin:0 0 12px; padding:4px; border:1px solid var(--border); border-radius:6px; background:#e9edf1; }}
+    .tab {{ display:grid; min-height:42px; place-content:center; border:0; border-radius:4px; color:#42505d; background:transparent; cursor:pointer; font-weight:700; text-align:center; text-decoration:none; }}
     .tab[aria-selected="true"] {{ color:var(--text); background:var(--surface); box-shadow:0 1px 2px rgba(20,32,44,.12); }}
+    .tab-link {{ color:#284c69; }}
     .tab-count {{ margin-left:6px; color:var(--muted); font-variant-numeric:tabular-nums; }}
     .tab:focus-visible,.fund-item summary:focus-visible,.refresh-button:focus-visible {{ outline:3px solid #86b7e8; outline-offset:2px; }}
     .ranking-list {{ display:grid; gap:10px; }}
@@ -4995,6 +4996,7 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
         <button class="tab" id="tab-us" type="button" role="tab" aria-selected="true" aria-controls="panel-us" data-panel="panel-us">美国主榜<span class="tab-count">{len(us_records)}</span></button>
         <button class="tab" id="tab-global" type="button" role="tab" aria-selected="false" aria-controls="panel-global" data-panel="panel-global">全球补充榜<span class="tab-count">{len(global_records)}</span></button>
         <button class="tab" id="tab-premium" type="button" role="tab" aria-selected="false" aria-controls="panel-premium" data-panel="panel-premium">场内溢价<span class="tab-count">{len(premium_records)}</span></button>
+        <a class="tab tab-link" id="tab-valuation" href="valuation/" role="tab" aria-selected="false">估值代理<span class="tab-count">研究版</span></a>
       </div>
       <section id="panel-us" class="ranking-list" role="tabpanel" aria-labelledby="tab-us">{render_list(us_records)}</section>
       <section id="panel-global" class="ranking-list" role="tabpanel" aria-labelledby="tab-global" hidden>{render_list(global_records)}</section>
@@ -5016,14 +5018,18 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
     <footer>额度为基金管理人层面的单日单基金账户上限；综合费率已从基金资产中扣除，不含场内券商佣金；场内溢价为约15分钟延迟的价格相对IOPV偏离。</footer>
   </div>
   <script>
-    const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
-    tabs.forEach((tab) => tab.addEventListener('click', () => {{
+    const tabs = Array.from(document.querySelectorAll('[role="tab"][data-panel]'));
+    const selectTab = (tab) => {{
       tabs.forEach((item) => {{
         const active = item === tab;
         item.setAttribute('aria-selected', String(active));
         document.getElementById(item.dataset.panel).hidden = !active;
       }});
-    }}));
+    }};
+    tabs.forEach((tab) => tab.addEventListener('click', () => selectTab(tab)));
+    const requestedTab = new URLSearchParams(window.location.search).get('tab');
+    const initialTab = tabs.find((tab) => tab.id === `tab-${{requestedTab}}`);
+    if (initialTab) selectTab(initialTab);
     globalThis.__ETF_PREMIUM_CONFIG__ = {premium_config_json};
 {browser_script}
   </script>

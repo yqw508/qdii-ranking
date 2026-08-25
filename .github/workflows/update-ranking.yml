@@ -16,6 +16,7 @@ env:
   CI: "true"
   PYTHONUNBUFFERED: "1"
   OUTPUT_DIR: output/qdii-ranking
+  VALUATION_OUTPUT_DIR: output/index-valuation
   PUBLISH_DIR: public
   PAGE_BASE_URL: https://qdii-ranking-web-run-cool-d2gy0iw957219659c.webapps.tcloudbase.com/
   TCB_OWNER_APP_ID: "1432808015"
@@ -71,9 +72,9 @@ jobs:
         uses: actions/cache@v6
         with:
           path: output/qdii-ranking/cache
-          key: qdii-ranking-${{ runner.os }}-${{ hashFiles('scripts/update_qdii_ranking.py', 'scripts/premium_refresh.js', 'references/us-equity-instruments.json', 'references/us-equity-etfs.json', 'references/contract-benchmarks.json') }}-${{ github.run_id }}
+          key: qdii-ranking-${{ runner.os }}-${{ hashFiles('scripts/update_qdii_ranking.py', 'scripts/premium_refresh.js', 'scripts/update_index_valuation.py', 'scripts/valuation_page.js', 'references/index-valuation-catalog.json', 'references/us-equity-instruments.json', 'references/us-equity-etfs.json', 'references/contract-benchmarks.json') }}-${{ github.run_id }}
           restore-keys: |
-            qdii-ranking-${{ runner.os }}-${{ hashFiles('scripts/update_qdii_ranking.py', 'scripts/premium_refresh.js', 'references/us-equity-instruments.json', 'references/us-equity-etfs.json', 'references/contract-benchmarks.json') }}-
+            qdii-ranking-${{ runner.os }}-${{ hashFiles('scripts/update_qdii_ranking.py', 'scripts/premium_refresh.js', 'scripts/update_index_valuation.py', 'scripts/valuation_page.js', 'references/index-valuation-catalog.json', 'references/us-equity-instruments.json', 'references/us-equity-etfs.json', 'references/contract-benchmarks.json') }}-
             qdii-ranking-${{ runner.os }}-
 
       - name: Install Python dependencies
@@ -108,20 +109,35 @@ jobs:
           RUN_DATE=$(python -c "import json; print(json.load(open('$OUTPUT_DIR/latest.json', encoding='utf-8'))['run_date'])")
           echo "RUN_DATE=$RUN_DATE" >> "$GITHUB_ENV"
           echo "PAGE_URL=${PAGE_BASE_URL}?v=${RUN_DATE}" >> "$GITHUB_ENV"
+          echo "VALUATION_URL=${PAGE_BASE_URL}valuation/?v=${RUN_DATE}" >> "$GITHUB_ENV"
+
+      - name: Refresh index valuation
+        id: valuation_update
+        run: >-
+          python scripts/update_index_valuation.py
+          --output-dir "$VALUATION_OUTPUT_DIR"
+          --publish-dir "$PUBLISH_DIR"
+          --cache-dir "$OUTPUT_DIR/cache/index-valuation"
+          --as-of "$RUN_DATE"
 
       - name: Validate generated artifacts
         id: validation
-        run: >-
-          python scripts/validate_qdii_ranking.py
-          --output-dir "$OUTPUT_DIR"
-          --publish-dir "$PUBLISH_DIR"
-          --expected-date "$RUN_DATE"
+        run: |
+          python scripts/validate_qdii_ranking.py \
+            --output-dir "$OUTPUT_DIR" \
+            --publish-dir "$PUBLISH_DIR" \
+            --expected-date "$RUN_DATE"
+          python scripts/validate_index_valuation.py \
+            --output-dir "$VALUATION_OUTPUT_DIR" \
+            --publish-dir "$PUBLISH_DIR" \
+            --expected-date "$RUN_DATE"
 
       - name: Run unit tests
         id: tests
         run: |
           python -m unittest discover -s scripts -p "test_*.py"
           node --test scripts/test_premium_refresh.mjs
+          node --test scripts/test_valuation_page.mjs
 
       - name: Commit generated page
         id: git_publish
@@ -129,7 +145,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- public/index.html
+          git add -- public/index.html public/valuation/index.html
           if git diff --cached --quiet; then
             echo "Generated page is unchanged; no commit needed"
           else
@@ -214,6 +230,14 @@ jobs:
             --deployed-url "$VERIFY_URL" \
             --attempts 18 \
             --delay-seconds 10
+          VALUATION_VERIFY_URL="${VALUATION_URL}&run=${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          python scripts/validate_index_valuation.py \
+            --output-dir "$VALUATION_OUTPUT_DIR" \
+            --publish-dir "$PUBLISH_DIR" \
+            --expected-date "$RUN_DATE" \
+            --deployed-url "$VALUATION_VERIFY_URL" \
+            --attempts 18 \
+            --delay-seconds 10
 
       - name: Send success email
         id: success_notification
@@ -247,6 +271,7 @@ jobs:
           CONFIGURATION_OUTCOME: ${{ steps.configuration.outcome }}
           DEPENDENCIES_OUTCOME: ${{ steps.dependencies.outcome }}
           UPDATE_OUTCOME: ${{ steps.update.outcome }}
+          VALUATION_UPDATE_OUTCOME: ${{ steps.valuation_update.outcome }}
           DATE_OUTCOME: ${{ steps.ranking_date.outcome }}
           VALIDATION_OUTCOME: ${{ steps.validation.outcome }}
           TESTS_OUTCOME: ${{ steps.tests.outcome }}
@@ -257,12 +282,13 @@ jobs:
           REMOTE_OUTCOME: ${{ steps.deployed_validation.outcome }}
           SUCCESS_MAIL_OUTCOME: ${{ steps.success_notification.outcome }}
         run: |
-          outcomes="configuration=${CONFIGURATION_OUTCOME}, dependencies=${DEPENDENCIES_OUTCOME}, update=${UPDATE_OUTCOME}, date=${DATE_OUTCOME}, validation=${VALIDATION_OUTCOME}, tests=${TESTS_OUTCOME}, git=${GIT_OUTCOME}, cli=${CLI_OUTCOME}, login=${LOGIN_OUTCOME}, deploy=${DEPLOY_OUTCOME}, remote=${REMOTE_OUTCOME}, success_email=${SUCCESS_MAIL_OUTCOME}"
+          outcomes="configuration=${CONFIGURATION_OUTCOME}, dependencies=${DEPENDENCIES_OUTCOME}, update=${UPDATE_OUTCOME}, valuation=${VALUATION_UPDATE_OUTCOME}, date=${DATE_OUTCOME}, validation=${VALIDATION_OUTCOME}, tests=${TESTS_OUTCOME}, git=${GIT_OUTCOME}, cli=${CLI_OUTCOME}, login=${LOGIN_OUTCOME}, deploy=${DEPLOY_OUTCOME}, remote=${REMOTE_OUTCOME}, success_email=${SUCCESS_MAIL_OUTCOME}"
           stage="unknown"
           for item in \
             "configuration:${CONFIGURATION_OUTCOME}" \
             "dependencies:${DEPENDENCIES_OUTCOME}" \
             "refresh:${UPDATE_OUTCOME}" \
+            "valuation-refresh:${VALUATION_UPDATE_OUTCOME}" \
             "ranking-date:${DATE_OUTCOME}" \
             "validation:${VALIDATION_OUTCOME}" \
             "tests:${TESTS_OUTCOME}" \

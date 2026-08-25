@@ -1,0 +1,140 @@
+{
+  "schema_version": 2,
+  "catalog_version": "multi_asset_valuation_v1",
+  "default_asset_id": "sp-500-equal-weight",
+  "sources": {
+    "snowball": {
+      "name": "雪球指数估值",
+      "url": "https://danjuanfunds.com/djapi/index_eva/dj",
+      "page_url": "https://danjuanfunds.com/rn/value-center"
+    },
+    "nasdaq": {
+      "name": "Nasdaq ETF 历史行情",
+      "url": "https://api.nasdaq.com/api/quote/{ticker}/historical",
+      "page_url": "https://www.nasdaq.com/market-activity/etf/{ticker}/historical"
+    },
+    "dqydj": {
+      "name": "DQYDJ S&P 500 月度 TTM PE",
+      "url": "https://dqydj.com/sp-500-pe-ratio/"
+    },
+    "gold": {
+      "name": "中美双锚三因子黄金估值模型",
+      "url": "https://shuipingtang.github.io/gold_cn.html",
+      "repository_url": "https://github.com/shuipingtang/shuipingtang.github.io"
+    }
+  },
+  "assets": [
+    {
+      "id": "nasdaq-100",
+      "asset_class": "equity_index",
+      "source_mode": "direct",
+      "name": "纳指 100",
+      "code": "NDX",
+      "region": "美国",
+      "source_code": "NDX"
+    },
+    {
+      "id": "sp-500",
+      "asset_class": "equity_index",
+      "source_mode": "direct",
+      "name": "标普 500",
+      "code": "SP500",
+      "region": "美国",
+      "source_code": "SP500"
+    },
+    {
+      "id": "dax",
+      "asset_class": "equity_index",
+      "source_mode": "direct",
+      "name": "德国 DAX",
+      "code": "GDAXI",
+      "region": "德国",
+      "source_code": "GDAXI"
+    },
+    {
+      "id": "sp-500-equal-weight",
+      "asset_class": "equity_index",
+      "source_mode": "proxy",
+      "name": "标普 500 等权",
+      "code": "SPW",
+      "region": "美国",
+      "ticker": "RSP",
+      "baseline_ticker": "SPY",
+      "method_id": "rsp_spy_relative_price_proxy_v1",
+      "definition_url": "https://www.spglobal.com/spdji/en/indices/equity/sp-500-equal-weight-index/",
+      "anchor": {
+        "month": "2025-06",
+        "pe_ttm": 20.82,
+        "as_of_date": "2025-06-30",
+        "publisher": "Invesco",
+        "title": "Invesco S&P 500 Equal Weight ETF commentary",
+        "source_url": "https://www.invesco.com/content/dam/invesco/us/en/product-documents/etf/commentary/invesco-s-p-500-equal-weight-etf-commentary-rsp.pdf"
+      },
+      "limitations": [
+        "该序列是研究代理，不是 S&P 官方指数 PE。",
+        "与可获得的外部截面相比，已观测水平误差约为 5%–20%。",
+        "历史行情、盈利数据和来源页面均可能修订。"
+      ]
+    },
+    {
+      "id": "sp-100-equal-weight",
+      "asset_class": "equity_index",
+      "source_mode": "proxy",
+      "name": "标普 100 等权",
+      "code": "SP100EW",
+      "region": "美国",
+      "ticker": "EQWL",
+      "baseline_ticker": "SPY",
+      "method_id": "eqwl_spy_relative_price_proxy_v1",
+      "definition_url": "https://www.spglobal.com/spdji/en/indices/equity/sp-100-equal-weight-index/",
+      "anchor": {
+        "month": "2026-03",
+        "pe_ttm": 24.16,
+        "as_of_date": "2026-03-31",
+        "publisher": "Invesco",
+        "title": "Invesco S&P 100 Equal Weight ETF fact sheet",
+        "source_url": "https://www.invesco.com/content/dam/invesco/us/en/product-documents/etf/fact-sheet/eqwl-invesco-s-p-100-equal-weight-etf-fact-sheet.pdf"
+      },
+      "limitations": [
+        "该序列是用 EQWL/SPY 相对价格校准的研究代理，不是 S&P 官方指数 PE。",
+        "代理尚未建立可验证的长期水平误差区间。",
+        "历史行情、盈利数据和来源页面均可能修订。"
+      ]
+    },
+    {
+      "id": "ftse-100-proxy",
+      "asset_class": "equity_index",
+      "source_mode": "proxy",
+      "name": "富时 100",
+      "code": "UKX-PROXY",
+      "region": "英国",
+      "ticker": "EWU",
+      "baseline_ticker": "SPY",
+      "method_id": "ewu_spy_relative_price_proxy_v1",
+      "definition_url": "https://www.lseg.com/en/ftse-russell/indices/uk",
+      "experimental": true,
+      "anchor": {
+        "month": "2026-07",
+        "pe_ttm": 17.57,
+        "as_of_date": "2026-07-17",
+        "publisher": "iShares",
+        "title": "iShares Core FTSE 100 UCITS ETF portfolio characteristics",
+        "source_url": "https://www.ishares.com/uk/individual/en/products/251795/ISF?locale=en_GB"
+      },
+      "limitations": [
+        "这是实验代理：EWU 跟踪 MSCI UK，成分范围与 FTSE 100 不一致。",
+        "锚点来自跟踪 FTSE 100 的 iShares ISF，价格路径与锚点基金并非同一组合。",
+        "尚未建立可验证的误差区间，不应视为 FTSE 官方指数 PE。"
+      ]
+    },
+    {
+      "id": "gold-dual-anchor",
+      "asset_class": "commodity",
+      "source_mode": "external_model",
+      "name": "黄金估值",
+      "code": "XAUUSD",
+      "region": "全球",
+      "method_id": "external_dual_anchor_three_factor_snapshot_v1"
+    }
+  ]
+}

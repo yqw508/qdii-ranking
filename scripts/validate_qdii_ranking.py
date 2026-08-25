@@ -79,6 +79,7 @@ class RankingHtmlParser(HTMLParser):
         self.premium_tab_count = 0
         self.premium_table_count = 0
         self.premium_toggle_count = 0
+        self.valuation_link_count = 0
         self.all_text: list[str] = []
         self._current_code: str | None = None
         self._current_text: list[str] = []
@@ -98,6 +99,8 @@ class RankingHtmlParser(HTMLParser):
             self.premium_table_count += 1
         if tag == "button" and "premium-row-toggle" in classes:
             self.premium_toggle_count += 1
+        if tag == "a" and attributes.get("href") in {"valuation/", "/valuation/"}:
+            self.valuation_link_count += 1
         if tag == "details" and "fund-item" in classes:
             code = attributes.get("data-code")
             if not code or self._current_code is not None:
@@ -1105,6 +1108,8 @@ def validate_html_document(
     require(parser.refresh_button_count == 1, f"{label} premium refresh button is missing or duplicated")
     require(parser.premium_table_count == 1, f"{label} must contain one premium table")
     require(parser.premium_toggle_count == 25, f"{label} ETF detail toggles differ")
+    require(parser.valuation_link_count == 1, f"{label} valuation-page entry is missing or duplicated")
+    require("估值代理" in all_text, f"{label} valuation-page label is missing")
     require("约15分钟" in all_text or "约 15 分钟" in all_text, f"{label} quote delay disclosure is missing")
     for record in premium_records:
         code = record["code"]

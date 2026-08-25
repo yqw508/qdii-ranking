@@ -53,6 +53,26 @@
   history bypasses its threshold; missing fee data is reported but does not affect eligibility, and
   NAV returns are not reduced by the fee a second time.
 
+## Index Valuation Research Page
+
+- Keep `/valuation/` and its schema independent from QDII ranking rules. The overview contains exactly
+  three Snowball direct snapshots, three research proxies, and one external gold-model snapshot. Show
+  direct/external ratings only as source ratings; never apply those labels to research proxies.
+- Keep `/valuation/` overview-only when no asset is requested. A valid `?asset=<id>` opens a
+  detail-only view with a return link and source-grouped selector; preserve unrelated query parameters
+  and route unknown asset IDs back to the overview.
+- Build every proxy from the latest 120 consecutive ended common months using DQYDJ S&P 500 PE and a
+  target ETF/SPY monthly mean-price ratio. Preserve the versioned RSP, EQWL, and experimental EWU
+  anchors in `references/index-valuation-catalog.json`; disclose that EWU does not track FTSE 100.
+- Persist only per-source normalized caches under `output/qdii-ranking/cache/index-valuation/`.
+  Revalidate Snowball and gold conditionally, DQYDJ in full, and all four Nasdaq tails every run. The
+  first fully fresh run each month performs four full ten-year scans. Catalog or parser changes
+  invalidate affected caches.
+- A failed source may use only its validated current-fingerprint cache. Without one, keep dependent
+  assets visible as unavailable and publish the remaining assets. Block valuation publication only
+  when all assets are unavailable or artifact validation fails. Performance targets warn but never
+  bypass structural validation.
+
 ## Update And Publish
 
 When the user says `更新榜单` or otherwise requests a ranking refresh from this repository, treat it as
@@ -62,14 +82,22 @@ authorization to complete the full update and publication workflow:
 2. Run `scripts/update_qdii_ranking.py` from the repository root with the established defaults. It must
    write `output/qdii-ranking/latest.json`, `latest.csv`, `latest.md`, `latest.html`, and the identical
    `public/index.html`.
-3. Read `latest.json` and `latest.md`; inspect every warning. Stop without publishing if ranking-critical
+3. Run `scripts/update_index_valuation.py` with its established defaults. It must write
+   `output/index-valuation/latest.json`, `latest.html`, `run-metrics.json`, and the identical
+   `public/valuation/index.html`.
+4. Read the ranking `latest.json` and `latest.md` and the valuation `latest.json`; inspect every warning.
+   Stop without publishing if ranking-critical
    source data fails, a required candidate cannot be evaluated, or generated formats disagree.
-4. Run `python -m unittest discover -s scripts -p "test_*.py"` with the bundled Python runtime.
-5. Run `node --test scripts/test_premium_refresh.mjs`, then `scripts/validate_qdii_ranking.py`. Verify
+5. Run `python -m unittest discover -s scripts -p "test_*.py"` with the bundled Python runtime.
+6. Run `node --test scripts/test_premium_refresh.mjs` and
+   `node --test scripts/test_valuation_page.mjs`, then both `scripts/validate_qdii_ranking.py` and
+   `scripts/validate_index_valuation.py`. Verify
    full-scan counters, both final orderings, the 25-ETF premium snapshot and holding costs, benchmark and quota sources,
-   the ranking date, and byte-identical HTML files.
-6. Stage only intended repository changes, commit them, and push `main` to `origin`.
-7. Deploy the verified static page with:
+   the ranking date, all seven valuation asset IDs, proxy models/sample counts, and both pairs of
+   byte-identical HTML files.
+7. Stage only intended repository changes, including both generated public pages, commit them, and push
+   `main` to `origin`.
+8. Deploy the verified static page with:
 
    ```powershell
    tcb app deploy qdii-ranking-web `
@@ -82,9 +110,12 @@ authorization to complete the full update and publication workflow:
      --json
    ```
 
-8. Verify the independent application URL returns HTTP 200 and contains the ranking date, every fund
+9. Verify the independent application root URL and `/valuation/` both return HTTP 200. Check the root
+   contains the ranking date, every fund
    code in both lists, all 25 premium-tab ETF codes and holding costs, and the corresponding direct and agency quotas. Share:
-   `https://qdii-ranking-web-run-cool-d2gy0iw957219659c.webapps.tcloudbase.com/?v=<YYYY-MM-DD>`.
+   `https://qdii-ranking-web-run-cool-d2gy0iw957219659c.webapps.tcloudbase.com/?v=<YYYY-MM-DD>` and
+   verify the valuation page contains all seven asset IDs, the default asset, source modes, proxy
+   models, values, and fresh/stale/unavailable states.
 
 Do not deploy a partial or warning-blind result. Explain material unresolved look-through intervals,
 contract/fee warnings, and quota warnings in the final report. Read `references/methodology.md` when a

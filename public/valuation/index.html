@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light">
+  <title>指数与黄金估值研究</title>
+  <style>
+    :root { color-scheme:light; --bg:#f3f5f6; --surface:#fff; --text:#19232c; --muted:#66727d; --border:#d7dde2; --blue:#1d6098; --blue-soft:#eaf2f8; --green:#176653; --green-soft:#e7f2ee; --amber:#8a520d; --amber-soft:#fff3d8; --red:#a33d35; --red-soft:#faeae7; --violet:#765078; --line:#236da7; }
+    * { box-sizing:border-box; } html { background:var(--bg); } [hidden] { display:none !important; }
+    body { margin:0; min-width:280px; color:var(--text); background:var(--bg); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; font-size:14px; line-height:1.5; letter-spacing:0; overflow-wrap:anywhere; }
+    a { color:var(--blue); text-underline-offset:3px; } button { font:inherit; }
+    .page { width:min(100%,1180px); margin:0 auto; padding:max(16px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(30px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left)); }
+    .route-tabs { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:4px; margin:0 0 18px; padding:4px; border:1px solid var(--border); border-radius:6px; background:#e8ecef; }
+    .route-tab { display:grid; min-height:42px; place-content:center; padding:3px; border-radius:4px; color:#42505c; font-size:13px; font-weight:700; text-align:center; text-decoration:none; }
+    .route-tab.current { color:var(--text); background:var(--surface); box-shadow:0 1px 2px rgba(20,32,44,.12); } .route-tab small { display:block; color:var(--muted); font-size:10px; }
+    .page-header { display:flex; align-items:flex-end; justify-content:space-between; gap:22px; padding:2px 2px 16px; border-bottom:1px solid var(--border); }
+    h1 { margin:0; font-size:25px; line-height:1.25; } .subtitle { max-width:720px; margin:7px 0 0; color:#46535e; } .as-of { color:var(--muted); font-size:12px; white-space:nowrap; }
+    .status-banner { display:grid; grid-template-columns:auto minmax(0,1fr); gap:8px 14px; margin:14px 0 0; padding:9px 11px; border-left:3px solid var(--green); color:#365248; background:var(--green-soft); font-size:12px; }
+    .status-banner.warning { border-left-color:var(--amber); color:#684612; background:var(--amber-soft); }
+    main { display:grid; gap:28px; padding-top:22px; } section { min-width:0; }
+    .section-heading { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:10px; } h2 { margin:0; font-size:18px; } .section-heading span { color:var(--muted); font-size:12px; }
+    .filters { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; } .filter-button { min-height:34px; padding:5px 11px; border:1px solid var(--border); border-radius:5px; color:#44515c; background:#fff; cursor:pointer; } .filter-button[aria-pressed="true"] { color:#fff; border-color:#344652; background:#344652; }
+    .table-wrap { overflow-x:auto; border:1px solid var(--border); border-radius:6px; background:var(--surface); } table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
+    th,td { padding:10px 12px; border-bottom:1px solid #e4e8eb; text-align:right; white-space:nowrap; } th { color:#52606c; background:#f7f8f9; font-size:11px; } th:first-child,td:first-child { min-width:170px; text-align:left; } tr:last-child td { border-bottom:0; }
+    .asset-row { cursor:pointer; } .asset-row:hover { background:var(--blue-soft); box-shadow:inset 3px 0 var(--blue); } .asset-row:focus-within { background:#f4f8fb; box-shadow:inset 3px 0 var(--blue); } .asset-row[hidden] { display:none; }
+    .asset-link { display:block; color:var(--text); text-decoration:none; } .asset-link:focus-visible,.detail-arrow:focus-visible,.back-link:focus-visible,select:focus-visible { outline:2px solid var(--blue); outline-offset:2px; } .detail-arrow { display:inline-grid; width:24px; height:24px; margin-left:7px; place-items:center; border-radius:50%; color:var(--blue); text-decoration:none; font-size:17px; vertical-align:middle; } .detail-arrow:hover { background:#dcebf6; }
+    td small { display:block; color:var(--muted); font-size:10px; } .tag { display:inline-block; margin-left:6px; padding:0 4px; border:1px solid #d7b36a; border-radius:3px; color:#76510b; background:#fff7df; font-size:9px; vertical-align:2px; }
+    .mode,.status { display:inline-block; font-size:11px; } .mode-direct { color:var(--blue); } .mode-proxy { color:var(--violet); } .mode-external_model { color:#85600c; } .status-fresh { color:var(--green); } .status-cached_stale { color:var(--amber); } .status-unavailable { color:var(--red); }
+    .detail { min-height:360px; padding-top:2px; } .detail-toolbar { display:flex; align-items:flex-end; justify-content:space-between; gap:20px; margin-bottom:18px; padding-bottom:14px; border-bottom:1px solid var(--border); } .back-link { display:inline-flex; align-items:center; gap:6px; min-height:36px; color:var(--blue); font-weight:700; text-decoration:none; } .back-link span { font-size:18px; } .asset-switcher-label { display:grid; gap:4px; color:var(--muted); font-size:10px; font-weight:700; } .asset-switcher-label select { min-width:230px; height:36px; padding:4px 32px 4px 9px; border:1px solid #bfc8cf; border-radius:5px; color:var(--text); background:var(--surface); font-size:13px; } .detail-header { display:flex; align-items:flex-end; justify-content:space-between; gap:20px; padding-bottom:13px; border-bottom:1px solid var(--border); } .detail-title { margin:0; font-size:22px; } .detail-kicker { color:var(--muted); font-size:11px; font-weight:700; } .detail-meta { color:var(--muted); font-size:12px; text-align:right; }
+    .metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); margin-top:14px; border-top:1px solid var(--border); border-bottom:1px solid var(--border); background:var(--surface); } .metric { min-width:0; min-height:92px; padding:13px 14px; border-left:3px solid #9aa6af; } .metric:first-child { border-left-color:var(--blue); } .metric:nth-child(2) { border-left-color:var(--green); } .metric-label { display:block; color:var(--muted); font-size:11px; } .metric-value { display:block; margin-top:4px; font-size:24px; line-height:1.2; font-weight:800; font-variant-numeric:tabular-nums; } .metric-note { display:block; margin-top:4px; color:var(--muted); font-size:10px; }
+    .detail-grid { display:grid; gap:24px; margin-top:24px; } .chart-shell { position:relative; min-height:300px; border:1px solid var(--border); border-radius:6px; background:var(--surface); overflow:hidden; } .chart-shell svg { display:block; width:100%; aspect-ratio:920/390; min-height:300px; } .chart-tooltip { position:absolute; z-index:2; min-width:112px; padding:7px 9px; border:1px solid #b8c4cf; border-radius:4px; background:rgba(255,255,255,.97); box-shadow:0 2px 8px rgba(20,32,44,.13); pointer-events:none; font-size:12px; } .chart-tooltip[hidden] { display:none; }
+    .chart-legend { display:flex; flex-wrap:wrap; gap:7px 18px; margin:8px 2px 0; color:var(--muted); font-size:11px; } .legend-line { display:inline-block; width:18px; margin-right:6px; border-top:2px solid var(--line); vertical-align:middle; } .legend-line.reference { border-top:1px dashed #83909c; }
+    .two-column { display:grid; grid-template-columns:minmax(260px,.8fr) minmax(0,1.2fr); gap:24px; } .panel { min-width:0; } .panel h3 { margin:0 0 8px; font-size:14px; } .compact-table { border:1px solid var(--border); border-radius:6px; overflow:auto; background:#fff; } .compact-table th,.compact-table td { padding:8px 10px; }
+    .source-list,.limitations { margin:0; padding:0; list-style:none; border-top:1px solid var(--border); } .source-list li { display:grid; grid-template-columns:minmax(0,1fr) auto auto; align-items:center; gap:10px; min-height:50px; border-bottom:1px solid var(--border); } .source-list small { color:var(--muted); } .limitations li { padding:7px 2px 7px 18px; border-bottom:1px solid var(--border); position:relative; } .limitations li::before { content:""; position:absolute; left:2px; top:15px; width:5px; height:5px; border-radius:50%; background:#84919b; }
+    .notice { padding:12px 14px; border-left:3px solid var(--amber); color:#624514; background:var(--amber-soft); } code { padding:1px 4px; border-radius:3px; color:#214f70; background:#edf4fa; font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:11px; }
+    .source-directory { display:flex; flex-wrap:wrap; gap:8px 18px; } footer { margin-top:28px; padding-top:13px; border-top:1px solid var(--border); color:var(--muted); font-size:11px; }
+    @media(max-width:760px) { .page-header,.detail-header,.detail-toolbar { align-items:stretch; flex-direction:column; gap:8px; } .detail-meta { text-align:left; } .asset-switcher-label select { width:100%; min-width:0; } .metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } .two-column { grid-template-columns:1fr; } }
+    @media(max-width:560px) { h1 { font-size:22px; } .route-tab { font-size:12px; } .section-heading { align-items:flex-start; flex-direction:column; gap:4px; } .metric { min-height:84px; padding:11px 9px; } .metric-value { font-size:20px; } .status-banner { grid-template-columns:1fr; } .chart-shell,.chart-shell svg { min-height:250px; } }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <nav class="route-tabs" aria-label="页面切换">
+      <a class="route-tab" href="../">美国主榜</a><a class="route-tab" href="../?tab=global">全球补充榜</a><a class="route-tab" href="../?tab=premium">场内溢价</a><span class="route-tab current" aria-current="page">估值研究<small>7 个标的</small></span>
+    </nav>
+    <header class="page-header"><div><h1>指数与黄金估值研究</h1><p class="subtitle">直取来源数据与研究代理分开呈现。代理值不是官方指数 PE，所有数据仅用于研究。</p></div><time class="as-of" datetime="2026-08-25T13:57:44+08:00">生成于 2026-08-25T13:57:44+08:00</time></header>
+    <div class="status-banner" role="status"><strong>全部数据已完成本次重验</strong><span>7 个标的均通过来源与结构校验。</span></div>
+    <main>
+      <section id="valuation-overview" aria-labelledby="overview-heading">
+        <div class="section-heading"><h2 id="overview-heading">估值概览</h2><span>来源评级仅转述，不代表本站判断</span></div>
+        <div class="filters" role="group" aria-label="数据类型筛选"><button class="filter-button" type="button" data-filter="all" aria-pressed="true">全部</button><button class="filter-button" type="button" data-filter="direct" aria-pressed="false">雪球直取</button><button class="filter-button" type="button" data-filter="proxy" aria-pressed="false">研究代理</button><button class="filter-button" type="button" data-filter="external_model" aria-pressed="false">黄金</button></div>
+        <div class="table-wrap"><table id="asset-table"><thead><tr><th>标的</th><th>市场</th><th>来源类型</th><th>核心值</th><th>10 年分位</th><th>来源评级</th><th>数据日期</th><th>状态</th></tr></thead><tbody><tr class="asset-row" data-asset-id="nasdaq-100" data-source-mode="direct">
+              <td><a class="asset-link" data-asset-link="nasdaq-100" href="?asset=nasdaq-100"><strong>纳指 100</strong><small>NDX</small></a></td>
+              <td>美国</td>
+              <td><span class="mode mode-direct">雪球直取</span></td>
+              <td>PE 30.59</td><td>49.2%</td>
+              <td>偏高<small>来源评级</small></td>
+              <td>2026-08-23</td>
+              <td><span class="status status-fresh">已更新</span><a class="detail-arrow" data-asset-link="nasdaq-100" href="?asset=nasdaq-100" aria-label="查看纳指 100详情"><span aria-hidden="true">→</span></a></td>
+            </tr><tr class="asset-row" data-asset-id="sp-500" data-source-mode="direct">
+              <td><a class="asset-link" data-asset-link="sp-500" href="?asset=sp-500"><strong>标普 500</strong><small>SP500</small></a></td>
+              <td>美国</td>
+              <td><span class="mode mode-direct">雪球直取</span></td>
+              <td>PE 25.58</td><td>60.9%</td>
+              <td>偏高<small>来源评级</small></td>
+              <td>2026-08-23</td>
+              <td><span class="status status-fresh">已更新</span><a class="detail-arrow" data-asset-link="sp-500" href="?asset=sp-500" aria-label="查看标普 500详情"><span aria-hidden="true">→</span></a></td>
+            </tr><tr class="asset-row" data-asset-id="dax" data-source-mode="direct">
+              <td><a class="asset-link" data-asset-link="dax" href="?asset=dax"><strong>德国 DAX</strong><small>GDAXI</small></a></td>
+              <td>德国</td>
+              <td><span class="mode mode-direct">雪球直取</span></td>
+              <td>PE 17.57</td><td>49.2%</td>
+              <td>偏高<small>来源评级</small></td>
+              <td>2026-08-23</td>
+              <td><span class="status status-fresh">已更新</span><a class="detail-arrow" data-asset-link="dax" href="?asset=dax" aria-label="查看德国 DAX详情"><span aria-hidden="true">→</span></a></td>
+            </tr><tr class="asset-row" data-asset-id="sp-500-equal-weight" data-source-mode="proxy">
+              <td><a class="asset-link" data-asset-link="sp-500-equal-weight" href="?asset=sp-500-equal-weight"><strong>标普 500 等权</strong><small>SPW</small></a></td>
+              <td>美国</td>
+              <td><span class="mode mode-proxy">研究代理</span></td>
+              <td>代理 PE 20.57</td><td>27.1%</td>
+              <td>--</td>
+              <td>2026-07</td>
+              <td><span class="status status-fresh">已更新</span><a class="detail-arrow" data-asset-link="sp-500-equal-weight" href="?asset=sp-500-equal-weight" aria-label="查看标普 500 等权详情"><span aria-hidden="true">→</span></a></td>
+            </tr><tr class="asset-row" data-asset-id="sp-100-equal-weight" data-source-mode="proxy">
+              <td><a class="asset-link" data-asset-link="sp-100-equal-weight" href="?asset=sp-100-equal-weight"><strong>标普 100 等权</strong><small>SP100EW</small></a></td>
+              <td>美国</td>
+              <td><span class="mode mode-proxy">研究代理</span></td>
+              <td>代理 PE 25.91</td><td>72.9%</td>
+              <td>--</td>
+              <td>2026-07</td>
+              <td><span class="status status-fresh">已更新</span><a class="detail-arrow" data-asset-link="sp-100-equal-weight" href="?asset=sp-100-equal-weight" aria-label="查看标普 100 等权详情"><span aria-hidden="true">→</span></a></td>
+            </tr><tr class="asset-row" data-asset-id="ftse-100-proxy" data-source-mode="proxy">
+              <td><a class="asset-link" data-asset-link="ftse-100-proxy" href="?asset=ftse-100-proxy"><strong>富时 100</strong><span class="tag experimental">实验</span><small>UKX-PROXY</small></a></td>
+              <td>英国</td>
+              <td><span class="mode mode-proxy">研究代理</span></td>
+              <td>代理 PE 17.57</td><td>22.1%</td>
+              <td>--</td>
+              <td>2026-07</td>
+              <td><span class="status status-fresh">已更新</span><a class="detail-arrow" data-asset-link="ftse-100-proxy" href="?asset=ftse-100-proxy" aria-label="查看富时 100详情"><span aria-hidden="true">→</span></a></td>
+            </tr><tr class="asset-row" data-asset-id="gold-dual-anchor" data-source-mode="external_model">
+              <td><a class="asset-link" data-asset-link="gold-dual-anchor" href="?asset=gold-dual-anchor"><strong>黄金估值</strong><small>XAUUSD</small></a></td>
+              <td>全球</td>
+              <td><span class="mode mode-external_model">黄金模型</span></td>
+              <td>$4,682.34</td><td>96.6%</td>
+              <td>极度高估<small>来源评级</small></td>
+              <td>2026-08-25</td>
+              <td><span class="status status-fresh">已更新</span><a class="detail-arrow" data-asset-link="gold-dual-anchor" href="?asset=gold-dual-anchor" aria-label="查看黄金估值详情"><span aria-hidden="true">→</span></a></td>
+            </tr></tbody></table></div>
+      </section>
+      <section class="detail" id="valuation-detail" aria-live="polite" hidden></section>
+    </main>
+    <footer><div class="source-directory"><a href="https://danjuanfunds.com/rn/value-center" target="_blank" rel="noopener noreferrer">雪球指数估值</a><a href="https://shuipingtang.github.io/gold_cn.html" target="_blank" rel="noopener noreferrer">中美双锚三因子黄金估值模型</a><a href="https://dqydj.com/sp-500-pe-ratio/" target="_blank" rel="noopener noreferrer">DQYDJ S&amp;P 500 月度 TTM PE</a><a href="https://www.nasdaq.com/market-activity/etf/spy/historical" target="_blank" rel="noopener noreferrer">Nasdaq SPY 历史行情</a></div><p>公开产物只包含规范化快照和派生代理序列，不镜像原始响应、图表或策略内容。</p></footer>
+  </div>
+  <script>window.__INDEX_VALUATION__={"schema_version":2,"status":"fresh","generated_at":"2026-08-25T13:57:44+08:00","default_asset_id":"sp-500-equal-weight","assets":[{"id":"nasdaq-100","asset_class":"equity_index","source_mode":"direct","name":"纳指 100","code":"NDX","region":"美国","frequency":"snapshot","status":"fresh","as_of":"2026-08-23","current":{"pe_ttm":30.5854,"pe_percentile_10y":49.2,"pb_mrq":9.1793,"pb_percentile_10y":78.8,"roe_pct":30.01,"dividend_yield_pct":0.44,"source_rating":{"code":"high","label":"偏高","provider":"雪球"},"history_since":"2016-05-11"},"history":[],"history_status":"not_provided_by_source","method":{"id":"snowball_index_eva_snapshot_v1","label":"雪球指数估值当前快照","limitations":["10 年百分位由雪球提供，本页不重新计算。","来源未提供可发布的历史估值序列，因此不展示曲线。"]},"source_ids":["snowball"],"warnings":[]},{"id":"sp-500","asset_class":"equity_index","source_mode":"direct","name":"标普 500","code":"SP500","region":"美国","frequency":"snapshot","status":"fresh","as_of":"2026-08-23","current":{"pe_ttm":25.5768,"pe_percentile_10y":60.88,"pb_mrq":5.5479,"pb_percentile_10y":95.52,"roe_pct":21.69,"dividend_yield_pct":1.02,"source_rating":{"code":"high","label":"偏高","provider":"雪球"},"history_since":"2016-05-12"},"history":[],"history_status":"not_provided_by_source","method":{"id":"snowball_index_eva_snapshot_v1","label":"雪球指数估值当前快照","limitations":["10 年百分位由雪球提供，本页不重新计算。","来源未提供可发布的历史估值序列，因此不展示曲线。"]},"source_ids":["snowball"],"warnings":[]},{"id":"dax","asset_class":"equity_index","source_mode":"direct","name":"德国 DAX","code":"GDAXI","region":"德国","frequency":"snapshot","status":"fresh","as_of":"2026-08-23","current":{"pe_ttm":17.5682,"pe_percentile_10y":49.2,"pb_mrq":1.7714,"pb_percentile_10y":61.92,"roe_pct":10.08,"dividend_yield_pct":0.1,"source_rating":{"code":"high","label":"偏高","provider":"雪球"},"history_since":"2016-05-11"},"history":[],"history_status":"not_provided_by_source","method":{"id":"snowball_index_eva_snapshot_v1","label":"雪球指数估值当前快照","limitations":["10 年百分位由雪球提供，本页不重新计算。","来源未提供可发布的历史估值序列，因此不展示曲线。"]},"source_ids":["snowball"],"warnings":[]},{"id":"sp-500-equal-weight","asset_class":"equity_index","source_mode":"proxy","name":"标普 500 等权","code":"SPW","region":"美国","frequency":"monthly","status":"fresh","as_of":"2026-07","current":{"proxy_pe_ttm":20.5746,"proxy_percentile_10y":27.08,"sample_count":120,"reference_levels":{"p30":20.6311,"p50":21.5733,"p70":22.8431}},"history":[{"month":"2016-08","proxy_pe_ttm":24.5305},{"month":"2016-09","proxy_pe_ttm":24.132},{"month":"2016-10","proxy_pe_ttm":23.4132},{"month":"2016-11","proxy_pe_ttm":23.3663},{"month":"2016-12","proxy_pe_ttm":23.8889},{"month":"2017-01","proxy_pe_ttm":23.6778},{"month":"2017-02","proxy_pe_ttm":23.7026},{"month":"2017-03","proxy_pe_ttm":23.4241},{"month":"2017-04","proxy_pe_ttm":23.1416},{"month":"2017-05","proxy_pe_ttm":23.0151},{"month":"2017-06","proxy_pe_ttm":23.0945},{"month":"2017-07","proxy_pe_ttm":23.0772},{"month":"2017-08","proxy_pe_ttm":22.6461},{"month":"2017-09","proxy_pe_ttm":22.8052},{"month":"2017-10","proxy_pe_ttm":23.1652},{"month":"2017-11","proxy_pe_ttm":23.1673},{"month":"2017-12","proxy_pe_ttm":23.6962},{"month":"2018-01","proxy_pe_ttm":24.3018},{"month":"2018-02","proxy_pe_ttm":23.032},{"month":"2018-03","proxy_pe_ttm":22.6714},{"month":"2018-04","proxy_pe_ttm":21.9632},{"month":"2018-05","proxy_pe_ttm":21.7831},{"month":"2018-06","proxy_pe_ttm":21.7944},{"month":"2018-07","proxy_pe_ttm":21.5417},{"month":"2018-08","proxy_pe_ttm":21.438},{"month":"2018-09","proxy_pe_ttm":21.2781},{"month":"2018-10","proxy_pe_ttm":20.0929},{"month":"2018-11","proxy_pe_ttm":19.7629},{"month":"2018-12","proxy_pe_ttm":18.4256},{"month":"2019-01","proxy_pe_ttm":18.7666},{"month":"2019-02","proxy_pe_ttm":19.9037},{"month":"2019-03","proxy_pe_ttm":19.9721},{"month":"2019-04","proxy_pe_ttm":20.6012},{"month":"2019-05","proxy_pe_ttm":20.0681},{"month":"2019-06","proxy_pe_ttm":20.2661},{"month":"2019-07","proxy_pe_ttm":21.0399},{"month":"2019-08","proxy_pe_ttm":20.2393},{"month":"2019-09","proxy_pe_ttm":21.0902},{"month":"2019-10","proxy_pe_ttm":20.6139},{"month":"2019-11","proxy_pe_ttm":21.1196},{"month":"2019-12","proxy_pe_ttm":21.1894},{"month":"2020-01","proxy_pe_ttm":22.9036},{"month":"2020-02","proxy_pe_ttm":24.0345},{"month":"2020-03","proxy_pe_ttm":19.8008},{"month":"2020-04","proxy_pe_ttm":21.0608},{"month":"2020-05","proxy_pe_ttm":23.4669},{"month":"2020-06","proxy_pe_ttm":27.1265},{"month":"2020-07","proxy_pe_ttm":27.4261},{"month":"2020-08","proxy_pe_ttm":28.9415},{"month":"2020-09","proxy_pe_ttm":28.7965},{"month":"2020-10","proxy_pe_ttm":29.8475},{"month":"2020-11","proxy_pe_ttm":32.3374},{"month":"2020-12","proxy_pe_ttm":34.7112},{"month":"2021-01","proxy_pe_ttm":32.05},{"month":"2021-02","proxy_pe_ttm":29.7268},{"month":"2021-03","proxy_pe_ttm":28.2},{"month":"2021-04","proxy_pe_ttm":27.4062},{"month":"2021-05","proxy_pe_ttm":26.0827},{"month":"2021-06","proxy_pe_ttm":24.6156},{"month":"2021-07","proxy_pe_ttm":23.8549},{"month":"2021-08","proxy_pe_ttm":23.5697},{"month":"2021-09","proxy_pe_ttm":22.7179},{"month":"2021-10","proxy_pe_ttm":22.0052},{"month":"2021-11","proxy_pe_ttm":21.7911},{"month":"2021-12","proxy_pe_ttm":20.8063},{"month":"2022-01","proxy_pe_ttm":20.7498},{"month":"2022-02","proxy_pe_ttm":20.3395},{"month":"2022-03","proxy_pe_ttm":20.233},{"month":"2022-04","proxy_pe_ttm":20.4949},{"month":"2022-05","proxy_pe_ttm":19.3701},{"month":"2022-06","proxy_pe_ttm":18.7724},{"month":"2022-07","proxy_pe_ttm":18.8235},{"month":"2022-08","proxy_pe_ttm":20.1871},{"month":"2022-09","proxy_pe_ttm":18.9884},{"month":"2022-10","proxy_pe_ttm":18.925},{"month":"2022-11","proxy_pe_ttm":20.8771},{"month":"2022-12","proxy_pe_ttm":21.5284},{"month":"2023-01","proxy_pe_ttm":22.0305},{"month":"2023-02","proxy_pe_ttm":22.4135},{"month":"2023-03","proxy_pe_ttm":21.0259},{"month":"2023-04","proxy_pe_ttm":21.1343},{"month":"2023-05","proxy_pe_ttm":20.5207},{"month":"2023-06","proxy_pe_ttm":20.9241},{"month":"2023-07","proxy_pe_ttm":21.7244},{"month":"2023-08","proxy_pe_ttm":21.1894},{"month":"2023-09","proxy_pe_ttm":20.5061},{"month":"2023-10","proxy_pe_ttm":19.2433},{"month":"2023-11","proxy_pe_ttm":19.5947},{"month":"2023-12","proxy_pe_ttm":20.7952},{"month":"2024-01","proxy_pe_ttm":21.1299},{"month":"2024-02","proxy_pe_ttm":21.6049},{"month":"2024-03","proxy_pe_ttm":22.4617},{"month":"2024-04","proxy_pe_ttm":21.974},{"month":"2024-05","proxy_pe_ttm":22.0432},{"month":"2024-06","proxy_pe_ttm":21.7955},{"month":"2024-07","proxy_pe_ttm":22.0343},{"month":"2024-08","proxy_pe_ttm":22.1525},{"month":"2024-09","proxy_pe_ttm":22.7004},{"month":"2024-10","proxy_pe_ttm":22.8172},{"month":"2024-11","proxy_pe_ttm":22.9328},{"month":"2024-12","proxy_pe_ttm":22.2741},{"month":"2025-01","proxy_pe_ttm":21.8587},{"month":"2025-02","proxy_pe_ttm":21.8387},{"month":"2025-03","proxy_pe_ttm":20.8525},{"month":"2025-04","proxy_pe_ttm":19.4894},{"month":"2025-05","proxy_pe_ttm":20.5939},{"month":"2025-06","proxy_pe_ttm":20.82},{"month":"2025-07","proxy_pe_ttm":21.1892},{"month":"2025-08","proxy_pe_ttm":20.9238},{"month":"2025-09","proxy_pe_ttm":20.8702},{"month":"2025-10","proxy_pe_ttm":20.6384},{"month":"2025-11","proxy_pe_ttm":20.0405},{"month":"2025-12","proxy_pe_ttm":20.2384},{"month":"2026-01","proxy_pe_ttm":20.3892},{"month":"2026-02","proxy_pe_ttm":20.4406},{"month":"2026-03","proxy_pe_ttm":19.3245},{"month":"2026-04","proxy_pe_ttm":19.5601},{"month":"2026-05","proxy_pe_ttm":19.8342},{"month":"2026-06","proxy_pe_ttm":20.1798},{"month":"2026-07","proxy_pe_ttm":20.5746}],"history_status":"available","method":{"id":"rsp_spy_relative_price_proxy_v1","label":"RSP/SPY 相对价格校准代理","formula":"PE_proxy_m = S&P500_PE_m × (RSP_m / SPY_m) / K","price_aggregation":"calendar_month_mean_close","percentile":"midrank_120_complete_months","quantile":"linear_interpolation_inclusive","definition_url":"https://www.spglobal.com/spdji/en/indices/equity/sp-500-equal-weight-index/","experimental":false,"anchor":{"month":"2025-06","pe_ttm":20.82,"as_of_date":"2025-06-30","publisher":"Invesco","title":"Invesco S&P 500 Equal Weight ETF commentary","source_url":"https://www.invesco.com/content/dam/invesco/us/en/product-documents/etf/commentary/invesco-s-p-500-equal-weight-etf-commentary-rsp.pdf","sp500_pe_ttm":27.1,"relative_price_ratio":0.29704963,"calibration_constant":0.38664962,"reproduced_pe_ttm":20.82},"limitations":["该序列是研究代理，不是 S&P 官方指数 PE。","与可获得的外部截面相比，已观测水平误差约为 5%–20%。","历史行情、盈利数据和来源页面均可能修订。","结果不构成投资建议，也不输出低估或高估判断。"]},"source_ids":["nasdaq-rsp","nasdaq-spy","dqydj"],"warnings":[]},{"id":"sp-100-equal-weight","asset_class":"equity_index","source_mode":"proxy","name":"标普 100 等权","code":"SP100EW","region":"美国","frequency":"monthly","status":"fresh","as_of":"2026-07","current":{"proxy_pe_ttm":25.909,"proxy_percentile_10y":72.92,"sample_count":120,"reference_levels":{"p30":23.6322,"p50":24.6949,"p70":25.8332}},"history":[{"month":"2016-08","proxy_pe_ttm":25.2663},{"month":"2016-09","proxy_pe_ttm":24.9626},{"month":"2016-10","proxy_pe_ttm":24.3347},{"month":"2016-11","proxy_pe_ttm":24.3159},{"month":"2016-12","proxy_pe_ttm":24.7605},{"month":"2017-01","proxy_pe_ttm":24.605},{"month":"2017-02","proxy_pe_ttm":24.7755},{"month":"2017-03","proxy_pe_ttm":24.7338},{"month":"2017-04","proxy_pe_ttm":24.4818},{"month":"2017-05","proxy_pe_ttm":24.534},{"month":"2017-06","proxy_pe_ttm":24.7775},{"month":"2017-07","proxy_pe_ttm":24.8223},{"month":"2017-08","proxy_pe_ttm":24.5692},{"month":"2017-09","proxy_pe_ttm":24.8332},{"month":"2017-10","proxy_pe_ttm":25.2486},{"month":"2017-11","proxy_pe_ttm":25.284},{"month":"2017-12","proxy_pe_ttm":25.7662},{"month":"2018-01","proxy_pe_ttm":26.4014},{"month":"2018-02","proxy_pe_ttm":25.0663},{"month":"2018-03","proxy_pe_ttm":24.5219},{"month":"2018-04","proxy_pe_ttm":23.8888},{"month":"2018-05","proxy_pe_ttm":23.6448},{"month":"2018-06","proxy_pe_ttm":23.6028},{"month":"2018-07","proxy_pe_ttm":23.3842},{"month":"2018-08","proxy_pe_ttm":23.303},{"month":"2018-09","proxy_pe_ttm":23.1179},{"month":"2018-10","proxy_pe_ttm":22.1256},{"month":"2018-11","proxy_pe_ttm":21.5938},{"month":"2018-12","proxy_pe_ttm":20.311},{"month":"2019-01","proxy_pe_ttm":20.5925},{"month":"2019-02","proxy_pe_ttm":21.661},{"month":"2019-03","proxy_pe_ttm":21.7813},{"month":"2019-04","proxy_pe_ttm":22.4346},{"month":"2019-05","proxy_pe_ttm":21.9569},{"month":"2019-06","proxy_pe_ttm":22.1787},{"month":"2019-07","proxy_pe_ttm":23.0401},{"month":"2019-08","proxy_pe_ttm":22.3343},{"month":"2019-09","proxy_pe_ttm":23.2246},{"month":"2019-10","proxy_pe_ttm":22.7149},{"month":"2019-11","proxy_pe_ttm":23.4497},{"month":"2019-12","proxy_pe_ttm":23.5547},{"month":"2020-01","proxy_pe_ttm":25.4522},{"month":"2020-02","proxy_pe_ttm":26.7282},{"month":"2020-03","proxy_pe_ttm":22.794},{"month":"2020-04","proxy_pe_ttm":24.8031},{"month":"2020-05","proxy_pe_ttm":27.2908},{"month":"2020-06","proxy_pe_ttm":31.0662},{"month":"2020-07","proxy_pe_ttm":31.4913},{"month":"2020-08","proxy_pe_ttm":33.0677},{"month":"2020-09","proxy_pe_ttm":33.0699},{"month":"2020-10","proxy_pe_ttm":33.9004},{"month":"2020-11","proxy_pe_ttm":36.3177},{"month":"2020-12","proxy_pe_ttm":38.9115},{"month":"2021-01","proxy_pe_ttm":35.7673},{"month":"2021-02","proxy_pe_ttm":33.0071},{"month":"2021-03","proxy_pe_ttm":30.9867},{"month":"2021-04","proxy_pe_ttm":30.0842},{"month":"2021-05","proxy_pe_ttm":28.6458},{"month":"2021-06","proxy_pe_ttm":27.224},{"month":"2021-07","proxy_pe_ttm":26.623},{"month":"2021-08","proxy_pe_ttm":26.2409},{"month":"2021-09","proxy_pe_ttm":25.1676},{"month":"2021-10","proxy_pe_ttm":24.3238},{"month":"2021-11","proxy_pe_ttm":24.1128},{"month":"2021-12","proxy_pe_ttm":23.0535},{"month":"2022-01","proxy_pe_ttm":23.162},{"month":"2022-02","proxy_pe_ttm":22.589},{"month":"2022-03","proxy_pe_ttm":22.2297},{"month":"2022-04","proxy_pe_ttm":22.3249},{"month":"2022-05","proxy_pe_ttm":21.1451},{"month":"2022-06","proxy_pe_ttm":20.6319},{"month":"2022-07","proxy_pe_ttm":20.6865},{"month":"2022-08","proxy_pe_ttm":22.0599},{"month":"2022-09","proxy_pe_ttm":20.6746},{"month":"2022-10","proxy_pe_ttm":20.6035},{"month":"2022-11","proxy_pe_ttm":22.9335},{"month":"2022-12","proxy_pe_ttm":23.6523},{"month":"2023-01","proxy_pe_ttm":24.1004},{"month":"2023-02","proxy_pe_ttm":24.4336},{"month":"2023-03","proxy_pe_ttm":23.3898},{"month":"2023-04","proxy_pe_ttm":23.8352},{"month":"2023-05","proxy_pe_ttm":23.2106},{"month":"2023-06","proxy_pe_ttm":23.8304},{"month":"2023-07","proxy_pe_ttm":24.5033},{"month":"2023-08","proxy_pe_ttm":24.1834},{"month":"2023-09","proxy_pe_ttm":23.6493},{"month":"2023-10","proxy_pe_ttm":22.3312},{"month":"2023-11","proxy_pe_ttm":22.9357},{"month":"2023-12","proxy_pe_ttm":24.0376},{"month":"2024-01","proxy_pe_ttm":24.656},{"month":"2024-02","proxy_pe_ttm":25.2935},{"month":"2024-03","proxy_pe_ttm":26.2151},{"month":"2024-04","proxy_pe_ttm":25.7014},{"month":"2024-05","proxy_pe_ttm":25.8656},{"month":"2024-06","proxy_pe_ttm":25.8683},{"month":"2024-07","proxy_pe_ttm":26.3209},{"month":"2024-08","proxy_pe_ttm":26.3539},{"month":"2024-09","proxy_pe_ttm":27.0199},{"month":"2024-10","proxy_pe_ttm":27.206},{"month":"2024-11","proxy_pe_ttm":27.4282},{"month":"2024-12","proxy_pe_ttm":26.8196},{"month":"2025-01","proxy_pe_ttm":26.4564},{"month":"2025-02","proxy_pe_ttm":26.8399},{"month":"2025-03","proxy_pe_ttm":25.8333},{"month":"2025-04","proxy_pe_ttm":24.1085},{"month":"2025-05","proxy_pe_ttm":25.4356},{"month":"2025-06","proxy_pe_ttm":26.0346},{"month":"2025-07","proxy_pe_ttm":26.455},{"month":"2025-08","proxy_pe_ttm":26.0996},{"month":"2025-09","proxy_pe_ttm":26.1303},{"month":"2025-10","proxy_pe_ttm":26.1727},{"month":"2025-11","proxy_pe_ttm":25.6837},{"month":"2025-12","proxy_pe_ttm":25.8331},{"month":"2026-01","proxy_pe_ttm":25.7583},{"month":"2026-02","proxy_pe_ttm":25.58},{"month":"2026-03","proxy_pe_ttm":24.16},{"month":"2026-04","proxy_pe_ttm":24.3693},{"month":"2026-05","proxy_pe_ttm":25.2355},{"month":"2026-06","proxy_pe_ttm":25.5466},{"month":"2026-07","proxy_pe_ttm":25.909}],"history_status":"available","method":{"id":"eqwl_spy_relative_price_proxy_v1","label":"EQWL/SPY 相对价格校准代理","formula":"PE_proxy_m = S&P500_PE_m × (EQWL_m / SPY_m) / K","price_aggregation":"calendar_month_mean_close","percentile":"midrank_120_complete_months","quantile":"linear_interpolation_inclusive","definition_url":"https://www.spglobal.com/spdji/en/indices/equity/sp-100-equal-weight-index/","experimental":false,"anchor":{"month":"2026-03","pe_ttm":24.16,"as_of_date":"2026-03-31","publisher":"Invesco","title":"Invesco S&P 100 Equal Weight ETF fact sheet","source_url":"https://www.invesco.com/content/dam/invesco/us/en/product-documents/etf/fact-sheet/eqwl-invesco-s-p-100-equal-weight-etf-fact-sheet.pdf","sp500_pe_ttm":25.42,"relative_price_ratio":0.17693566,"calibration_constant":0.18616326,"reproduced_pe_ttm":24.16},"limitations":["该序列是用 EQWL/SPY 相对价格校准的研究代理，不是 S&P 官方指数 PE。","代理尚未建立可验证的长期水平误差区间。","历史行情、盈利数据和来源页面均可能修订。","结果不构成投资建议，也不输出低估或高估判断。"]},"source_ids":["nasdaq-eqwl","nasdaq-spy","dqydj"],"warnings":[]},{"id":"ftse-100-proxy","asset_class":"equity_index","source_mode":"proxy","name":"富时 100","code":"UKX-PROXY","region":"英国","frequency":"monthly","status":"fresh","as_of":"2026-07","current":{"proxy_pe_ttm":17.57,"proxy_percentile_10y":22.08,"sample_count":120,"reference_levels":{"p30":17.8885,"p50":19.8505,"p70":25.7886}},"history":[{"month":"2016-08","proxy_pe_ttm":35.8862},{"month":"2016-09","proxy_pe_ttm":35.7011},{"month":"2016-10","proxy_pe_ttm":33.8582},{"month":"2016-11","proxy_pe_ttm":32.4945},{"month":"2016-12","proxy_pe_ttm":32.6681},{"month":"2017-01","proxy_pe_ttm":32.6585},{"month":"2017-02","proxy_pe_ttm":32.5299},{"month":"2017-03","proxy_pe_ttm":32.2851},{"month":"2017-04","proxy_pe_ttm":32.3407},{"month":"2017-05","proxy_pe_ttm":33.3977},{"month":"2017-06","proxy_pe_ttm":32.7674},{"month":"2017-07","proxy_pe_ttm":32.2693},{"month":"2017-08","proxy_pe_ttm":31.9911},{"month":"2017-09","proxy_pe_ttm":32.3748},{"month":"2017-10","proxy_pe_ttm":32.5634},{"month":"2017-11","proxy_pe_ttm":32.0604},{"month":"2017-12","proxy_pe_ttm":32.2406},{"month":"2018-01","proxy_pe_ttm":33.3645},{"month":"2018-02","proxy_pe_ttm":31.2179},{"month":"2018-03","proxy_pe_ttm":30.1754},{"month":"2018-04","proxy_pe_ttm":30.6952},{"month":"2018-05","proxy_pe_ttm":30.5365},{"month":"2018-06","proxy_pe_ttm":29.2233},{"month":"2018-07","proxy_pe_ttm":28.0332},{"month":"2018-08","proxy_pe_ttm":26.7618},{"month":"2018-09","proxy_pe_ttm":25.9006},{"month":"2018-10","proxy_pe_ttm":24.9524},{"month":"2018-11","proxy_pe_ttm":24.3878},{"month":"2018-12","proxy_pe_ttm":22.6252},{"month":"2019-01","proxy_pe_ttm":23.0992},{"month":"2019-02","proxy_pe_ttm":24.1481},{"month":"2019-03","proxy_pe_ttm":24.6821},{"month":"2019-04","proxy_pe_ttm":25.2364},{"month":"2019-05","proxy_pe_ttm":24.3493},{"month":"2019-06","proxy_pe_ttm":24.0013},{"month":"2019-07","proxy_pe_ttm":24.1029},{"month":"2019-08","proxy_pe_ttm":22.5956},{"month":"2019-09","proxy_pe_ttm":23.6555},{"month":"2019-10","proxy_pe_ttm":23.5543},{"month":"2019-11","proxy_pe_ttm":23.9907},{"month":"2019-12","proxy_pe_ttm":24.0656},{"month":"2020-01","proxy_pe_ttm":25.7406},{"month":"2020-02","proxy_pe_ttm":26.1129},{"month":"2020-03","proxy_pe_ttm":21.137},{"month":"2020-04","proxy_pe_ttm":22.1167},{"month":"2020-05","proxy_pe_ttm":23.992},{"month":"2020-06","proxy_pe_ttm":26.8583},{"month":"2020-07","proxy_pe_ttm":26.8122},{"month":"2020-08","proxy_pe_ttm":27.361},{"month":"2020-09","proxy_pe_ttm":26.5363},{"month":"2020-10","proxy_pe_ttm":26.5787},{"month":"2020-11","proxy_pe_ttm":29.2174},{"month":"2020-12","proxy_pe_ttm":31.4787},{"month":"2021-01","proxy_pe_ttm":29.2001},{"month":"2021-02","proxy_pe_ttm":26.2862},{"month":"2021-03","proxy_pe_ttm":24.6288},{"month":"2021-04","proxy_pe_ttm":23.5827},{"month":"2021-05","proxy_pe_ttm":22.7747},{"month":"2021-06","proxy_pe_ttm":21.2394},{"month":"2021-07","proxy_pe_ttm":20.0262},{"month":"2021-08","proxy_pe_ttm":19.6749},{"month":"2021-09","proxy_pe_ttm":18.7904},{"month":"2021-10","proxy_pe_ttm":18.358},{"month":"2021-11","proxy_pe_ttm":17.5943},{"month":"2021-12","proxy_pe_ttm":16.5974},{"month":"2022-01","proxy_pe_ttm":17.2988},{"month":"2022-02","proxy_pe_ttm":17.4366},{"month":"2022-03","proxy_pe_ttm":16.6913},{"month":"2022-04","proxy_pe_ttm":17.2214},{"month":"2022-05","proxy_pe_ttm":16.6353},{"month":"2022-06","proxy_pe_ttm":16.1972},{"month":"2022-07","proxy_pe_ttm":15.6669},{"month":"2022-08","proxy_pe_ttm":16.2937},{"month":"2022-09","proxy_pe_ttm":14.9971},{"month":"2022-10","proxy_pe_ttm":14.9935},{"month":"2022-11","proxy_pe_ttm":16.8714},{"month":"2022-12","proxy_pe_ttm":18.1456},{"month":"2023-01","proxy_pe_ttm":18.7186},{"month":"2023-02","proxy_pe_ttm":18.7832},{"month":"2023-03","proxy_pe_ttm":18.2115},{"month":"2023-04","proxy_pe_ttm":19.0251},{"month":"2023-05","proxy_pe_ttm":18.6345},{"month":"2023-06","proxy_pe_ttm":17.9917},{"month":"2023-07","proxy_pe_ttm":18.0822},{"month":"2023-08","proxy_pe_ttm":17.6292},{"month":"2023-09","proxy_pe_ttm":17.4748},{"month":"2023-10","proxy_pe_ttm":16.8202},{"month":"2023-11","proxy_pe_ttm":16.8325},{"month":"2023-12","proxy_pe_ttm":17.1972},{"month":"2024-01","proxy_pe_ttm":17.0493},{"month":"2024-02","proxy_pe_ttm":17.0962},{"month":"2024-03","proxy_pe_ttm":17.6514},{"month":"2024-04","proxy_pe_ttm":17.8096},{"month":"2024-05","proxy_pe_ttm":18.6803},{"month":"2024-06","proxy_pe_ttm":18.2138},{"month":"2024-07","proxy_pe_ttm":18.1848},{"month":"2024-08","proxy_pe_ttm":18.374},{"month":"2024-09","proxy_pe_ttm":18.6467},{"month":"2024-10","proxy_pe_ttm":18.1191},{"month":"2024-11","proxy_pe_ttm":17.1513},{"month":"2024-12","proxy_pe_ttm":16.7401},{"month":"2025-01","proxy_pe_ttm":16.4066},{"month":"2025-02","proxy_pe_ttm":17.0905},{"month":"2025-03","proxy_pe_ttm":17.4632},{"month":"2025-04","proxy_pe_ttm":16.8605},{"month":"2025-05","proxy_pe_ttm":17.8017},{"month":"2025-06","proxy_pe_ttm":18.0499},{"month":"2025-07","proxy_pe_ttm":17.8348},{"month":"2025-08","proxy_pe_ttm":18.0059},{"month":"2025-09","proxy_pe_ttm":17.9115},{"month":"2025-10","proxy_pe_ttm":17.9506},{"month":"2025-11","proxy_pe_ttm":17.7193},{"month":"2025-12","proxy_pe_ttm":17.7775},{"month":"2026-01","proxy_pe_ttm":18.1507},{"month":"2026-02","proxy_pe_ttm":18.6277},{"month":"2026-03","proxy_pe_ttm":17.5646},{"month":"2026-04","proxy_pe_ttm":17.9808},{"month":"2026-05","proxy_pe_ttm":17.6433},{"month":"2026-06","proxy_pe_ttm":17.2512},{"month":"2026-07","proxy_pe_ttm":17.57}],"history_status":"available","method":{"id":"ewu_spy_relative_price_proxy_v1","label":"EWU/SPY 相对价格校准代理","formula":"PE_proxy_m = S&P500_PE_m × (EWU_m / SPY_m) / K","price_aggregation":"calendar_month_mean_close","percentile":"midrank_120_complete_months","quantile":"linear_interpolation_inclusive","definition_url":"https://www.lseg.com/en/ftse-russell/indices/uk","experimental":true,"anchor":{"month":"2026-07","pe_ttm":17.57,"as_of_date":"2026-07-17","publisher":"iShares","title":"iShares Core FTSE 100 UCITS ETF portfolio characteristics","source_url":"https://www.ishares.com/uk/individual/en/products/251795/ISF?locale=en_GB","sp500_pe_ttm":27.71,"relative_price_ratio":0.06308113,"calibration_constant":0.09948652,"reproduced_pe_ttm":17.57},"limitations":["这是实验代理：EWU 跟踪 MSCI UK，成分范围与 FTSE 100 不一致。","锚点来自跟踪 FTSE 100 的 iShares ISF，价格路径与锚点基金并非同一组合。","尚未建立可验证的误差区间，不应视为 FTSE 官方指数 PE。","结果不构成投资建议，也不输出低估或高估判断。"]},"source_ids":["nasdaq-ewu","nasdaq-spy","dqydj"],"warnings":[]},{"id":"gold-dual-anchor","asset_class":"commodity","source_mode":"external_model","name":"黄金估值","code":"XAUUSD","region":"全球","frequency":"snapshot","status":"fresh","as_of":"2026-08-25","current":{"spot_usd_oz":4682.34,"percentiles":{"1y":67.9,"3y":89.3,"5y":93.3,"10y":96.6,"all":96.8},"source_rating_1y":{"label":"合理","provider":"中美双锚三因子黄金估值模型"},"source_rating_all":{"label":"极度高估","provider":"中美双锚三因子黄金估值模型"},"residual":0.1835,"factors":{"tips_real_yield":{"label":"TIPS 实际利率","value":2.4,"unit":"%","date":"2026-08-21","lag_days":4},"china_us_spread":{"label":"中美利差","value":-3.02,"unit":"%","date":"2026-08-24","lag_days":1},"gold_oil_ratio":{"label":"金油比","value":55.0,"unit":"ratio","date":"2026-08-25","lag_days":0}}},"history":[],"history_status":"not_published_by_source","method":{"id":"external_dual_anchor_three_factor_snapshot_v1","label":"外部中美双锚三因子模型当前快照","attribution_url":"https://shuipingtang.github.io/gold_cn.html","repository_url":"https://github.com/shuipingtang/shuipingtang.github.io","limitations":["本页仅转述来源模型的当前数值、分位、评级与因子新鲜度。","不复制来源图表、回测、仓位建议或买卖策略。","来源评级不代表本站判断，结果不构成投资建议。"]},"source_ids":["gold"],"warnings":[]}],"sources":[{"id":"snowball","name":"雪球指数估值","url":"https://danjuanfunds.com/rn/value-center","status":"fresh","request_mode":"conditional","http_status":304,"last_success_at":"2026-08-25T13:57:44+08:00","data_updated_at":"2026-08-25T13:23:10+08:00","age_hours":0.0,"error":null},{"id":"gold","name":"中美双锚三因子黄金估值模型","url":"https://shuipingtang.github.io/gold_cn.html","status":"fresh","request_mode":"conditional","http_status":304,"last_success_at":"2026-08-25T13:57:44+08:00","data_updated_at":"2026-08-25T13:09:49+08:00","age_hours":0.0,"error":null},{"id":"dqydj","name":"DQYDJ S&P 500 月度 TTM PE","url":"https://dqydj.com/sp-500-pe-ratio/","status":"fresh","request_mode":"full","http_status":200,"last_success_at":"2026-08-25T13:57:44+08:00","data_updated_at":"2026-08-25T13:57:44+08:00","age_hours":0.0,"error":null},{"id":"nasdaq-rsp","name":"Nasdaq RSP 历史行情","url":"https://www.nasdaq.com/market-activity/etf/rsp/historical","status":"fresh","request_mode":"tail","http_status":200,"last_success_at":"2026-08-25T13:57:44+08:00","data_updated_at":"2026-08-25T13:57:44+08:00","age_hours":0.0,"error":null},{"id":"nasdaq-eqwl","name":"Nasdaq EQWL 历史行情","url":"https://www.nasdaq.com/market-activity/etf/eqwl/historical","status":"fresh","request_mode":"tail","http_status":200,"last_success_at":"2026-08-25T13:57:44+08:00","data_updated_at":"2026-08-25T13:57:44+08:00","age_hours":0.0,"error":null},{"id":"nasdaq-ewu","name":"Nasdaq EWU 历史行情","url":"https://www.nasdaq.com/market-activity/etf/ewu/historical","status":"fresh","request_mode":"tail","http_status":200,"last_success_at":"2026-08-25T13:57:44+08:00","data_updated_at":"2026-08-25T13:57:44+08:00","age_hours":0.0,"error":null},{"id":"nasdaq-spy","name":"Nasdaq SPY 历史行情","url":"https://www.nasdaq.com/market-activity/etf/spy/historical","status":"fresh","request_mode":"tail","http_status":200,"last_success_at":"2026-08-25T13:57:44+08:00","data_updated_at":"2026-08-25T13:57:44+08:00","age_hours":0.0,"error":null}],"cache":{"key":"097b82f50942b7422f87166c1e90af40a20f0fdb1487b99f9f3ee047d4b86d65","startup":"hot","hit":true,"hit_count":7,"source_count":7,"load_states":{"snowball":"valid","gold":"valid","dqydj":"valid","nasdaq-rsp":"valid","nasdaq-eqwl":"valid","nasdaq-ewu":"valid","nasdaq-spy":"valid"},"manifest_state":"valid","refresh_mode":"tail","fallback":false,"unavailable":false,"updated_at":"2026-08-25T13:57:44+08:00","last_full_refresh_month":"2026-08"},"warnings":[]};</script>
+  <script>(function (root, factory) {
+  const api = factory();
+  if (typeof module === "object" && module.exports) {
+    module.exports = api;
+  } else {
+    root.ValuationPage = api;
+    const mount = () => api.mount(root.document, root.__INDEX_VALUATION__, root);
+    if (root.document.readyState === "loading") {
+      root.document.addEventListener("DOMContentLoaded", mount, { once: true });
+    } else {
+      mount();
+    }
+  }
+})(typeof globalThis !== "undefined" ? globalThis : this, function () {
+  "use strict";
+
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  const WIDTH = 920;
+  const HEIGHT = 390;
+  const MARGIN = { top: 24, right: 62, bottom: 43, left: 54 };
+  const MODE_LABELS = {
+    direct: "雪球直取",
+    proxy: "研究代理",
+    external_model: "外部模型",
+  };
+  const STATUS_LABELS = {
+    fresh: "已完成本次重验",
+    cached_stale: "使用上次有效缓存",
+    unavailable: "暂不可用",
+  };
+
+  function finiteNumber(value, label) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) throw new Error(`${label} must be finite`);
+    return number;
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
+  }
+
+  function resolveRoute(payload, search) {
+    const params = new URLSearchParams(String(search || ""));
+    if (!params.has("asset")) {
+      return { view: "overview", assetId: null, invalidAsset: false };
+    }
+    const requested = params.get("asset");
+    const ids = new Set((payload.assets || []).map((asset) => asset.id));
+    return ids.has(requested)
+      ? { view: "detail", assetId: requested, invalidAsset: false }
+      : { view: "overview", assetId: null, invalidAsset: true };
+  }
+
+  function buildViewUrl(href, assetId) {
+    const url = new URL(String(href || ""), "https://valuation.local/");
+    if (assetId) url.searchParams.set("asset", assetId);
+    else url.searchParams.delete("asset");
+    return url.href;
+  }
+
+  function filterAssets(assets, mode) {
+    return (assets || []).filter((asset) => mode === "all" || asset.source_mode === mode);
+  }
+
+  function detailKind(asset) {
+    if (!asset || asset.status === "unavailable") return "unavailable";
+    return asset.source_mode;
+  }
+
+  function detailDocumentTitle(asset) {
+    const subject = asset.name.endsWith("估值") ? `${asset.name}详情` : `${asset.name}估值详情`;
+    return `${subject} · 指数与黄金估值研究`;
+  }
+
+  function buildChartModel(history, referenceLevels) {
+    if (!Array.isArray(history) || history.length < 2) {
+      throw new Error("Valuation history must contain at least two points");
+    }
+    const values = history.map((item) => finiteNumber(item.proxy_pe_ttm, "proxy PE"));
+    const references = ["p30", "p50", "p70"].map((key) => ({
+      key,
+      label: key.toUpperCase(),
+      value: finiteNumber(referenceLevels[key], key),
+    }));
+    const domain = values.concat(references.map((item) => item.value));
+    const rawMin = Math.min(...domain);
+    const rawMax = Math.max(...domain);
+    const padding = Math.max((rawMax - rawMin) * 0.1, rawMax * 0.025, 0.5);
+    const yMin = Math.max(0, rawMin - padding);
+    const yMax = rawMax + padding;
+    const innerWidth = WIDTH - MARGIN.left - MARGIN.right;
+    const innerHeight = HEIGHT - MARGIN.top - MARGIN.bottom;
+    const x = (index) => MARGIN.left + (innerWidth * index) / (history.length - 1);
+    const y = (value) => MARGIN.top + ((yMax - value) * innerHeight) / (yMax - yMin);
+    const points = history.map((item, index) => ({
+      month: String(item.month), value: values[index], x: x(index), y: y(values[index]),
+    }));
+    const tickIndexes = Array.from(new Set([0, 30, 60, 90, history.length - 1]))
+      .filter((index) => index < history.length);
+    const yTicks = Array.from({ length: 5 }, (_, index) => {
+      const value = yMin + ((yMax - yMin) * index) / 4;
+      return { value, y: y(value) };
+    }).reverse();
+    return {
+      width: WIDTH, height: HEIGHT, margin: MARGIN, points,
+      references: references.map((item) => ({ ...item, y: y(item.value) })),
+      tickIndexes, yTicks, baselineY: HEIGHT - MARGIN.bottom,
+    };
+  }
+
+  function nearestIndex(clientX, left, renderedWidth, pointCount) {
+    if (pointCount <= 1 || renderedWidth <= 0) return 0;
+    const plotLeft = (MARGIN.left / WIDTH) * renderedWidth;
+    const plotRight = ((WIDTH - MARGIN.right) / WIDTH) * renderedWidth;
+    const relative = Math.min(plotRight, Math.max(plotLeft, clientX - left));
+    return Math.max(0, Math.min(
+      pointCount - 1,
+      Math.round(((relative - plotLeft) / (plotRight - plotLeft)) * (pointCount - 1)),
+    ));
+  }
+
+  function svgElement(document, tag, attributes, text) {
+    const element = document.createElementNS(SVG_NS, tag);
+    Object.entries(attributes || {}).forEach(([key, value]) => element.setAttribute(key, String(value)));
+    if (text !== undefined) element.textContent = text;
+    return element;
+  }
+
+  function renderSvg(document, model, assetName) {
+    const label = `${assetName} 120 月代理序列`;
+    const svg = svgElement(document, "svg", {
+      viewBox: `0 0 ${model.width} ${model.height}`, role: "img", tabindex: "0",
+      "aria-label": label, preserveAspectRatio: "xMidYMid meet",
+    });
+    svg.appendChild(svgElement(document, "title", {}, label));
+    model.yTicks.forEach((tick) => {
+      svg.appendChild(svgElement(document, "line", {
+        x1: model.margin.left, x2: model.width - model.margin.right,
+        y1: tick.y, y2: tick.y, stroke: "#e1e6ea", "stroke-width": 1,
+      }));
+      svg.appendChild(svgElement(document, "text", {
+        x: model.margin.left - 9, y: tick.y + 4, fill: "#66727e",
+        "font-size": 11, "text-anchor": "end",
+      }, tick.value.toFixed(1)));
+    });
+    model.references.forEach((reference) => {
+      svg.appendChild(svgElement(document, "line", {
+        x1: model.margin.left, x2: model.width - model.margin.right,
+        y1: reference.y, y2: reference.y, stroke: "#83909c",
+        "stroke-width": 1, "stroke-dasharray": "5 5",
+      }));
+      svg.appendChild(svgElement(document, "text", {
+        x: model.width - model.margin.right + 8, y: reference.y + 4,
+        fill: "#56636f", "font-size": 10,
+      }, reference.label));
+    });
+    model.tickIndexes.forEach((index) => {
+      const point = model.points[index];
+      svg.appendChild(svgElement(document, "line", {
+        x1: point.x, x2: point.x, y1: model.baselineY,
+        y2: model.baselineY + 5, stroke: "#9aa7b3", "stroke-width": 1,
+      }));
+      svg.appendChild(svgElement(document, "text", {
+        x: point.x, y: model.baselineY + 20, fill: "#66727e", "font-size": 10,
+        "text-anchor": index === 0 ? "start" : (index === model.points.length - 1 ? "end" : "middle"),
+      }, point.month));
+    });
+    const linePath = model.points
+      .map((point, index) => `${index === 0 ? "M" : "L"}${point.x.toFixed(2)},${point.y.toFixed(2)}`)
+      .join(" ");
+    const first = model.points[0];
+    const last = model.points[model.points.length - 1];
+    svg.appendChild(svgElement(document, "path", {
+      d: `${linePath} L${last.x.toFixed(2)},${model.baselineY} L${first.x.toFixed(2)},${model.baselineY} Z`,
+      fill: "#edf4fa", stroke: "none",
+    }));
+    svg.appendChild(svgElement(document, "path", {
+      d: linePath, fill: "none", stroke: "#1f6fae", "stroke-width": 2.5,
+      "stroke-linejoin": "round", "stroke-linecap": "round",
+    }));
+    const guide = svgElement(document, "line", {
+      x1: last.x, x2: last.x, y1: model.margin.top, y2: model.baselineY,
+      stroke: "#52606d", "stroke-width": 1, "stroke-dasharray": "3 4",
+      visibility: "hidden", "data-chart-guide": "",
+    });
+    const marker = svgElement(document, "circle", {
+      cx: last.x, cy: last.y, r: 4.5, fill: "#fff", stroke: "#1f6fae",
+      "stroke-width": 2.5, "data-chart-marker": "",
+    });
+    svg.appendChild(guide);
+    svg.appendChild(marker);
+    svg.appendChild(svgElement(document, "rect", {
+      x: model.margin.left, y: model.margin.top,
+      width: model.width - model.margin.left - model.margin.right,
+      height: model.height - model.margin.top - model.margin.bottom,
+      fill: "transparent", "data-chart-overlay": "",
+    }));
+    return svg;
+  }
+
+  function mountChart(document, asset) {
+    const root = document.getElementById("valuation-chart");
+    if (!root || asset.source_mode !== "proxy" || asset.status === "unavailable") return null;
+    const model = buildChartModel(asset.history, asset.current.reference_levels);
+    const tooltip = document.createElement("div");
+    tooltip.id = "valuation-tooltip";
+    tooltip.className = "chart-tooltip";
+    tooltip.setAttribute("role", "status");
+    tooltip.setAttribute("aria-live", "polite");
+    tooltip.hidden = true;
+    const svg = renderSvg(document, model, asset.name);
+    root.replaceChildren(svg, tooltip);
+    const guide = svg.querySelector("[data-chart-guide]");
+    const marker = svg.querySelector("[data-chart-marker]");
+    let selectedIndex = model.points.length - 1;
+    const showPoint = (index, clientPosition) => {
+      selectedIndex = Math.max(0, Math.min(model.points.length - 1, index));
+      const point = model.points[selectedIndex];
+      guide.setAttribute("x1", point.x);
+      guide.setAttribute("x2", point.x);
+      guide.setAttribute("visibility", "visible");
+      marker.setAttribute("cx", point.x);
+      marker.setAttribute("cy", point.y);
+      tooltip.textContent = `${point.month}  ·  ${point.value.toFixed(2)}`;
+      tooltip.hidden = false;
+      const rect = root.getBoundingClientRect();
+      const renderedX = clientPosition === undefined
+        ? (point.x / model.width) * rect.width : clientPosition - rect.left;
+      tooltip.style.left = `${Math.max(8, Math.min(rect.width - 132, renderedX + 10))}px`;
+      tooltip.style.top = "10px";
+    };
+    const hidePoint = () => {
+      guide.setAttribute("visibility", "hidden");
+      tooltip.hidden = true;
+    };
+    svg.addEventListener("pointermove", (event) => {
+      const rect = svg.getBoundingClientRect();
+      showPoint(nearestIndex(event.clientX, rect.left, rect.width, model.points.length), event.clientX);
+    });
+    svg.addEventListener("pointerleave", hidePoint);
+    svg.addEventListener("focus", () => showPoint(selectedIndex));
+    svg.addEventListener("blur", hidePoint);
+    svg.addEventListener("keydown", (event) => {
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+      event.preventDefault();
+      showPoint(selectedIndex + (event.key === "ArrowLeft" ? -1 : 1));
+    });
+    return { model, svg, showPoint, hidePoint };
+  }
+
+  function metric(label, value, note) {
+    return `<div class="metric"><span class="metric-label">${escapeHtml(label)}</span><strong class="metric-value">${escapeHtml(value)}</strong><span class="metric-note">${escapeHtml(note || "")}</span></div>`;
+  }
+
+  function sourceList(asset, payload) {
+    const map = new Map(payload.sources.map((source) => [source.id, source]));
+    return `<ul class="source-list">${asset.source_ids.map((id) => {
+      const source = map.get(id);
+      if (!source) return "";
+      const stamp = source.last_success_at || "无有效缓存";
+      return `<li><span><strong>${escapeHtml(source.name)}</strong><small>${escapeHtml(stamp)}</small></span><span class="status status-${escapeHtml(source.status)}">${escapeHtml(STATUS_LABELS[source.status])}</span><a href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer">来源</a></li>`;
+    }).join("")}</ul>`;
+  }
+
+  function limitations(method) {
+    return `<ul class="limitations">${(method.limitations || []).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`;
+  }
+
+  function detailHeader(asset) {
+    const experimental = asset.method.experimental ? " · 实验版" : "";
+    return `<div class="detail-header"><div><span class="detail-kicker">${escapeHtml(MODE_LABELS[asset.source_mode])}${escapeHtml(experimental)}</span><h2 class="detail-title" id="detail-heading">${escapeHtml(asset.name)}</h2></div><div class="detail-meta"><strong class="status status-${escapeHtml(asset.status)}">${escapeHtml(STATUS_LABELS[asset.status])}</strong><br>${escapeHtml(asset.code)} · ${escapeHtml(asset.as_of || "无数据日期")}</div></div>`;
+  }
+
+  function renderDetailNavigation(asset, payload, currentHref) {
+    const groups = [
+      ["direct", "雪球直取"],
+      ["proxy", "研究代理"],
+      ["external_model", "黄金"],
+    ];
+    const options = groups.map(([mode, label]) => {
+      const groupAssets = payload.assets.filter((item) => item.source_mode === mode);
+      if (!groupAssets.length) return "";
+      return `<optgroup label="${escapeHtml(label)}">${groupAssets.map((item) => `<option value="${escapeHtml(item.id)}"${item.id === asset.id ? " selected" : ""}>${escapeHtml(item.name)}</option>`).join("")}</optgroup>`;
+    }).join("");
+    return `<div class="detail-toolbar"><a class="back-link" id="valuation-overview-link" href="${escapeHtml(buildViewUrl(currentHref, null))}"><span aria-hidden="true">←</span> 返回估值概览</a><label class="asset-switcher-label" for="asset-switcher"><span>切换标的</span><select id="asset-switcher">${options}</select></label></div>`;
+  }
+
+  function renderUnavailable(asset, payload) {
+    return `${detailHeader(asset)}<div class="detail-grid"><div class="notice"><strong>该标的暂不可用</strong><br>${escapeHtml((asset.warnings || []).join("；") || "来源抓取失败且没有通过校验的缓存。")}</div><div class="panel"><h3 id="sources-heading">来源状态</h3>${sourceList(asset, payload)}</div></div>`;
+  }
+
+  function renderDirect(asset, payload) {
+    const current = asset.current;
+    return `${detailHeader(asset)}
+      <div class="metrics">${metric("PE-TTM", current.pe_ttm.toFixed(2), "雪球当前快照")}${metric("10 年 PE 分位", `${current.pe_percentile_10y.toFixed(1)}%`, `来源评级：${current.source_rating.label}`)}${metric("PB", current.pb_mrq.toFixed(2), `${current.pb_percentile_10y.toFixed(1)}% · 10 年 PB 分位`)}${metric("ROE / 股息率", `${current.roe_pct.toFixed(1)}% / ${current.dividend_yield_pct.toFixed(1)}%`, `序列始于 ${current.history_since}`)}</div>
+      <div class="detail-grid"><div class="notice"><strong>当前快照</strong><br>雪球仅提供当前估值与其计算的 10 年百分位，本页没有可发布的历史估值曲线。</div><div class="two-column"><div class="panel"><h3 id="sources-heading">来源状态</h3>${sourceList(asset, payload)}</div><div class="panel"><h3 id="method-heading">口径与边界</h3><p><code>${escapeHtml(asset.method.id)}</code></p>${limitations(asset.method)}</div></div></div>`;
+  }
+
+  function renderProxy(asset, payload) {
+    const current = asset.current;
+    const levels = current.reference_levels;
+    const anchor = asset.method.anchor;
+    const recent = asset.history.slice(-12).reverse().map((item) => `<tr><td>${escapeHtml(item.month)}</td><td>${item.proxy_pe_ttm.toFixed(2)}</td></tr>`).join("");
+    return `${detailHeader(asset)}
+      <div class="metrics">${metric("代理 PE-TTM", current.proxy_pe_ttm.toFixed(2), asset.as_of)}${metric("10 年代理百分位", `${current.proxy_percentile_10y.toFixed(1)}%`, "中位秩算法，不附估值标签")}${metric("完整样本", `${current.sample_count} 个月`, "连续且已结束的自然月")}${metric("P30 / P50 / P70", `${levels.p30.toFixed(2)} / ${levels.p50.toFixed(2)} / ${levels.p70.toFixed(2)}`, "参考分位值")}</div>
+      <div class="detail-grid"><section aria-labelledby="history-heading"><div class="section-heading"><h3 id="history-heading">120 月代理序列</h3><span>${escapeHtml(asset.history[0].month)} 至 ${escapeHtml(asset.history.at(-1).month)}</span></div><div class="chart-shell" id="valuation-chart"></div><div class="chart-legend"><span><i class="legend-line"></i>代理 PE-TTM</span><span><i class="legend-line reference"></i>P30 / P50 / P70</span></div></section>
+      <div class="two-column"><div class="panel"><h3>最近 12 个月</h3><div class="compact-table"><table><thead><tr><th>月份</th><th>代理 PE-TTM</th></tr></thead><tbody>${recent}</tbody></table></div></div><div class="panel"><h3 id="sources-heading">来源状态</h3>${sourceList(asset, payload)}</div></div>
+      <div class="two-column"><div class="panel"><h3 id="method-heading">方法与锚点</h3><p><code>${escapeHtml(asset.method.id)}</code></p><p>${escapeHtml(asset.method.formula)}</p><p>锚点 ${escapeHtml(anchor.month)} · ${escapeHtml(anchor.publisher)} PE ${Number(anchor.pe_ttm).toFixed(2)} · <a href="${escapeHtml(anchor.source_url)}" target="_blank" rel="noopener noreferrer">锚点来源</a></p></div><div class="panel"><h3>限制</h3>${limitations(asset.method)}</div></div></div>`;
+  }
+
+  function renderGold(asset, payload) {
+    const current = asset.current;
+    const labels = { "1y": "近 1 年", "3y": "近 3 年", "5y": "近 5 年", "10y": "近 10 年", all: "全部历史" };
+    const percentileRows = Object.entries(labels).map(([key, label]) => {
+      const rating = current.source_rating_1y && key === "1y" ? current.source_rating_1y.label : (key === "all" ? current.source_rating_all.label : "--");
+      return `<tr><td>${label}</td><td>${current.percentiles[key].toFixed(1)}%</td><td>${escapeHtml(rating)}</td></tr>`;
+    }).join("");
+    const factorRows = Object.values(current.factors).map((factor) => `<tr><td>${escapeHtml(factor.label)}</td><td>${Number(factor.value).toFixed(factor.unit === "ratio" ? 1 : 2)}${factor.unit === "%" ? "%" : ""}</td><td>${escapeHtml(factor.date)}</td><td>${factor.lag_days} 天</td></tr>`).join("");
+    return `${detailHeader(asset)}
+      <div class="metrics">${metric("美元金价", `$${current.spot_usd_oz.toLocaleString("en-US", { maximumFractionDigits: 2 })}`, "美元 / 盎司")}${metric("10 年模型分位", `${current.percentiles["10y"].toFixed(1)}%`, "来源模型计算")}${metric("全部历史分位", `${current.percentiles.all.toFixed(1)}%`, `来源评级：${current.source_rating_all.label}`)}${metric("当前残差", current.residual.toFixed(4), "来源回归模型")}</div>
+      <div class="detail-grid"><div class="notice"><strong>外部模型快照</strong><br>来源未发布可供本站复用的历史序列。本页不复制来源图表、回测、仓位建议或买卖策略。</div>
+      <div class="two-column"><div class="panel"><h3>多窗口模型分位</h3><div class="compact-table"><table><thead><tr><th>窗口</th><th>分位</th><th>来源评级</th></tr></thead><tbody>${percentileRows}</tbody></table></div></div><div class="panel"><h3>因子与新鲜度</h3><div class="compact-table"><table><thead><tr><th>因子</th><th>数值</th><th>日期</th><th>滞后</th></tr></thead><tbody>${factorRows}</tbody></table></div></div></div>
+      <div class="two-column"><div class="panel"><h3 id="sources-heading">来源状态</h3>${sourceList(asset, payload)}</div><div class="panel"><h3 id="method-heading">归属与边界</h3><p><code>${escapeHtml(asset.method.id)}</code></p><p><a href="${escapeHtml(asset.method.attribution_url)}" target="_blank" rel="noopener noreferrer">模型原页</a> · <a href="${escapeHtml(asset.method.repository_url)}" target="_blank" rel="noopener noreferrer">项目仓库</a></p>${limitations(asset.method)}</div></div></div>`;
+  }
+
+  function renderDetail(asset, payload) {
+    const kind = detailKind(asset);
+    if (kind === "unavailable") return renderUnavailable(asset, payload);
+    if (kind === "direct") return renderDirect(asset, payload);
+    if (kind === "proxy") return renderProxy(asset, payload);
+    return renderGold(asset, payload);
+  }
+
+  function mount(document, payload, windowObject) {
+    if (!document || !payload || !Array.isArray(payload.assets)) return null;
+    const overview = document.getElementById("valuation-overview");
+    const detail = document.getElementById("valuation-detail");
+    const rows = Array.from(document.querySelectorAll("[data-asset-id]"));
+    const filters = Array.from(document.querySelectorAll("[data-filter]"));
+    const assetLinks = Array.from(document.querySelectorAll("[data-asset-link]"));
+    if (!overview || !detail || !rows.length) return null;
+    const assets = new Map(payload.assets.map((asset) => [asset.id, asset]));
+    const currentHref = windowObject && windowObject.location
+      ? windowObject.location.href
+      : "https://valuation.local/valuation/";
+    const search = windowObject && windowObject.location ? windowObject.location.search : "";
+    const route = resolveRoute(payload, search);
+    let activeFilter = "all";
+
+    assetLinks.forEach((link) => {
+      link.setAttribute("href", buildViewUrl(currentHref, link.dataset.assetLink));
+    });
+
+    const applyFilter = (mode) => {
+      activeFilter = mode;
+      rows.forEach((row) => { row.hidden = mode !== "all" && row.dataset.sourceMode !== mode; });
+      filters.forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.filter === mode)));
+    };
+    rows.forEach((row) => {
+      row.addEventListener("click", (event) => {
+        if (event.target.closest("a,button,select")) return;
+        const target = buildViewUrl(currentHref, row.dataset.assetId);
+        if (windowObject && windowObject.location && typeof windowObject.location.assign === "function") {
+          windowObject.location.assign(target);
+        }
+      });
+    });
+    filters.forEach((button) => button.addEventListener("click", () => applyFilter(button.dataset.filter)));
+
+    if (route.invalidAsset && windowObject && windowObject.history) {
+      windowObject.history.replaceState(null, "", buildViewUrl(currentHref, null));
+    }
+    if (route.view === "detail") {
+      const asset = assets.get(route.assetId);
+      overview.hidden = true;
+      detail.hidden = false;
+      detail.innerHTML = `${renderDetailNavigation(asset, payload, currentHref)}${renderDetail(asset, payload)}`;
+      document.title = detailDocumentTitle(asset);
+      mountChart(document, asset);
+      const switcher = document.getElementById("asset-switcher");
+      switcher.addEventListener("change", () => {
+        const target = buildViewUrl(currentHref, switcher.value);
+        if (windowObject && windowObject.location && typeof windowObject.location.assign === "function") {
+          windowObject.location.assign(target);
+        }
+      });
+    } else {
+      overview.hidden = false;
+      detail.hidden = true;
+      detail.replaceChildren();
+      document.title = "指数与黄金估值研究";
+      applyFilter(activeFilter);
+    }
+    return { route, applyFilter, get activeFilter() { return activeFilter; } };
+  }
+
+  return {
+    buildChartModel, nearestIndex, resolveRoute, buildViewUrl, filterAssets, detailDocumentTitle,
+    detailKind, renderDetailNavigation, renderDetail, mountChart, mount,
+  };
+});
+</script>
+</body>
+</html>

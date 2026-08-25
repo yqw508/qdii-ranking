@@ -97,6 +97,12 @@ class PerformanceReportingTests(unittest.TestCase):
         self.assertIn('cron: "7 23 * * *"', workflow)
         self.assertIn("qdii-ranking-${{ runner.os }}-", workflow)
         self.assertIn("Report performance comparison", workflow)
+        self.assertIn("Refresh index valuation", workflow)
+        self.assertIn("scripts/validate_index_valuation.py", workflow)
+        self.assertIn("node --test scripts/test_valuation_page.mjs", workflow)
+        self.assertIn("public/valuation/index.html", workflow)
+        self.assertIn("references/index-valuation-catalog.json", workflow)
+        self.assertNotIn("references/index-valuation-anchors.json", workflow)
 
 
 def make_record(rank, ranking_list="us_main"):

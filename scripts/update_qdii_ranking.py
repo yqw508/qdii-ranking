@@ -2918,9 +2918,10 @@ def clean_report_text(text: str) -> str:
 
 
 def parse_fund_investment_rows(text: str, code: str) -> list[dict[str, Any]]:
-    heading = re.search(r"前十名基金投资明\s*细", text)
-    if not heading:
+    headings = list(re.finditer(r"前十名基金投资明\s*细", text))
+    if not headings:
         raise DataError(f"Could not locate top fund investments for fund {code}")
+    heading = headings[-1]
     end = re.search(r"投资组合报告附注", text[heading.end() :])
     if not end:
         raise DataError(f"Could not locate end of top fund investments for fund {code}")
@@ -2983,13 +2984,14 @@ def parse_fund_investment_rows(text: str, code: str) -> list[dict[str, Any]]:
 
 def parse_us_equity_report(text: str, code: str) -> dict[str, Any]:
     text = clean_report_text(text)
-    direct_heading = re.search(
+    direct_headings = list(re.finditer(
         r"(?:报告期末|期末)在各个国家（地区）证券市场的"
         r"(?:股票及存托\s*凭证|权益)投资分\s*布",
         text,
-    )
-    if not direct_heading:
+    ))
+    if not direct_headings:
         raise DataError(f"Could not locate country equity distribution for fund {code}")
+    direct_heading = direct_headings[-1]
     direct_segment = text[direct_heading.end() : direct_heading.end() + 1200]
     next_heading = re.search(r"\n\s*\d+(?:\.\d+)+\s*", direct_segment)
     if next_heading:
@@ -2999,9 +3001,10 @@ def parse_us_equity_report(text: str, code: str) -> dict[str, Any]:
     )
     direct_us_pct = float(direct_match.group(2)) if direct_match else 0.0
 
-    asset_heading = re.search(r"报告期末基金资产组合情况", text)
-    if not asset_heading:
+    asset_headings = list(re.finditer(r"(?:报告期末|期末)基金资产组合情况", text))
+    if not asset_headings:
         raise DataError(f"Could not locate asset allocation table for fund {code}")
+    asset_heading = asset_headings[-1]
     asset_segment = re.sub(r"\s+", " ", text[asset_heading.end() : asset_heading.end() + 2500])
     fund_amount_match = re.search(r"(?:^|\s)2\s+基金投资\s+([\d,.]+)\s+\d+(?:\.\d+)?", asset_segment)
     no_fund_investment = bool(
@@ -3022,12 +3025,21 @@ def parse_us_equity_report(text: str, code: str) -> dict[str, Any]:
             text,
             re.S,
         )
-        if not net_match:
-            raise DataError(f"Could not parse fund net assets for fund {code}")
-        net_values = [
-            float(value.replace(",", ""))
-            for value in re.findall(r"(?<!\d)(\d[\d,]*\.\d{2})(?!\d)", net_match.group(1))
-        ]
+        net_values: list[float] = []
+        if net_match:
+            net_values = [
+                float(value.replace(",", ""))
+                for value in re.findall(r"(?<!\d)(\d[\d,]*\.\d{2})(?!\d)", net_match.group(1))
+            ]
+        else:
+            # Midyear and annual reports disclose the aggregate in their balance sheet.
+            balance_headings = list(re.finditer(r"\d+\.\d+\s+资产负债表", text))
+            for balance_heading in reversed(balance_headings):
+                balance_segment = text[balance_heading.end() : balance_heading.end() + 8000]
+                balance_match = re.search(r"净资产合计\s+(\d[\d,]*\.\d{2})", balance_segment)
+                if balance_match:
+                    net_values = [float(balance_match.group(1).replace(",", ""))]
+                    break
         if not net_values or sum(net_values) <= 0:
             raise DataError(f"Could not parse positive fund net assets for fund {code}")
         total_fund_pct = fund_amount / sum(net_values) * 100

@@ -1570,6 +1570,32 @@ class PeriodicReportTests(unittest.TestCase):
         self.assertEqual(0.0, parsed["fund_investment_pct"])
         self.assertEqual([], parsed["fund_holdings"])
 
+    def test_parses_midyear_report_asset_heading(self):
+        report_text = """
+        7.1 期末基金资产组合情况 43
+        7.2 期末在各个国家（地区）证券市场的权益投资分布 44
+        7.10 期末按公允价值排序的前十名基金投资明细 52
+        7.11 投资组合报告附注 53
+        6.1 资产负债表
+        净资产合计 1,077,948,242.67 842,733,049.63
+        6.2 利润表
+        7.1 期末基金资产组合情况
+        1 权益投资 20.00 20.00
+        2 基金投资 7,387,734.86 0.65
+        9 合计 100.00 100.00
+        7.2 期末在各个国家（地区）证券市场的权益投资分布
+        英国 20.00 20.00
+        合计 20.00 20.00
+        7.3 期末按行业分类的权益投资组合
+        7.10 期末按公允价值排序的前十名基金投资明细
+        1 SCOTTISH MORTGAGE 权益类 封闭式 Baillie Gifford 7,387,734.86 0.69
+        7.11 投资组合报告附注
+        """
+        parsed = ranking.parse_us_equity_report(report_text, "539003")
+        self.assertEqual(0.0, parsed["direct_us_pct"])
+        self.assertAlmostEqual(0.6854, parsed["fund_investment_pct"], places=4)
+        self.assertEqual(0.69, parsed["fund_holdings"][0]["weight_pct"])
+
     def test_parses_wrapped_depository_receipt_heading(self):
         report_text = """
         5.1 报告期末基金资产组合情况

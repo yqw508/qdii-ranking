@@ -2944,6 +2944,11 @@ def parse_fund_investment_rows(text: str, code: str) -> list[dict[str, Any]]:
                 r"(.+?)\s+(?:债\s*券\s*型|股\s*票\s*型|混\s*合\s*型|商\s*品\s*型|权\s*益\s*类)\s+",
                 body,
             )
+        # Periodic reports commonly render unused rows as dash-only placeholders.
+        # A page footer may follow the dashes (and include the word "基金"), so
+        # identify the placeholder before the generic "基金" fallback below.
+        if not name_match and re.match(r"^(?:-\s*){2,}", body):
+            continue
         if not name_match and "基金" not in body:
             continue
         percentages = [
@@ -2951,6 +2956,12 @@ def parse_fund_investment_rows(text: str, code: str) -> list[dict[str, Any]]:
             for value in re.findall(r"(?<![\d,])(\d{1,3}\.\d{2})(?!\d)", body)
             if float(value) <= 100
         ]
+        # A dash in the percentage column denotes a negligible holding
+        # (the reports use it instead of a rounded 0.00).  Preserve the row
+        # with a zero weight so the rest of the look-through scan remains
+        # complete, while still failing on genuinely malformed rows.
+        if not percentages and name_match and re.search(r"\d[\d,]*\.\d{2}\s+-", body):
+            percentages = [0.0]
         if not name_match or not percentages:
             raise DataError(
                 f"Could not parse top fund investment row {match.group(1)} for fund {code}"

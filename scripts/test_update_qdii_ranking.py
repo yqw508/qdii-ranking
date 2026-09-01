@@ -1570,6 +1570,21 @@ class PeriodicReportTests(unittest.TestCase):
         self.assertEqual(0.0, parsed["fund_investment_pct"])
         self.assertEqual([], parsed["fund_holdings"])
 
+    def test_parses_dash_percentage_and_skips_placeholder_rows(self):
+        report_text = """
+        前十名基金投资明细
+        序号 基金名称 基金类型 运作方式 管理人 公允价值 占基金资产净值比例（%）
+        1 SAMPLE ETF ETF 交易型开放式 Test Manager 1,000.00 1.00
+        2 ZERO ETF ETF 交易型开放式 Test Manager 990.00 -
+        3 - - - - - -
+        4 - - - - - - 华夏测试基金 90
+        投资组合报告附注
+        """
+        rows = ranking.parse_fund_investment_rows(report_text, "fixture")
+        self.assertEqual(2, len(rows))
+        self.assertEqual(1.0, rows[0]["weight_pct"])
+        self.assertEqual(0.0, rows[1]["weight_pct"])
+
     def test_parses_midyear_report_asset_heading(self):
         report_text = """
         7.1 期末基金资产组合情况 43

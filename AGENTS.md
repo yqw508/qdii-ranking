@@ -19,7 +19,7 @@
   C/D marker. Exclude RMB C/D, USD, HKD, back-end, and standalone ETF shares.
 - Do not impose a fund-scale eligibility threshold. Require inception strictly more than three years
   before the ranking date and trailing three-year adjusted return of at least 30%. When a complete
-  five-year return exists, require at least 60%; when a complete ten-year return exists, require at
+  five-year return exists, require at least 50%; when a complete ten-year return exists, require at
   least 100%. Missing five- or ten-year history bypasses only that corresponding threshold. Require a known
   direct-sale quota of at least CNY 200; unlimited direct sale and exactly CNY 200 both qualify.
 - Parse the latest prospectus benchmark for display. Keep recognized, composite, unrecognized, and

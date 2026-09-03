@@ -28,7 +28,7 @@ the updater never silently drops a required evaluation.
    complete period. Skip a partially disclosed newer period with a visible warning.
 3. Do not impose a fund-scale threshold. Require inception strictly over three years and trailing
    three-year adjusted return of at least 30%. If a complete five-year adjusted return exists, require
-   at least 60%. If a complete ten-year adjusted return exists, require at least 100%. A missing long
+   at least 50%. If a complete ten-year adjusted return exists, require at least 100%. A missing long
    window bypasses only its own conditional threshold; an available value must pass.
 4. Keep active and passive/index strategies. Exclude bond and commodity strategies.
 5. Parse the latest prospectus disclosed on or before the ranking date and keep recognized, composite,

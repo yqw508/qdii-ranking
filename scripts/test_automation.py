@@ -265,7 +265,7 @@ def make_payload():
             "min_scale_billion_cny": None,
             "min_age_years": 3,
             "min_three_year_return_pct": 30.0,
-            "min_five_year_return_pct_if_available": 60.0,
+            "min_five_year_return_pct_if_available": 50.0,
             "min_ten_year_return_pct_if_available": 100.0,
             "min_us_equity_pct": 50.0,
             "min_direct_limit_cny_inclusive": 200,
@@ -460,7 +460,7 @@ class RankingValidatorTests(unittest.TestCase):
 
     def test_rejects_available_long_return_below_conditional_threshold(self):
         for field, value in (
-            ("five_year_return_pct", 59.99),
+            ("five_year_return_pct", 49.99),
             ("ten_year_return_pct", 99.99),
         ):
             with self.subTest(field=field):

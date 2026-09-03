@@ -85,7 +85,7 @@ class FundFilterTests(unittest.TestCase):
         self.assertEqual(10, args.top)
         self.assertIsNone(args.min_scale)
         self.assertEqual(30.0, args.min_three_year_return_pct)
-        self.assertEqual(60.0, args.min_five_year_return_pct)
+        self.assertEqual(50.0, args.min_five_year_return_pct)
         self.assertEqual(100.0, args.min_ten_year_return_pct)
         self.assertEqual(50.0, args.min_us_equity_pct)
         self.assertEqual(200, args.min_direct_limit_cny)
@@ -705,7 +705,7 @@ class PerformanceTests(unittest.TestCase):
                     "ten_year_return_pct": None,
                 },
                 30,
-                60,
+                50,
                 100,
             ),
         )
@@ -714,11 +714,11 @@ class PerformanceTests(unittest.TestCase):
             ranking.performance_threshold_failures(
                 {
                     "three_year_return_pct": 30.0,
-                    "five_year_return_pct": 60.0,
+                    "five_year_return_pct": 50.0,
                     "ten_year_return_pct": 100.0,
                 },
                 30,
-                60,
+                50,
                 100,
             ),
         )
@@ -727,11 +727,11 @@ class PerformanceTests(unittest.TestCase):
             for reason, _label in ranking.performance_threshold_failures(
                 {
                     "three_year_return_pct": 30.0,
-                    "five_year_return_pct": 59.99,
+                    "five_year_return_pct": 49.99,
                     "ten_year_return_pct": 99.99,
                 },
                 30,
-                60,
+                50,
                 100,
             )
         }
@@ -1362,7 +1362,7 @@ class HtmlOutputTests(unittest.TestCase):
                 "min_scale_billion_cny": None,
                 "min_age_years": 3,
                 "min_three_year_return_pct": 30.0,
-                "min_five_year_return_pct_if_available": 60.0,
+                "min_five_year_return_pct_if_available": 50.0,
                 "min_ten_year_return_pct_if_available": 100.0,
                 "min_us_equity_pct": 50.0,
                 "min_direct_limit_cny_inclusive": 200,
@@ -1401,7 +1401,7 @@ class HtmlOutputTests(unittest.TestCase):
         self.assertIn('name="viewport"', document)
         self.assertIn("规模不限", document)
         self.assertIn("三年收益 ≥ 30%", document)
-        self.assertIn("五年有数据 ≥ 60%", document)
+        self.assertIn("五年有数据 ≥ 50%", document)
         self.assertIn("十年有数据 ≥ 100%", document)
         self.assertEqual(2, document.count('<details class="fund-item"'))
         self.assertNotIn("<script>alert(1)</script>", document)

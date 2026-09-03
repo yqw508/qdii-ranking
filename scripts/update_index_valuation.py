@@ -27,6 +27,12 @@ from typing import Any, Callable, Iterable
 SCHEMA_VERSION = 2
 CACHE_SCHEMA_VERSION = 2
 WINDOW_MONTHS = 120
+# Full Nasdaq scans intentionally fetch a small history buffer before the
+# nominal 120-month window.  DQYDJ can lag the current ended month by one or
+# more publication cycles; without the buffer a source that ends one month
+# earlier leaves only 119 common months even though all sources have enough
+# history to build the required window.
+FULL_SCAN_BUFFER_MONTHS = 2
 TAIL_DAYS = 100
 SHANGHAI_TZ = timezone(timedelta(hours=8))
 DEFAULT_CATALOG = (
@@ -773,10 +779,15 @@ def _parse_response(
         return parse_dqydj_pe(response.body)
     ticker = source_id.removeprefix("nasdaq-").upper()
     refreshed = parse_nasdaq_history(response.body, ticker)
-    if refresh_mode == "tail":
-        if cached is None:
-            raise ValuationError(f"{ticker} tail response has no full cache to merge")
+    if cached is not None:
+        # Nasdaq limits each full response to a rolling ten-year horizon.  A
+        # month-boundary full scan can therefore start one month later than a
+        # lagging DQYDJ series.  Merge instead of replacing the cache so the
+        # preceding run's boundary observations remain available for the
+        # 120-month common window (and retain the same behavior for tails).
         return merge_price_points(cached["data"], refreshed)
+    if refresh_mode == "tail":
+        raise ValuationError(f"{ticker} tail response has no full cache to merge")
     return refreshed
 
 
@@ -1063,7 +1074,7 @@ def build_payload(
     anchor_months = _anchor_months(catalog)
     earliest = min(add_months(through, 1 - WINDOW_MONTHS), min(anchor_months))
     price_start = (
-        max(month_start(earliest), years_ago(as_of, 10))
+        month_start(add_months(earliest, -FULL_SCAN_BUFFER_MONTHS))
         if refresh_mode == "full"
         else as_of - timedelta(days=TAIL_DAYS)
     )

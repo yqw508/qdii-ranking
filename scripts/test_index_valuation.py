@@ -314,6 +314,33 @@ class ModelAndRefreshTests(unittest.TestCase):
         self.assertEqual("full", payload["cache"]["refresh_mode"])
         self.assertEqual("2026-08", manifest["last_full_refresh_month"])
 
+    def test_full_scan_keeps_cached_boundary_for_lagging_pe_source(self):
+        """A one-month DQYDJ lag must not discard the prior 120-month price window."""
+        caches = make_cache_bundle()
+        catalog, catalog_hash = load_catalog()
+        payload, _new, _manifest, _metrics = valuation.build_payload(
+            as_of=date(2026, 9, 3),
+            now=datetime(2026, 9, 3, 7, 7, tzinfo=valuation.SHANGHAI_TZ),
+            catalog=catalog,
+            catalog_hash=catalog_hash,
+            caches=caches,
+            cache_states={source_id: "valid" for source_id in valuation.all_source_ids()},
+            manifest=make_manifest("2026-08"),
+            manifest_state="valid",
+            client=FakeClient(),
+        )
+        self.assertEqual("full", payload["cache"]["refresh_mode"])
+        self.assertTrue(
+            all(
+                asset["status"] == "fresh"
+                for asset in payload["assets"]
+                if asset["source_mode"] == "proxy"
+            )
+        )
+        self.assertEqual("2016-08", next(
+            asset for asset in payload["assets"] if asset["id"] == "sp-500-equal-weight"
+        )["history"][0]["month"])
+
     def test_shared_spy_failure_without_cache_only_disables_proxies(self):
         payload, _new, _manifest, _metrics = run_build(
             client=FakeClient(fail={"nasdaq-spy"})

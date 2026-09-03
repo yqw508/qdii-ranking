@@ -2321,6 +2321,21 @@ class QuotaNoticeTests(unittest.TestCase):
         self.assertEqual(1000, base["agency_amount_cny"])
         self.assertEqual("A/C combined", base["share_aggregation"])
 
+    def test_channel_limits_with_amount_above_wording(self):
+        text = """
+        银华基金管理股份有限公司关于旗下部分基金暂停及恢复申购业务的公告。
+        自2026年9月8日起银华海外数字经济量化选股混合型发起式证券投资基金（QDII）
+        继续暂停直销机构10万元以上及代销机构1000元以上的大额申购（含定期定额投资）业务。
+        """
+        transitions = ranking.parse_quota_notice(
+            text, date(2026, 9, 3), "https://example.test/yinhua-20260903.pdf"
+        )
+        self.assertEqual(1, len(transitions))
+        base = transitions[0]
+        self.assertEqual(date(2026, 9, 8), base["effective_date"])
+        self.assertEqual(100000, base["direct_amount_cny"])
+        self.assertEqual(1000, base["agency_amount_cny"])
+
     def test_all_channel_limit(self):
         text = """
         暂停大额申购起始日 2026年8月18日

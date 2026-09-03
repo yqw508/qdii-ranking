@@ -1727,6 +1727,9 @@ def extract_channel_amount(text: str, channel_pattern: str) -> int | None:
         )
         if explicit:
             return parse_cny_amount(explicit.group(1), explicit.group(2))
+        above = re.search(r"([\d][\d,.]*)\s*(万元|元)\s*以上", clause)
+        if above:
+            return parse_cny_amount(above.group(1), above.group(2))
         start = max(0, channel_match.start() - 80)
         end = min(len(text), channel_match.end() + 220)
         window = text[start:end]

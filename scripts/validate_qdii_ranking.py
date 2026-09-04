@@ -57,6 +57,7 @@ EXPECTED_PREMIUM_CODES = {
     "159529", "513350", "159518",
 }
 ETF_QUOTE_API_URL = "https://push2delay.eastmoney.com/api/qt/ulist.np/get"
+ETF_MARKET_LIST_API_URL = "https://push2delay.eastmoney.com/api/qt/clist/get"
 MARKDOWN_ROW_RE = re.compile(
     r"^\|\s*(\d+)\s*\|\s*\[(.+)\s+(\d{6})\]\([^)]+\)\s*\|"
 )
@@ -970,8 +971,18 @@ def validate_exchange_premium(section: Any, run_date: date) -> list[dict[str, An
     status = section.get("status")
     require(status in {"fresh", "partial", "stale", "unavailable"}, "Invalid exchange premium status")
     require(section.get("quote_delay_minutes") == 15, "Unexpected ETF quote delay")
-    require(section.get("expected_count") == 25, "ETF premium expected count differs")
-    require(section.get("group_order") == list(EXPECTED_PREMIUM_GROUP_ORDER), "ETF premium group order differs")
+    expected_count = section.get("expected_count")
+    require(
+        isinstance(expected_count, int) and expected_count >= 0,
+        "ETF premium expected count is invalid",
+    )
+    group_order_values = section.get("group_order")
+    require(
+        isinstance(group_order_values, list)
+        and group_order_values
+        and all(isinstance(group, str) and group for group in group_order_values),
+        "ETF premium group order is invalid",
+    )
     requested_at = str(section.get("requested_at", ""))
     try:
         requested = datetime.fromisoformat(requested_at)
@@ -985,24 +996,63 @@ def validate_exchange_premium(section: Any, run_date: date) -> list[dict[str, An
     )
     refresh_url = str(section.get("refresh_url", ""))
     parsed_url = urllib.parse.urlparse(refresh_url)
-    require(
-        f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}" == ETF_QUOTE_API_URL,
-        "ETF premium refresh URL differs",
-    )
+    refresh_base = f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}"
     query = urllib.parse.parse_qs(parsed_url.query)
-    secids = query.get("secids", [""])[0].split(",")
-    require(
-        {item.split(".", 1)[-1] for item in secids if "." in item} == EXPECTED_PREMIUM_CODES,
-        "ETF premium refresh URL codes differ",
-    )
+    if refresh_base == ETF_QUOTE_API_URL:
+        dynamic_catalog = False
+        secids = query.get("secids", [""])[0].split(",")
+        refresh_codes = {item.split(".", 1)[-1] for item in secids if "." in item}
+        require(refresh_codes == EXPECTED_PREMIUM_CODES, "ETF premium static codes differ")
+        require(
+            group_order_values == list(EXPECTED_PREMIUM_GROUP_ORDER),
+            "ETF premium static group order differs",
+        )
+    else:
+        dynamic_catalog = True
+        require(refresh_base == ETF_MARKET_LIST_API_URL, "ETF premium refresh URL differs")
+        require(
+            query.get("fs") == ["m:1+t:9,m:0+t:10"],
+            "ETF premium market filter differs",
+        )
+        require(query.get("pn") == ["1"], "ETF premium refresh must start at page one")
+        require(query.get("pz") == ["100"], "ETF premium refresh page size differs")
+        require(query.get("fid") == ["f12"], "ETF premium refresh sort field differs")
+        require("secids" not in query, "ETF premium market refresh must not use a static code list")
+        refresh_codes = set()
+        discovered_count = section.get("discovered_count")
+        filtered_count = section.get("filtered_unavailable_count")
+        require(
+            isinstance(discovered_count, int) and discovered_count >= expected_count,
+            "ETF premium discovered count is invalid",
+        )
+        require(
+            isinstance(filtered_count, int)
+            and filtered_count == discovered_count - expected_count,
+            "ETF premium filtered count differs",
+        )
+        require(
+            all(
+                group.startswith("QDII") or group == "指数型-海外股票"
+                for group in group_order_values
+            ),
+            "ETF premium dynamic groups are outside the QDII scope",
+        )
     records = section.get("records")
-    require(isinstance(records, list) and len(records) == 25, "ETF premium must contain 25 records")
+    require(
+        isinstance(records, list) and len(records) == expected_count,
+        f"ETF premium record count differs from expected count ({expected_count} records)",
+    )
     codes = [str(record.get("code", "")) for record in records if isinstance(record, dict)]
-    require(len(codes) == 25 and set(codes) == EXPECTED_PREMIUM_CODES, "ETF premium codes differ")
+    require(
+        len(codes) == expected_count and len(set(codes)) == expected_count,
+        "ETF premium codes differ",
+    )
+    if refresh_codes:
+        require(set(codes) == refresh_codes, "ETF premium refresh URL codes differ")
     require(len(codes) == len(set(codes)), "ETF premium codes are duplicated")
     fresh_count = 0
     stale_count = 0
-    group_order = {group: index for index, group in enumerate(EXPECTED_PREMIUM_GROUP_ORDER)}
+    group_order = {group: index for index, group in enumerate(group_order_values)}
     for record in records:
         require(isinstance(record, dict), "ETF premium records must be objects")
         code = record["code"]
@@ -1014,17 +1064,36 @@ def validate_exchange_premium(section: Any, run_date: date) -> list[dict[str, An
         group = record.get("benchmark_group")
         category = record.get("category")
         require(group in group_order, f"ETF {code} benchmark group is invalid")
-        require(category in {"broad_market", "sector_theme"}, f"ETF {code} category is invalid")
-        require((group == "行业主题") == (category == "sector_theme"), f"ETF {code} category and group differ")
+        require(category in {"broad_market", "sector_theme", "qdii"}, f"ETF {code} category is invalid")
+        if dynamic_catalog:
+            fund_type = record.get("fund_type")
+            require(category == "qdii", f"ETF {code} is not a dynamic QDII record")
+            require(
+                fund_type == group
+                and isinstance(fund_type, str)
+                and (fund_type.startswith("QDII") or fund_type == "指数型-海外股票"),
+                f"ETF {code} is outside the QDII fund-type scope",
+            )
+        if category in {"broad_market", "sector_theme"}:
+            require((group == "行业主题") == (category == "sector_theme"), f"ETF {code} category and group differ")
         require(str(record.get("source_url", "")).startswith("https://"), f"ETF {code} source URL is invalid")
         validate_holding_cost(
             record.get("holding_cost"), f"ETF {code}", run_date, allow_stale=True
         )
         quote_status = record.get("quote_status")
         require(quote_status in {"fresh", "stale", "unavailable"}, f"ETF {code} quote status is invalid")
+        if dynamic_catalog:
+            require(
+                quote_status in {"fresh", "stale"},
+                f"ETF {code} unavailable quote was not filtered",
+            )
         value_fields = (
             "market_price_cny",
             "iopv_cny",
+            "reference_value_type",
+            "reference_value_cny",
+            "reference_value_date",
+            "reference_value_source_url",
             "source_discount_pct",
             "premium_pct",
             "change_pct",
@@ -1040,16 +1109,44 @@ def validate_exchange_premium(section: Any, run_date: date) -> list[dict[str, An
         else:
             stale_count += 1
         price = as_number(record.get("market_price_cny"), f"ETF {code} price")
-        iopv = as_number(record.get("iopv_cny"), f"ETF {code} IOPV")
+        reference_type = record.get("reference_value_type")
+        require(
+            reference_type in {"iopv", "nav"},
+            f"ETF {code} reference value type is invalid",
+        )
+        reference_value = as_number(
+            record.get("reference_value_cny"), f"ETF {code} reference value"
+        )
+        if reference_type == "iopv":
+            iopv = as_number(record.get("iopv_cny"), f"ETF {code} IOPV")
+            require(
+                math.isclose(iopv, reference_value, rel_tol=0, abs_tol=1e-8),
+                f"ETF {code} IOPV reference differs",
+            )
+            require(
+                record.get("reference_value_date") is None,
+                f"ETF {code} IOPV reference date must be null",
+            )
+        else:
+            require(record.get("iopv_cny") is None, f"ETF {code} LOF must not contain IOPV")
+            reference_date = parse_date(str(record.get("reference_value_date", "")))
+            require(reference_date <= run_date, f"ETF {code} NAV reference contains future data")
+            require(
+                str(record.get("reference_value_source_url") or "").startswith("https://"),
+                f"ETF {code} NAV reference source is invalid",
+            )
         source_discount = as_number(record.get("source_discount_pct"), f"ETF {code} discount")
         premium = as_number(record.get("premium_pct"), f"ETF {code} premium")
         _change = as_number(record.get("change_pct"), f"ETF {code} change")
         turnover = as_number(record.get("turnover_cny"), f"ETF {code} turnover")
-        require(price > 0 and iopv > 0 and turnover >= 0, f"ETF {code} quote values are outside range")
+        require(price > 0 and reference_value > 0 and turnover >= 0, f"ETF {code} quote values are outside range")
         require(abs(source_discount + premium) <= 0.011, f"ETF {code} discount/premium sign differs")
-        calculated = (price / iopv - 1) * 100
-        tolerance = max(0.05, 0.0005 / iopv * 100 + 0.01)
-        require(abs(premium - calculated) <= tolerance, f"ETF {code} premium differs from price/IOPV")
+        calculated = (price / reference_value - 1) * 100
+        tolerance = max(0.05, 0.0005 / reference_value * 100 + 0.01)
+        require(
+            abs(premium - calculated) <= tolerance,
+            f"ETF {code} premium differs from price/{reference_type.upper()}",
+        )
         try:
             quote_date = parse_date(str(record.get("quote_date", "")))
             updated_at = datetime.fromisoformat(str(record.get("updated_at", "")))
@@ -1070,7 +1167,7 @@ def validate_exchange_premium(section: Any, run_date: date) -> list[dict[str, An
     require(section.get("fresh_count") == fresh_count, "ETF premium fresh count differs")
     require(section.get("cache_hit_count") == stale_count, "ETF premium cache-hit count differs")
     expected_status = (
-        "fresh" if fresh_count == 25 else
+        "fresh" if expected_count > 0 and fresh_count == expected_count else
         "partial" if fresh_count else
         "stale" if stale_count else
         "unavailable"
@@ -1107,7 +1204,7 @@ def validate_html_document(
     require(parser.premium_tab_count == 1, f"{label} premium tab is missing or duplicated")
     require(parser.refresh_button_count == 1, f"{label} premium refresh button is missing or duplicated")
     require(parser.premium_table_count == 1, f"{label} must contain one premium table")
-    require(parser.premium_toggle_count == 25, f"{label} ETF detail toggles differ")
+    require(parser.premium_toggle_count == len(premium_records), f"{label} ETF detail toggles differ")
     require(parser.valuation_link_count == 1, f"{label} valuation-page entry is missing or duplicated")
     require("估值代理" in all_text, f"{label} valuation-page label is missing")
     require("约15分钟" in all_text or "约 15 分钟" in all_text, f"{label} quote delay disclosure is missing")
@@ -1125,10 +1222,11 @@ def validate_html_document(
                 else f"{float(record['market_price_cny']):.3f}"
             ),
             (
-                "--"
-                if record["iopv_cny"] is None
-                else f"{float(record['iopv_cny']):.4f}"
+                f"最新单位净值（{record['reference_value_date']}）"
+                if record["reference_value_type"] == "nav"
+                else "IOPV"
             ),
+            f"{float(record['reference_value_cny']):.4f}",
             format_premium_value(record["premium_pct"]),
             premium_band(record["premium_pct"]),
             format_premium_value(record["change_pct"]),
@@ -1149,6 +1247,8 @@ def validate_html_document(
             expected.append("旧值")
         if record["holding_cost"].get("source_url"):
             expected.append("查看费率来源")
+        if record["reference_value_type"] == "nav":
+            expected.append("查看净值来源")
         require(all(value in block for value in expected), f"{label} ETF premium metrics differ for {code}")
     for record in records:
         code = record["code"]

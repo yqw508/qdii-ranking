@@ -45,7 +45,11 @@ NASDAQ100_HISTORY_PAGE_URL = "https://indexes.nasdaq.com/Index/History/XNDX"
 NASDAQ100_HISTORY_DATA_URL = "https://indexes.nasdaq.com/Index/HistoryChartData"
 SAFE_USD_CNY_HISTORY_URL = "https://www.safe.gov.cn/AppStructured/hlw/RMBQuery.do"
 ETF_QUOTE_API_URL = "https://push2delay.eastmoney.com/api/qt/ulist.np/get"
+ETF_MARKET_LIST_API_URL = "https://push2delay.eastmoney.com/api/qt/clist/get"
+ETF_LOF_NAV_API_URL = "https://api.fund.eastmoney.com/f10/lsjz"
 ETF_QUOTE_PAGE_URL = "https://quote.eastmoney.com/center/gridlist.html#fund_etf"
+ETF_MARKET_LIST_PAGE_SIZE = 100
+ETF_MARKET_LIST_FS = "m:1+t:9,m:0+t:10"
 DEFAULT_EXCLUDE_KEYWORDS = ["亚洲", "中国", "港"]
 DEFAULT_US_EQUITY_CATALOG = Path(__file__).resolve().parents[1] / "references" / "us-equity-instruments.json"
 DEFAULT_CONTRACT_BENCHMARK_CATALOG = (
@@ -157,7 +161,7 @@ class HttpClient:
             return "holder_data"
         if "indexes.nasdaq.com" in url or "safe.gov.cn" in url:
             return "benchmark"
-        if url.startswith(ETF_QUOTE_API_URL):
+        if url.startswith((ETF_QUOTE_API_URL, ETF_MARKET_LIST_API_URL, ETF_LOF_NAV_API_URL)):
             return "exchange_premium"
         if url.startswith("https://fund.eastmoney.com/") and url.endswith(".html"):
             return "fund_page"
@@ -466,6 +470,189 @@ def fetch_fund_metadata(client: HttpClient) -> dict[str, dict[str, str]]:
         for row in rows
         if len(row) >= 4
     }
+
+
+def is_qdii_fund_metadata(metadata: dict[str, Any] | None) -> bool:
+    if not metadata:
+        return False
+    fund_type = str(metadata.get("fund_type", "")).strip()
+    return fund_type.startswith("QDII") or fund_type == "指数型-海外股票"
+
+
+def exchange_premium_market_url(
+    page: int = 1, page_size: int = ETF_MARKET_LIST_PAGE_SIZE
+) -> str:
+    params = {
+        "pn": str(page),
+        "pz": str(page_size),
+        "po": "0",
+        "np": "1",
+        "ut": "bd1d9ddb04089700cf9c27f6f7426281",
+        "fltt": "2",
+        "invt": "2",
+        "fid": "f12",
+        "fs": ETF_MARKET_LIST_FS,
+        "fields": "f2,f3,f6,f12,f13,f14,f18,f124,f297,f402,f441",
+    }
+    return f"{ETF_MARKET_LIST_API_URL}?{urllib.parse.urlencode(params)}"
+
+
+def _parse_exchange_premium_market_page(
+    payload: Any, page: int
+) -> tuple[int, list[dict[str, Any]]]:
+    if not isinstance(payload, dict) or not isinstance(payload.get("data"), dict):
+        raise DataError(f"ETF market list page {page} has no data object")
+    data = payload["data"]
+    try:
+        total = int(data.get("total"))
+    except (TypeError, ValueError) as exc:
+        raise DataError(f"ETF market list page {page} has no valid total") from exc
+    rows = data.get("diff")
+    if not isinstance(rows, list):
+        raise DataError(f"ETF market list page {page} has no record list")
+    return total, [row for row in rows if isinstance(row, dict)]
+
+
+def exchange_premium_lof_nav_url(code: str) -> str:
+    params = {
+        "fundCode": code,
+        "pageIndex": "1",
+        "pageSize": "1",
+        "startDate": "",
+        "endDate": "",
+    }
+    return f"{ETF_LOF_NAV_API_URL}?{urllib.parse.urlencode(params)}"
+
+
+def parse_exchange_premium_lof_nav(
+    payload: Any, code: str, as_of: date
+) -> dict[str, Any]:
+    rows = (
+        ((payload.get("Data") or {}).get("LSJZList"))
+        if isinstance(payload, dict)
+        else None
+    )
+    if not isinstance(rows, list) or not rows or not isinstance(rows[0], dict):
+        raise DataError(f"LOF NAV response contains no record for {code}")
+    try:
+        observed = parse_date(str(rows[0]["FSRQ"]))
+        nav = float(rows[0]["DWJZ"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise DataError(f"LOF NAV response is invalid for {code}") from exc
+    if observed > as_of or not math.isfinite(nav) or nav <= 0:
+        raise DataError(f"LOF NAV is outside its valid range for {code}")
+    return {
+        "reference_value_type": "nav",
+        "reference_value_cny": round(nav, 4),
+        "reference_value_date": observed.isoformat(),
+        "reference_value_source_url": exchange_premium_lof_nav_url(code),
+    }
+
+
+def fetch_exchange_premium_lof_navs(
+    client: HttpClient,
+    entries: list[dict[str, Any]],
+    rows: list[dict[str, Any]],
+    as_of: date,
+) -> tuple[dict[str, dict[str, Any]], list[str]]:
+    entry_by_code = {entry["code"]: entry for entry in entries}
+    candidates: dict[str, dict[str, Any]] = {}
+    for raw in rows:
+        code = str(raw.get("f12", "")) if isinstance(raw, dict) else ""
+        entry = entry_by_code.get(code)
+        if (
+            entry
+            and raw.get("f441") in {None, "", "-"}
+            and all(raw.get(field) not in {None, "", "-"} for field in ("f2", "f402", "f3", "f6"))
+        ):
+            candidates[code] = entry
+
+    references: dict[str, dict[str, Any]] = {}
+    warnings: list[str] = []
+
+    def fetch(code: str) -> tuple[str, dict[str, Any]]:
+        url = exchange_premium_lof_nav_url(code)
+        payload = client.get_json(
+            url, referer=f"https://fundf10.eastmoney.com/jjjz_{code}.html"
+        )
+        return code, parse_exchange_premium_lof_nav(payload, code, as_of)
+
+    with ThreadPoolExecutor(max_workers=min(PERFORMANCE_WORKERS, len(candidates) or 1)) as executor:
+        futures = {executor.submit(fetch, code): code for code in candidates}
+        for future in as_completed(futures):
+            code = futures[future]
+            try:
+                resolved_code, reference = future.result()
+                references[resolved_code] = reference
+            except (DataError, OSError, ValueError) as exc:
+                warnings.append(f"场内溢价告警 {code}：LOF 最新单位净值无法读取：{exc}")
+    return references, warnings
+
+
+def load_qdii_exchange_premium_catalog(
+    client: HttpClient, metadata: dict[str, dict[str, str]]
+) -> tuple[list[dict[str, Any]], dict[str, dict[str, Any]], str]:
+    """Load all listed funds, then retain the repository's QDII fund scope."""
+    first_page = 1
+    total, first_rows = _parse_exchange_premium_market_page(
+        client.get_json(exchange_premium_market_url(first_page), referer=ETF_QUOTE_PAGE_URL),
+        first_page,
+    )
+    if total <= 0:
+        raise DataError("ETF market list returned no records")
+    page_count = math.ceil(total / ETF_MARKET_LIST_PAGE_SIZE)
+    all_rows = list(first_rows)
+    for page in range(2, page_count + 1):
+        page_total, rows = _parse_exchange_premium_market_page(
+            client.get_json(exchange_premium_market_url(page), referer=ETF_QUOTE_PAGE_URL),
+            page,
+        )
+        if page_total != total:
+            raise DataError("ETF market list total changed during pagination")
+        all_rows.extend(rows)
+    if len(all_rows) != total:
+        raise DataError(
+            f"ETF market list is incomplete: expected {total}, got {len(all_rows)}"
+        )
+
+    entries: list[dict[str, Any]] = []
+    quote_rows: dict[str, dict[str, Any]] = {}
+    seen_codes: set[str] = set()
+    for raw in all_rows:
+        code = str(raw.get("f12", ""))
+        market_id = raw.get("f13")
+        fund = metadata.get(code)
+        if (
+            not re.fullmatch(r"\d{6}", code)
+            or market_id not in {0, 1}
+            or code in seen_codes
+            or not is_qdii_fund_metadata(fund)
+        ):
+            continue
+        seen_codes.add(code)
+        fund_type = str(fund.get("fund_type", "")).strip()
+        entries.append(
+            {
+                "code": code,
+                "name": str(raw.get("f14") or fund.get("name") or code).strip(),
+                "exchange": "SSE" if int(market_id) == 1 else "SZSE",
+                "market_id": int(market_id),
+                "category": "qdii",
+                "benchmark_group": fund_type or "QDII",
+                "fund_type": fund_type,
+                "source_url": ETF_QUOTE_PAGE_URL,
+            }
+        )
+        quote_rows[code] = raw
+    if not entries:
+        raise DataError("No listed QDII funds matched the fund metadata")
+    entries.sort(key=lambda item: item["code"])
+    fingerprint = hashlib.sha256(
+        json.dumps(entries, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode(
+            "utf-8"
+        )
+    ).hexdigest()
+    return entries, quote_rows, fingerprint
 
 
 def fetch_holder_periods(client: HttpClient) -> list[HolderPeriod]:
@@ -4100,6 +4287,8 @@ def attach_exchange_premium_holding_costs(
 
 
 def exchange_premium_quote_url(entries: list[dict[str, Any]]) -> str:
+    if any(entry.get("category") == "qdii" for entry in entries):
+        return exchange_premium_market_url()
     params = {
         "fltt": "2",
         "invt": "2",
@@ -4123,18 +4312,39 @@ def _finite_quote_number(value: Any, label: str, code: str) -> float:
 
 
 def normalize_exchange_premium_quote(
-    raw: dict[str, Any], catalog_entry: dict[str, Any], as_of: date
+    raw: dict[str, Any],
+    catalog_entry: dict[str, Any],
+    as_of: date,
+    reference: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     code = catalog_entry["code"]
     if str(raw.get("f12", "")) != code:
         raise ValueError(f"Quote code differs from requested ETF {code}")
     price = _finite_quote_number(raw.get("f2"), "price", code)
-    iopv = _finite_quote_number(raw.get("f441"), "IOPV", code)
     source_discount = _finite_quote_number(raw.get("f402"), "discount rate", code)
     change_pct = _finite_quote_number(raw.get("f3"), "change percentage", code)
     turnover_cny = _finite_quote_number(raw.get("f6"), "turnover", code)
-    if price <= 0 or iopv <= 0 or turnover_cny < 0:
-        raise ValueError(f"{code} price, IOPV, or turnover is outside its valid range")
+    raw_iopv = raw.get("f441")
+    if raw_iopv not in {None, "", "-"}:
+        reference_value = _finite_quote_number(raw_iopv, "IOPV", code)
+        reference_type = "iopv"
+        reference_date: str | None = None
+        reference_source_url = ETF_QUOTE_PAGE_URL
+    elif reference and reference.get("reference_value_type") == "nav":
+        reference_value = _finite_quote_number(
+            reference.get("reference_value_cny"), "NAV", code
+        )
+        reference_type = "nav"
+        reference_date = str(reference.get("reference_value_date") or "")
+        reference_source_url = str(reference.get("reference_value_source_url") or "")
+        if not reference_date or not reference_source_url.startswith("https://"):
+            raise ValueError(f"{code} NAV reference metadata is incomplete")
+    else:
+        raise ValueError(f"{code} has neither IOPV nor a verified NAV reference")
+    if price <= 0 or reference_value <= 0 or turnover_cny < 0:
+        raise ValueError(
+            f"{code} price, reference value, or turnover is outside its valid range"
+        )
     try:
         quote_date = datetime.strptime(str(raw.get("f297")), "%Y%m%d").date()
         updated_timestamp = int(raw.get("f124"))
@@ -4143,19 +4353,25 @@ def normalize_exchange_premium_quote(
         raise ValueError(f"{code} quote date or timestamp is invalid") from exc
     if quote_date > as_of or updated_at.date() > as_of:
         raise ValueError(f"{code} quote contains future data")
+    if reference_type == "nav" and parse_date(reference_date) > as_of:
+        raise ValueError(f"{code} NAV reference contains future data")
     premium_pct = -source_discount
-    calculated_premium = (price / iopv - 1) * 100
-    tolerance_pct_points = max(0.05, 0.0005 / iopv * 100 + 0.01)
+    calculated_premium = (price / reference_value - 1) * 100
+    tolerance_pct_points = max(0.05, 0.0005 / reference_value * 100 + 0.01)
     if abs(premium_pct - calculated_premium) > tolerance_pct_points:
         raise ValueError(
-            f"{code} premium differs from price/IOPV calculation by "
+            f"{code} premium differs from price/{reference_type.upper()} calculation by "
             f"{abs(premium_pct - calculated_premium):.3f} percentage points"
         )
     return {
         **catalog_entry,
         "name": str(raw.get("f14") or catalog_entry["name"]).strip(),
         "market_price_cny": round(price, 4),
-        "iopv_cny": round(iopv, 4),
+        "iopv_cny": round(reference_value, 4) if reference_type == "iopv" else None,
+        "reference_value_type": reference_type,
+        "reference_value_cny": round(reference_value, 4),
+        "reference_value_date": reference_date,
+        "reference_value_source_url": reference_source_url,
         "source_discount_pct": round(source_discount, 2),
         "premium_pct": round(premium_pct, 2),
         "change_pct": round(change_pct, 2),
@@ -4176,9 +4392,18 @@ def _cached_exchange_quote_valid(
     try:
         quote_date = parse_date(str(record.get("quote_date", "")))
         updated_at = datetime.fromisoformat(str(record.get("updated_at", "")))
+        reference_type = str(record.get("reference_value_type") or "iopv")
+        reference_value = float(
+            record.get("reference_value_cny", record.get("iopv_cny"))
+        )
+        reference_date = record.get("reference_value_date")
+        reference_observed = (
+            parse_date(str(reference_date)) if reference_date is not None else None
+        )
         numeric = (
             float(record["market_price_cny"]),
-            float(record["iopv_cny"]),
+            reference_value,
+            float(record["source_discount_pct"]),
             float(record["premium_pct"]),
             float(record["change_pct"]),
             float(record["turnover_cny"]),
@@ -4188,10 +4413,21 @@ def _cached_exchange_quote_valid(
     return (
         quote_date <= as_of
         and updated_at.date() <= as_of
+        and reference_type in {"iopv", "nav"}
+        and (
+            reference_type != "nav"
+            or (
+                reference_observed is not None
+                and reference_observed <= as_of
+                and str(record.get("reference_value_source_url") or "").startswith(
+                    "https://"
+                )
+            )
+        )
         and all(math.isfinite(value) for value in numeric)
         and numeric[0] > 0
         and numeric[1] > 0
-        and numeric[4] >= 0
+        and numeric[5] >= 0
     )
 
 
@@ -4214,8 +4450,51 @@ def _load_exchange_premium_cache(
         code = str(record.get("code", "")) if isinstance(record, dict) else ""
         entry = entry_by_code.get(code)
         if entry and code not in cached and _cached_exchange_quote_valid(record, entry, as_of):
-            cached[code] = {**entry, **record}
+            normalized = {**entry, **record}
+            normalized.setdefault("reference_value_type", "iopv")
+            normalized.setdefault("reference_value_cny", normalized.get("iopv_cny"))
+            normalized.setdefault("reference_value_date", None)
+            normalized.setdefault("reference_value_source_url", ETF_QUOTE_PAGE_URL)
+            cached[code] = normalized
     return cached
+
+
+def _load_cached_qdii_exchange_premium_catalog(
+    path: Path, metadata: dict[str, dict[str, str]]
+) -> tuple[list[dict[str, Any]], str] | None:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    raw_entries = payload.get("catalog") if isinstance(payload, dict) else None
+    if not isinstance(raw_entries, list):
+        return None
+    entries: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for entry in raw_entries:
+        if not isinstance(entry, dict):
+            continue
+        code = str(entry.get("code", ""))
+        fund = metadata.get(code)
+        if (
+            not re.fullmatch(r"\d{6}", code)
+            or code in seen
+            or not is_qdii_fund_metadata(fund)
+            or entry.get("category") != "qdii"
+            or entry.get("market_id") not in {0, 1}
+        ):
+            continue
+        seen.add(code)
+        entries.append(dict(entry))
+    if not entries:
+        return None
+    entries.sort(key=lambda item: item["code"])
+    fingerprint = hashlib.sha256(
+        json.dumps(entries, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode(
+            "utf-8"
+        )
+    ).hexdigest()
+    return entries, fingerprint
 
 
 def exchange_premium_sort_key(record: dict[str, Any]) -> tuple[Any, ...]:
@@ -4232,18 +4511,45 @@ def build_exchange_premium_snapshot(
     catalog_path: Path,
     cache_path: Path,
     as_of: date,
+    *,
+    catalog_entries: list[dict[str, Any]] | None = None,
+    quote_rows: dict[str, dict[str, Any]] | None = None,
+    catalog_fingerprint: str | None = None,
 ) -> tuple[dict[str, Any], list[str]]:
-    entries, catalog_fingerprint = load_exchange_premium_catalog(catalog_path)
+    if catalog_entries is None:
+        entries, loaded_fingerprint = load_exchange_premium_catalog(catalog_path)
+        catalog_fingerprint = catalog_fingerprint or loaded_fingerprint
+    else:
+        entries = list(catalog_entries)
+        catalog_fingerprint = catalog_fingerprint or hashlib.sha256(
+            json.dumps(
+                entries, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+            ).encode("utf-8")
+        ).hexdigest()
     cached = _load_exchange_premium_cache(cache_path, entries, as_of)
+    dynamic_catalog = any(entry.get("category") == "qdii" for entry in entries)
     entry_by_code = {entry["code"]: entry for entry in entries}
     warnings: list[str] = []
     fresh: dict[str, dict[str, Any]] = {}
     quote_url = exchange_premium_quote_url(entries)
     try:
-        payload = client.get_json(quote_url, referer=ETF_QUOTE_PAGE_URL)
-        rows = ((payload.get("data") or {}).get("diff")) if isinstance(payload, dict) else None
+        if quote_rows is None:
+            payload = client.get_json(quote_url, referer=ETF_QUOTE_PAGE_URL)
+            rows = (
+                ((payload.get("data") or {}).get("diff"))
+                if isinstance(payload, dict)
+                else None
+            )
+        else:
+            rows = list(quote_rows.values())
         if not isinstance(rows, list):
             raise DataError("ETF quote response does not contain a record list")
+        quote_references: dict[str, dict[str, Any]] = {}
+        if dynamic_catalog:
+            quote_references, reference_warnings = fetch_exchange_premium_lof_navs(
+                client, entries, rows, as_of
+            )
+            warnings.extend(reference_warnings)
         invalid: list[str] = []
         seen_response: set[str] = set()
         for raw in rows:
@@ -4256,8 +4562,18 @@ def build_exchange_premium_snapshot(
                 fresh.pop(code, None)
                 continue
             seen_response.add(code)
+            if (
+                any(
+                    raw.get(field) in {None, "", "-"}
+                    for field in ("f2", "f402", "f3", "f6")
+                )
+                and entry.get("category") == "qdii"
+            ):
+                continue
             try:
-                fresh[code] = normalize_exchange_premium_quote(raw, entry, as_of)
+                fresh[code] = normalize_exchange_premium_quote(
+                    raw, entry, as_of, quote_references.get(code)
+                )
             except ValueError as exc:
                 invalid.append(str(exc))
         missing = [entry["code"] for entry in entries if entry["code"] not in seen_response]
@@ -4269,19 +4585,21 @@ def build_exchange_premium_snapshot(
         warnings.append(f"场内溢价告警：行情刷新失败，使用缓存或空值：{exc}")
 
     records: list[dict[str, Any]] = []
-    cache_hits = 0
     for entry in entries:
         code = entry["code"]
         if code in fresh:
             record = {**fresh[code], "quote_status": "fresh"}
         elif code in cached:
-            cache_hits += 1
             record = {**entry, **cached[code], "quote_status": "stale"}
         else:
             record = {
                 **entry,
                 "market_price_cny": None,
                 "iopv_cny": None,
+                "reference_value_type": None,
+                "reference_value_cny": None,
+                "reference_value_date": None,
+                "reference_value_source_url": None,
                 "source_discount_pct": None,
                 "premium_pct": None,
                 "change_pct": None,
@@ -4293,17 +4611,28 @@ def build_exchange_premium_snapshot(
             }
         records.append(record)
     records.sort(key=exchange_premium_sort_key)
+    discovered_count = len(records)
+    if dynamic_catalog:
+        records = [record for record in records if record["quote_status"] != "unavailable"]
+    filtered_unavailable_count = discovered_count - len(records)
+    fresh_count = sum(record["quote_status"] == "fresh" for record in records)
+    stale_count = sum(record["quote_status"] == "stale" for record in records)
 
-    if fresh and len(fresh) == len(entries):
+    if records and fresh_count == len(records):
         status = "fresh"
-    elif fresh:
+    elif fresh_count:
         status = "partial"
-    elif cache_hits:
+    elif stale_count:
         status = "stale"
     else:
         status = "unavailable"
     requested_at = datetime.now(SHANGHAI_TZ).isoformat(timespec="seconds")
     cache_records = [record for record in records if record["premium_pct"] is not None]
+    group_order = (
+        sorted({str(entry["benchmark_group"]) for entry in entries})
+        if dynamic_catalog
+        else list(ETF_PREMIUM_GROUP_ORDER)
+    )
     try:
         write_json(
             cache_path,
@@ -4311,6 +4640,7 @@ def build_exchange_premium_snapshot(
                 "schema_version": ETF_PREMIUM_CACHE_SCHEMA_VERSION,
                 "catalog_fingerprint": catalog_fingerprint,
                 "saved_at": requested_at,
+                "catalog": entries,
                 "records": cache_records,
             },
         )
@@ -4322,12 +4652,14 @@ def build_exchange_premium_snapshot(
             "status": status,
             "requested_at": requested_at,
             "quote_delay_minutes": ETF_PREMIUM_DELAY_MINUTES,
-            "expected_count": len(entries),
-            "fresh_count": len(fresh),
-            "cache_hit_count": cache_hits,
+            "discovered_count": discovered_count,
+            "filtered_unavailable_count": filtered_unavailable_count,
+            "expected_count": len(records),
+            "fresh_count": fresh_count,
+            "cache_hit_count": stale_count,
             "catalog_fingerprint": catalog_fingerprint,
-            "group_order": list(ETF_PREMIUM_GROUP_ORDER),
-            "source_name": "东方财富ETF行情",
+            "group_order": group_order,
+            "source_name": "东方财富场内基金行情",
             "source_url": ETF_QUOTE_PAGE_URL,
             "refresh_url": quote_url,
             "records": records,
@@ -4606,6 +4938,12 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
     global_records = payload["global_supplement"]["records"]
     premium = payload["exchange_premium"]
     premium_records = premium["records"]
+    dynamic_premium_catalog = (
+        "discovered_count" in premium
+        or any(item.get("category") == "qdii" for item in premium_records)
+    )
+    premium_product_label = "产品" if dynamic_premium_catalog else "ETF"
+    premium_group_label = "类型" if dynamic_premium_catalog else "基准"
     combined = [*us_records, *global_records]
     filters = payload["filters"]
     scale_dates = "、".join(sorted({item["scale_report_date"] for item in combined})) or "无"
@@ -4774,6 +5112,13 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
 
     def render_premium_row(item: dict[str, Any]) -> str:
         value = item["premium_pct"]
+        reference_type = item["reference_value_type"]
+        reference_value = item["reference_value_cny"]
+        reference_label = (
+            f"最新单位净值（{item['reference_value_date']}）"
+            if reference_type == "nav"
+            else "IOPV"
+        )
         band_key, band_label = premium_band(value)
         quote_status = item["quote_status"]
         holding_cost = item["holding_cost"]
@@ -4802,13 +5147,20 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
                 'target="_blank" rel="noopener noreferrer">查看费率来源'
                 '<span class="external" aria-hidden="true">↗</span></a>'
             )
+        reference_source = ""
+        if reference_type == "nav":
+            reference_source = (
+                f'<a class="premium-source-link" href="{html.escape(item["reference_value_source_url"], quote=True)}" '
+                'target="_blank" rel="noopener noreferrer">查看净值来源'
+                '<span class="external" aria-hidden="true">↗</span></a>'
+            )
         premium_data = "NaN" if value is None else f"{float(value):.8g}"
         detail_id = f"premium-detail-{item['code']}"
         return f"""
           <tbody class="premium-item {' '.join(row_classes)}" data-etf-code="{item['code']}" data-premium="{premium_data}" data-quote-status="{quote_status}">
             <tr class="premium-summary-row">
-              <td class="premium-name" data-label="ETF"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="{detail_id}"><span><strong data-field="name">{html.escape(item['name'])}</strong><span class="fund-code">{item['code']} · {item['exchange']}</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
-              <td data-label="基准"><span class="benchmark-compact">{html.escape(item['benchmark_group'])}</span></td>
+              <td class="premium-name" data-label="{premium_product_label}"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="{detail_id}"><span><strong data-field="name">{html.escape(item['name'])}</strong><span class="fund-code">{item['code']} · {item['exchange']}</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
+              <td data-label="{premium_group_label}"><span class="benchmark-compact">{html.escape(item['benchmark_group'])}</span></td>
               <td data-label="溢价"><span class="premium-value band-{band_key}" data-field="premium">{format_premium_value(value)}</span><span class="premium-band band-{band_key}" data-field="band">{band_label}</span><span class="stale-label" data-field="stale">{stale_text}</span></td>
               <td data-label="综合费率"><span class="premium-cost" data-field="holding-cost">{holding_cost_text}</span>{holding_cost_stale}</td>
               <td data-label="涨跌"><span data-field="change">{format_premium_value(item['change_pct'])}</span></td>
@@ -4817,16 +5169,17 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
               <td colspan="5">
                 <dl class="premium-detail-grid">
                   <div><dt>价格</dt><dd data-field="price">{'--' if item['market_price_cny'] is None else f"{float(item['market_price_cny']):.3f}"}</dd></div>
-                  <div><dt>IOPV</dt><dd data-field="iopv">{'--' if item['iopv_cny'] is None else f"{float(item['iopv_cny']):.4f}"}</dd></div>
+                  <div><dt data-field="reference-label">{html.escape(reference_label)}</dt><dd data-field="reference-value">{float(reference_value):.4f}</dd></div>
                   <div><dt>成交额</dt><dd data-field="turnover">{format_turnover(item['turnover_cny'])}</dd></div>
                   <div><dt>行情时间</dt><dd><time data-field="updated">{format_quote_time(item['updated_at'])}</time></dd></div>
                   <div><dt>交易所</dt><dd>{item['exchange']}</dd></div>
-                  <div><dt>分类</dt><dd>{'行业主题' if item['category'] == 'sector_theme' else '宽基'}</dd></div>
+                  <div><dt>分类</dt><dd>{'QDII' if item['category'] == 'qdii' else ('行业主题' if item['category'] == 'sector_theme' else '宽基')}</dd></div>
                   <div><dt>综合费率（年化）</dt><dd>{holding_cost_link}{holding_cost_stale}</dd></div>
                   <div><dt>费率资料日期</dt><dd>{html.escape(holding_cost_date)}</dd></div>
                 </dl>
                 <div class="premium-source-row">
                   <a class="premium-source-link" href="{html.escape(source_url, quote=True)}" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+                  {reference_source}
                   {holding_cost_source}
                 </div>
               </td>
@@ -4843,11 +5196,17 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
     premium_status_text = premium_status_labels.get(premium["status"], "行情状态未知")
     premium_config = {
         "refreshUrl": premium["refresh_url"],
+        "refreshMode": "paged" if any(item.get("category") == "qdii" for item in premium_records) else "single",
+        "refreshPageSize": ETF_MARKET_LIST_PAGE_SIZE,
         "entries": [
             {
                 "code": item["code"],
                 "name": item["name"],
                 "benchmarkGroup": item["benchmark_group"],
+                "category": item.get("category"),
+                "referenceType": item.get("reference_value_type"),
+                "referenceValueCny": item.get("reference_value_cny"),
+                "referenceDate": item.get("reference_value_date"),
             }
             for item in premium_records
         ],
@@ -5028,20 +5387,20 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
       <section id="panel-global" class="ranking-list" role="tabpanel" aria-labelledby="tab-global" hidden>{render_list(global_records)}</section>
       <section id="panel-premium" class="premium-panel" role="tabpanel" aria-labelledby="tab-premium" hidden>
         <div class="premium-toolbar">
-          <div><h2>场内美股ETF</h2><p>按溢价从高到低排列；点击ETF展开行情、综合费率和来源详情。</p></div>
+          <div><h2>场内 QDII</h2><p>按溢价从高到低排列；点击产品展开行情、综合费率和来源详情。</p></div>
           <button class="refresh-button" id="premium-refresh" type="button" aria-busy="false"><span class="refresh-icon" aria-hidden="true">↻</span><span>刷新行情</span></button>
         </div>
         <p class="premium-status" id="premium-refresh-status" role="status" aria-live="polite">{html.escape(premium_status_text)}；日报请求于 {html.escape(format_quote_time(premium['requested_at']))}，行情约延迟 {premium['quote_delay_minutes']} 分钟。</p>
         <div class="premium-table-wrap">
           <table class="premium-table">
-            <thead><tr><th>ETF</th><th>基准</th><th>溢价</th><th>综合费率</th><th>涨跌</th></tr></thead>
+            <thead><tr><th>{premium_product_label}</th><th>{premium_group_label}</th><th>溢价</th><th>综合费率</th><th>涨跌</th></tr></thead>
             {premium_rows}
           </table>
         </div>
       </section>
       {warning_section}
     </main>
-    <footer>额度为基金管理人层面的单日单基金账户上限；综合费率已从基金资产中扣除，不含场内券商佣金；场内溢价为约15分钟延迟的价格相对IOPV偏离。</footer>
+    <footer>额度为基金管理人层面的单日单基金账户上限；综合费率已从基金资产中扣除，不含场内券商佣金；场内溢价按约15分钟延迟价格相对 ETF 的 IOPV 或 LOF 的最新单位净值计算。</footer>
   </div>
   <script>
     const tabs = Array.from(document.querySelectorAll('[role="tab"][data-panel]'));
@@ -5416,22 +5775,48 @@ def build_payload(
         raise DataError("Both QDII ranking lists are empty after applying all filters")
 
     with metrics.phase("exchange_premium"):
-        premium_entries, _premium_catalog_fingerprint = load_exchange_premium_catalog(
-            args.us_equity_etf_catalog.resolve()
+        configured_catalog = getattr(args, "us_equity_etf_catalog", None)
+        premium_quote_rows: dict[str, dict[str, Any]] | None = None
+        if configured_catalog:
+            premium_catalog_path = Path(configured_catalog).resolve()
+            premium_entries, _premium_catalog_fingerprint = load_exchange_premium_catalog(
+                premium_catalog_path
+            )
+        else:
+            premium_catalog_path = DEFAULT_US_EQUITY_ETF_CATALOG
+            try:
+                (
+                    premium_entries,
+                    premium_quote_rows,
+                    _premium_catalog_fingerprint,
+                ) = load_qdii_exchange_premium_catalog(client, metadata)
+            except (DataError, OSError, ValueError) as exc:
+                cached_catalog = _load_cached_qdii_exchange_premium_catalog(
+                    cache_root / "exchange-premium.json", metadata
+                )
+                if cached_catalog is None:
+                    raise
+                premium_entries, _premium_catalog_fingerprint = cached_catalog
+                premium_quote_rows = {}
+                warnings.append(
+                    f"场内溢价告警：QDII 场内目录刷新失败，使用上次目录和行情缓存：{exc}"
+                )
+        exchange_premium, premium_warnings = build_exchange_premium_snapshot(
+            client,
+            premium_catalog_path,
+            cache_root / "exchange-premium.json",
+            as_of,
+            catalog_entries=premium_entries,
+            quote_rows=premium_quote_rows,
+            catalog_fingerprint=_premium_catalog_fingerprint,
         )
         premium_costs, premium_cost_warnings = build_exchange_premium_holding_costs(
             client,
-            premium_entries,
+            exchange_premium["records"],
             as_of,
             announcement_cache,
             document_cache,
             etf_holding_cost_cache,
-        )
-        exchange_premium, premium_warnings = build_exchange_premium_snapshot(
-            client,
-            args.us_equity_etf_catalog.resolve(),
-            cache_root / "exchange-premium.json",
-            as_of,
         )
         attach_exchange_premium_holding_costs(exchange_premium, premium_costs)
     warnings.extend(premium_cost_warnings)
@@ -5533,7 +5918,12 @@ def build_payload(
             "legal_documents": ANNOUNCEMENT_API_URL,
             "us_equity_instrument_catalog": str(args.us_equity_catalog.resolve()),
             "contract_benchmark_catalog": str(args.contract_benchmark_catalog.resolve()),
-            "us_equity_etf_catalog": str(args.us_equity_etf_catalog.resolve()),
+            "us_equity_etf_catalog": (
+                str(args.us_equity_etf_catalog.resolve())
+                if getattr(args, "us_equity_etf_catalog", None)
+                else exchange_premium_market_url()
+            ),
+            "exchange_etf_catalog": exchange_premium_market_url(),
             "exchange_premium": ETF_QUOTE_PAGE_URL,
         },
     }
@@ -5624,8 +6014,8 @@ def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--us-equity-etf-catalog",
         type=Path,
-        default=DEFAULT_US_EQUITY_ETF_CATALOG,
-        help="China-listed US-equity ETF catalog used by the premium tab",
+        default=None,
+        help="Optional legacy static ETF catalog; the default discovers all listed QDII funds",
     )
     parser.add_argument("--as-of", help="Evaluation date in YYYY-MM-DD format")
     parser.add_argument(

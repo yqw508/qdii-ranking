@@ -25,6 +25,10 @@ def make_exchange_premium():
                 **entry,
                 "market_price_cny": round(1 + premium / 100, 4),
                 "iopv_cny": 1.0,
+                "reference_value_type": "iopv",
+                "reference_value_cny": 1.0,
+                "reference_value_date": None,
+                "reference_value_source_url": ranking.ETF_QUOTE_PAGE_URL,
                 "source_discount_pct": -premium,
                 "premium_pct": premium,
                 "change_pct": round(index / 100, 2),
@@ -414,6 +418,21 @@ class RankingValidatorTests(unittest.TestCase):
         payload = make_payload()
         payload["exchange_premium"]["records"].pop()
         with self.assertRaisesRegex(validator.ValidationError, "25 records"):
+            self.validate(payload)
+
+    def test_rejects_non_qdii_record_in_dynamic_premium_catalog(self):
+        payload = make_payload()
+        section = payload["exchange_premium"]
+        section["refresh_url"] = ranking.exchange_premium_market_url()
+        section["discovered_count"] = 25
+        section["filtered_unavailable_count"] = 0
+        section["group_order"] = ["指数型-海外股票"]
+        for record in section["records"]:
+            record["category"] = "qdii"
+            record["fund_type"] = "指数型-海外股票"
+            record["benchmark_group"] = "指数型-海外股票"
+        section["records"][0]["fund_type"] = "指数型-股票"
+        with self.assertRaisesRegex(validator.ValidationError, "QDII fund-type scope"):
             self.validate(payload)
 
     def test_rejects_missing_three_year_history_warning(self):

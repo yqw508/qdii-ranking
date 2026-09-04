@@ -92,7 +92,7 @@ authorization to complete the full update and publication workflow:
 6. Run `node --test scripts/test_premium_refresh.mjs` and
    `node --test scripts/test_valuation_page.mjs`, then both `scripts/validate_qdii_ranking.py` and
    `scripts/validate_index_valuation.py`. Verify
-   full-scan counters, both final orderings, the 25-ETF premium snapshot and holding costs, benchmark and quota sources,
+   full-scan counters, both final orderings, the complete discovered listed-QDII premium snapshot and holding costs, benchmark and quota sources,
    the ranking date, all seven valuation asset IDs, proxy models/sample counts, and both pairs of
    byte-identical HTML files.
 7. Stage only intended repository changes, including both generated public pages, commit them, and push
@@ -112,7 +112,7 @@ authorization to complete the full update and publication workflow:
 
 9. Verify the independent application root URL and `/valuation/` both return HTTP 200. Check the root
    contains the ranking date, every fund
-   code in both lists, all 25 premium-tab ETF codes and holding costs, and the corresponding direct and agency quotas. Share:
+   code in both lists, all discovered premium-tab QDII codes and holding costs, and the corresponding direct and agency quotas. Share:
    `https://qdii-ranking-web-run-cool-d2gy0iw957219659c.webapps.tcloudbase.com/?v=<YYYY-MM-DD>` and
    verify the valuation page contains all seven asset IDs, the default asset, source modes, proxy
    models, values, and fresh/stale/unavailable states.

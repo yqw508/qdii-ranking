@@ -17,11 +17,11 @@
 长期收益按上述条件参与筛选但不参与排序，费率只展示。完整规则见
 [`references/methodology.md`](references/methodology.md)。
 
-网页另有“场内溢价”页签，展示 25 只中国场内美股权益 ETF 的价格、IOPV、溢价率、涨跌幅、
+网页另有“场内溢价”页签，抓取全部场内 QDII（含 `指数型-海外股票`），并展示其中有当前或缓存行情产品的价格、参考值（ETF 为 IOPV、LOF 为最新单位净值）、溢价率、涨跌幅、
 基金运作综合费率（年化）、成交额和行情时间。07:07 日报保存上一交易日快照；页签内可以手动刷新约
-15 分钟延迟行情。页面使用一张紧凑表格按溢价从高到低排列，点击单只 ETF 可展开行情、综合费率、
+15 分钟延迟行情。页面使用一张紧凑表格按溢价从高到低排列，点击单只产品可展开行情、综合费率、
 产品概要日期和来源。综合费率已从基金资产中扣除，不包含券商收取的场内交易佣金。辅助数据失败不会
-阻止基金榜单发布；行情会按 ETF 保留旧值，费率仅在公告索引不可访问时保留并标记上次成功值。
+阻止基金榜单发布；行情会按产品保留旧值，费率仅在公告索引不可访问时保留并标记上次成功值。
 
 第四个“估值代理”Tab 使用独立的 `/valuation/` 路由展示 7 个标的。无 `asset` 参数时只显示完整
 估值总表；点击任一标的后通过 `?asset=<id>` 进入独立详情视图，详情顶部可以返回概览或直接切换标的。
@@ -61,7 +61,7 @@ node --test scripts/test_valuation_page.mjs
 ```
 
 JSON schema 为 12：顶层 `records` 是美国主榜，`global_supplement.records` 是全球补充榜，
-`exchange_premium.records` 是场内美股 ETF 溢价快照，
+`exchange_premium.records` 是全部场内 QDII 产品的溢价快照，
 每条记录的 `routing_reason` 说明按美股确认占比分流或按地域名称覆盖分流；
 `exclusion_summary` 汇总候选剔除原因。CSV、Markdown、`latest.html` 和 `public/index.html` 均由
 同一份 JSON 数据生成，两个 HTML 必须字节一致。

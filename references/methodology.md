@@ -128,14 +128,22 @@ Every run writes an unpublished `run-metrics.json` with phase durations, categor
 bytes, retries, conditional responses, PDF extractions, and cache statistics. GitHub Actions compares it
 with the versioned pre-optimization baseline; performance misses warn but never bypass data validation.
 
-The exchange-premium tab uses the versioned `us-equity-etfs.json` allowlist. One delayed Eastmoney batch
-quote supplies market price, IOPV, discount rate, change, turnover, and timestamps for all entries.
-Displayed premium is the negated source discount rate and must agree with `price / IOPV - 1` within the
-price-tick tolerance. The daily run caches valid records individually; quote failure falls back per ETF
-with a visible timestamp and reportable warning but never weakens or blocks ranking validation. The
+The exchange-premium tab discovers the full delayed Eastmoney listed-fund set, then intersects it with
+the fund metadata universe whose type starts with `QDII` or equals `指数型-海外股票`. This keeps all
+listed QDII ETF and LOF shares, including non-US products, without a geography or benchmark allowlist.
+The market list is fetched in stable 100-row pages. Each delayed quote supplies market price,
+discount rate, change, turnover, and timestamps for the matching QDII entries. ETF records use the
+quote IOPV as their reference value; records without IOPV use the latest published unit NAV from the
+fund NAV endpoint, which covers listed LOFs.
+Displayed premium is the negated source discount rate and must agree with `price / reference - 1`
+within the price-tick tolerance. The daily run caches valid records individually; quote or reference
+failure falls back per product with a visible timestamp and reportable warning but never weakens or
+blocks ranking validation. The
 browser refresh uses the same validation rules and keeps the rendered value when a row fails. Static
-and refreshed records share one compact table sorted by premium descending, with unavailable quotes
-last. The daily run revalidates the current announcement index for all 25 ETFs, selects the latest
+and refreshed records share one compact table sorted by premium descending. Dynamically discovered
+products without either a valid current quote and reference or a validated cached quote are counted
+but omitted from the output. The daily run revalidates the current announcement index only for
+displayed QDII entries and selects the latest
 product summary available by the ranking date, and parses the disclosed annualized comprehensive fund
 operating expense. An unchanged summary may reuse its parsed cache. A new unreadable summary replaces
 the old value with unavailable; only an announcement-index outage may reuse the last parsed value, which
@@ -144,7 +152,7 @@ investor-specific brokerage commissions.
 
 JSON schema 12 is the structured source of truth. `records` contains the US main list,
 `global_supplement.records` contains the supplement, and `exclusion_summary` records reason counts and
-codes. `exchange_premium.records` contains the auxiliary 25-ETF snapshot. Each ranking record has a
+codes. `exchange_premium.records` contains the auxiliary snapshot of all discovered listed QDII products. Each ranking record has a
 `routing_reason`; filters expose `us_main_exclude_keywords` and an empty
 `global_exclude_keywords`. CSV and Markdown combine both lists with explicit list and routing fields. `latest.html` and
 `public/index.html` are generated from the same payload and must be byte-identical.

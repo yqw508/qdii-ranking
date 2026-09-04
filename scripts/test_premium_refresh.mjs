@@ -40,6 +40,24 @@ const rawQuote = {
   f441: 2.4493,
 };
 
+const lofEntry = {
+  code: "161125",
+  name: "标普500LOF",
+  benchmarkGroup: "QDII-指数",
+  category: "qdii",
+  referenceType: "nav",
+  referenceValueCny: 3.1496,
+  referenceDate: "2026-08-20",
+};
+const rawLofQuote = {
+  ...rawQuote,
+  f2: 3.252,
+  f12: "161125",
+  f14: "标普500LOF",
+  f402: -3.25,
+  f441: "-",
+};
+
 test("normalizes the discount field into a checked premium", () => {
   const { api } = loadApi();
   const quote = api.normalizeQuote(rawQuote, entry, "2026-08-21");
@@ -76,7 +94,68 @@ test("keeps only unique requested records in partial responses", () => {
   assert.equal(result.errors.length, 2);
 });
 
-test("sorts all ETFs by premium descending with missing values last", () => {
+test("uses the latest published NAV when a listed LOF has no IOPV", () => {
+  const { api } = loadApi();
+  const quote = api.normalizeQuote(rawLofQuote, lofEntry, "2026-08-21");
+  assert.equal(quote.referenceType, "nav");
+  assert.equal(quote.referenceValueCny, 3.1496);
+  assert.equal(quote.referenceDate, "2026-08-20");
+  assert.equal(quote.premiumPct, 3.25);
+  assert.throws(
+    () => api.normalizeQuote(rawLofQuote, { ...lofEntry, referenceDate: "2026-08-22" }, "2026-08-21"),
+    /NAV reference date/,
+  );
+});
+
+test("fetches every page for the dynamic QDII market refresh", async () => {
+  const { api } = loadApi();
+  const pages = [];
+  const payload = await api.fetchPagedQuotes(
+    {
+      refreshMode: "paged",
+      refreshPageSize: 2,
+      refreshUrl: "https://example.test/quotes?pn=1",
+    },
+    async (url) => {
+      pages.push(url);
+      const page = url.includes("pn=2") ? 2 : 1;
+      return {
+        ok: true,
+        json: async () => ({
+          data: {
+            total: 3,
+            diff: page === 1 ? [{ f12: "159100" }, { f12: "160125" }] : [{ f12: "159202" }],
+          },
+        }),
+      };
+    },
+  );
+  assert.deepEqual(pages, [
+    "https://example.test/quotes?pn=1",
+    "https://example.test/quotes?pn=2",
+  ]);
+  assert.equal(payload.data.diff.length, 3);
+});
+
+test("rejects an incomplete dynamic market refresh", async () => {
+  const { api } = loadApi();
+  await assert.rejects(
+    api.fetchPagedQuotes(
+      {
+        refreshMode: "paged",
+        refreshPageSize: 2,
+        refreshUrl: "https://example.test/quotes?pn=1",
+      },
+      async () => ({
+        ok: true,
+        json: async () => ({ data: { total: 3, diff: [{ f12: "159100" }] } }),
+      }),
+    ),
+    /分页记录不完整/,
+  );
+});
+
+test("sorts all listed QDII products by premium descending with missing values last", () => {
   const { api } = loadApi();
   const item = (code, premium) => ({
     dataset: { etfCode: code, premium: premium == null ? "NaN" : String(premium) },
@@ -91,7 +170,8 @@ test("refreshes quote fields without changing the rendered holding cost", () => 
   const fields = new Map([
     ["name", { textContent: "旧名称" }],
     ["price", { textContent: "1.000" }],
-    ["iopv", { textContent: "1.0000" }],
+    ["reference-label", { textContent: "IOPV" }],
+    ["reference-value", { textContent: "1.0000" }],
     ["premium", { textContent: "+0.00%", className: "premium-value band-normal" }],
     ["change", { textContent: "+0.00%" }],
     ["turnover", { textContent: "1万元" }],
@@ -111,9 +191,11 @@ test("refreshes quote fields without changing the rendered holding cost", () => 
   api.updateRow(item, api.normalizeQuote(rawQuote, entry, "2026-08-21"));
   assert.equal(fields.get("holding-cost").textContent, "0.80%/年");
   assert.equal(fields.get("price").textContent, "2.672");
+  assert.equal(fields.get("reference-label").textContent, "IOPV");
+  assert.equal(fields.get("reference-value").textContent, "2.4493");
 });
 
-test("toggles an ETF detail row without opening other rows", () => {
+test("toggles a listed-QDII detail row without opening other rows", () => {
   const { api } = loadApi();
   let handler;
   const detail = { hidden: true };

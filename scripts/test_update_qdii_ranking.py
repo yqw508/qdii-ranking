@@ -2,6 +2,7 @@ import unittest
 import json
 import threading
 import time
+import urllib.parse
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -23,6 +24,10 @@ def sample_exchange_premium(run_date="2026-08-20"):
                 **entry,
                 "market_price_cny": round(iopv * (1 + premium / 100), 4),
                 "iopv_cny": iopv,
+                "reference_value_type": "iopv",
+                "reference_value_cny": iopv,
+                "reference_value_date": None,
+                "reference_value_source_url": ranking.ETF_QUOTE_PAGE_URL,
                 "source_discount_pct": -premium,
                 "premium_pct": premium,
                 "change_pct": round(index / 100, 2),
@@ -1094,6 +1099,122 @@ class ExchangePremiumTests(unittest.TestCase):
             {entry["benchmark_group"] for entry in entries},
         )
 
+    def test_dynamic_catalog_paginates_and_filters_to_qdii_scope(self):
+        rows = [
+            {"f12": "159100", "f13": 0, "f14": "巴西ETF华夏"},
+            {"f12": "510300", "f13": 1, "f14": "沪深300ETF"},
+            {"f12": "160125", "f13": 0, "f14": "南方香港LOF"},
+        ]
+
+        class Client:
+            def __init__(self):
+                self.pages = []
+
+            def get_json(self, url, **_kwargs):
+                page = int(urllib.parse.parse_qs(urllib.parse.urlparse(url).query)["pn"][0])
+                self.pages.append(page)
+                start = (page - 1) * 2
+                return {"data": {"total": len(rows), "diff": rows[start : start + 2]}}
+
+        metadata = {
+            "159100": {"code": "159100", "name": "巴西ETF华夏", "fund_type": "指数型-海外股票"},
+            "510300": {"code": "510300", "name": "沪深300ETF", "fund_type": "指数型-股票"},
+            "160125": {"code": "160125", "name": "南方香港LOF", "fund_type": "QDII-普通股票"},
+        }
+        client = Client()
+        with patch.object(ranking, "ETF_MARKET_LIST_PAGE_SIZE", 2):
+            entries, quote_rows, fingerprint = ranking.load_qdii_exchange_premium_catalog(
+                client, metadata
+            )
+        self.assertEqual([1, 2], client.pages)
+        self.assertEqual(["159100", "160125"], [item["code"] for item in entries])
+        self.assertEqual(set(quote_rows), {"159100", "160125"})
+        self.assertEqual(64, len(fingerprint))
+        self.assertTrue(all(item["category"] == "qdii" for item in entries))
+        self.assertEqual(
+            "exchange_premium",
+            ranking.HttpClient._category(ranking.exchange_premium_market_url()),
+        )
+
+    def test_dynamic_snapshot_filters_records_without_quotes(self):
+        base_entry = {
+            "name": "场内QDII",
+            "exchange": "SSE",
+            "market_id": 1,
+            "category": "qdii",
+            "benchmark_group": "指数型-海外股票",
+            "fund_type": "指数型-海外股票",
+            "source_url": "https://example.test",
+        }
+        entries = [
+            {**base_entry, "code": "513500"},
+            {**base_entry, "code": "161125", "name": "标普500LOF"},
+            {**base_entry, "code": "513501"},
+        ]
+        valid_quote = {
+            "f2": 2.672,
+            "f3": -0.11,
+            "f6": 228746612,
+            "f12": "513500",
+            "f14": "场内QDII",
+            "f124": 1787299916,
+            "f297": 20260821,
+            "f402": -9.09,
+            "f441": 2.4493,
+        }
+        unavailable_quote = {
+            **valid_quote,
+            "f12": "513501",
+            "f2": "-",
+            "f402": "-",
+            "f441": "-",
+        }
+
+        lof_quote = {
+            **valid_quote,
+            "f2": 3.252,
+            "f12": "161125",
+            "f14": "标普500LOF",
+            "f402": -3.25,
+            "f441": "-",
+        }
+
+        class Client:
+            def get_json(self, url, **_kwargs):
+                self.url = url
+                return {
+                    "Data": {
+                        "LSJZList": [{"FSRQ": "2026-08-20", "DWJZ": "3.1496"}]
+                    }
+                }
+
+        client = Client()
+        with TemporaryDirectory() as directory:
+            section, warnings = ranking.build_exchange_premium_snapshot(
+                client,
+                ranking.DEFAULT_US_EQUITY_ETF_CATALOG,
+                Path(directory) / "exchange-premium.json",
+                date(2026, 8, 21),
+                catalog_entries=entries,
+                quote_rows={
+                    "513500": valid_quote,
+                    "161125": lof_quote,
+                    "513501": unavailable_quote,
+                },
+                catalog_fingerprint="a" * 64,
+            )
+        self.assertEqual([], warnings)
+        self.assertEqual(3, section["discovered_count"])
+        self.assertEqual(1, section["filtered_unavailable_count"])
+        self.assertEqual(2, section["expected_count"])
+        self.assertEqual("fresh", section["status"])
+        records = {record["code"]: record for record in section["records"]}
+        self.assertEqual({"513500", "161125"}, set(records))
+        self.assertEqual("nav", records["161125"]["reference_value_type"])
+        self.assertEqual(3.1496, records["161125"]["reference_value_cny"])
+        self.assertEqual(3.25, records["161125"]["premium_pct"])
+        self.assertIn("fundCode=161125", client.url)
+
     def test_premium_sort_is_descending_with_missing_quotes_last(self):
         records = [
             {"code": "000003", "premium_pct": None},
@@ -1126,6 +1247,65 @@ class ExchangePremiumTests(unittest.TestCase):
             ranking.normalize_exchange_premium_quote(
                 {**raw, "f402": -1}, entry, date(2026, 8, 21)
             )
+
+    def test_parses_and_uses_latest_lof_nav_reference(self):
+        reference = ranking.parse_exchange_premium_lof_nav(
+            {
+                "Data": {
+                    "LSJZList": [{"FSRQ": "2026-08-20", "DWJZ": "3.1496"}]
+                }
+            },
+            "161125",
+            date(2026, 8, 21),
+        )
+        self.assertEqual(
+            {
+                "reference_value_type": "nav",
+                "reference_value_cny": 3.1496,
+                "reference_value_date": "2026-08-20",
+                "reference_value_source_url": ranking.exchange_premium_lof_nav_url("161125"),
+            },
+            reference,
+        )
+        raw = {
+            "f2": 3.252,
+            "f3": 0.4,
+            "f6": 1234567,
+            "f12": "161125",
+            "f14": "标普500LOF",
+            "f124": 1787299916,
+            "f297": 20260821,
+            "f402": -3.25,
+            "f441": "-",
+        }
+        quote = ranking.normalize_exchange_premium_quote(
+            raw,
+            {
+                **self.entry(),
+                "code": "161125",
+                "name": "标普500LOF",
+                "category": "qdii",
+                "benchmark_group": "QDII-指数",
+            },
+            date(2026, 8, 21),
+            reference,
+        )
+        self.assertIsNone(quote["iopv_cny"])
+        self.assertEqual("nav", quote["reference_value_type"])
+        self.assertEqual(3.1496, quote["reference_value_cny"])
+        self.assertEqual(3.25, quote["premium_pct"])
+
+    def test_rejects_future_or_invalid_lof_nav_reference(self):
+        for row in (
+            {"FSRQ": "2026-08-22", "DWJZ": "3.1496"},
+            {"FSRQ": "2026-08-20", "DWJZ": "0"},
+        ):
+            with self.subTest(row=row), self.assertRaises(ranking.DataError):
+                ranking.parse_exchange_premium_lof_nav(
+                    {"Data": {"LSJZList": [row]}},
+                    "161125",
+                    date(2026, 8, 21),
+                )
 
     def test_holding_cost_cache_hit_avoids_reparsing_unchanged_summary(self):
         class DocumentCache:

@@ -41,12 +41,23 @@
       throw new Error(`quote code differs from requested ETF ${code}`);
     }
     const price = finiteNumber(raw.f2, "price", code);
-    const iopv = finiteNumber(raw.f441, "IOPV", code);
     const sourceDiscount = finiteNumber(raw.f402, "discount rate", code);
     const changePct = finiteNumber(raw.f3, "change percentage", code);
     const turnoverCny = finiteNumber(raw.f6, "turnover", code);
-    if (price <= 0 || iopv <= 0 || turnoverCny < 0) {
-      throw new Error(`${code} price, IOPV, or turnover is outside its valid range`);
+    const hasIopv = raw.f441 != null && raw.f441 !== "" && raw.f441 !== "-";
+    const referenceType = hasIopv ? "iopv" : entry.referenceType;
+    const referenceValueCny = hasIopv
+      ? finiteNumber(raw.f441, "IOPV", code)
+      : finiteNumber(entry.referenceValueCny, "NAV", code);
+    const referenceDate = referenceType === "nav" ? String(entry.referenceDate || "") : null;
+    if (!hasIopv && referenceType !== "nav") {
+      throw new Error(`${code} has neither IOPV nor a verified NAV reference`);
+    }
+    if (referenceType === "nav" && (!/^\d{4}-\d{2}-\d{2}$/.test(referenceDate) || referenceDate > asOf)) {
+      throw new Error(`${code} NAV reference date is invalid or in the future`);
+    }
+    if (price <= 0 || referenceValueCny <= 0 || turnoverCny < 0) {
+      throw new Error(`${code} price, reference value, or turnover is outside its valid range`);
     }
     const quoteDateRaw = String(raw.f297 || "");
     if (!/^\d{8}$/.test(quoteDateRaw)) {
@@ -62,17 +73,19 @@
       throw new Error(`${code} quote contains future data`);
     }
     const premiumPct = -sourceDiscount;
-    const calculatedPremium = (price / iopv - 1) * 100;
-    const tolerance = Math.max(0.05, (0.0005 / iopv) * 100 + 0.01);
+    const calculatedPremium = (price / referenceValueCny - 1) * 100;
+    const tolerance = Math.max(0.05, (0.0005 / referenceValueCny) * 100 + 0.01);
     if (Math.abs(premiumPct - calculatedPremium) > tolerance) {
-      throw new Error(`${code} premium differs from price/IOPV calculation`);
+      throw new Error(`${code} premium differs from price/${referenceType.toUpperCase()} calculation`);
     }
     return {
       code,
       name: String(raw.f14 || entry.name || "").trim(),
       benchmarkGroup: entry.benchmarkGroup,
       marketPriceCny: price,
-      iopvCny: iopv,
+      referenceType,
+      referenceValueCny,
+      referenceDate,
       premiumPct,
       changePct,
       turnoverCny,
@@ -101,6 +114,14 @@
         return;
       }
       seen.add(code);
+      if (
+        entry.category === "qdii" &&
+        ["f2", "f402", "f3", "f6"].some((field) =>
+          raw[field] == null || raw[field] === "" || raw[field] === "-"
+        )
+      ) {
+        return;
+      }
       try {
         valid.set(code, normalizeQuote(raw, entry, asOf));
       } catch (error) {
@@ -111,6 +132,38 @@
       if (!seen.has(entry.code)) errors.push(`${entry.code} 缺失`);
     });
     return { valid, errors };
+  }
+
+  function pageUrl(url, page) {
+    if (/[?&]pn=\d+/.test(url)) return url.replace(/([?&]pn=)\d+/, `$1${page}`);
+    return `${url}${url.includes("?") ? "&" : "?"}pn=${page}`;
+  }
+
+  async function fetchPagedQuotes(config, fetchImpl) {
+    const first = await fetchWithRetry(config.refreshUrl, fetchImpl);
+    if (config.refreshMode !== "paged") return first;
+    const firstData = first && first.data;
+    const firstRows = firstData && firstData.diff;
+    if (!firstData || !Array.isArray(firstRows)) {
+      throw new Error("行情分页响应缺少记录列表");
+    }
+    const total = Number(firstData.total);
+    const pageSize = Number(config.refreshPageSize) || 100;
+    if (!Number.isInteger(total) || total < firstRows.length || pageSize <= 0) {
+      throw new Error("行情分页响应缺少有效总量");
+    }
+    const rows = firstRows.slice();
+    const pageCount = Math.ceil(total / pageSize);
+    for (let page = 2; page <= pageCount; page += 1) {
+      const payload = await fetchWithRetry(pageUrl(config.refreshUrl, page), fetchImpl);
+      const pageData = payload && payload.data;
+      const pageRows = pageData && pageData.diff;
+      if (!Array.isArray(pageRows)) throw new Error(`行情第${page}页缺少记录列表`);
+      if (Number(pageData.total) !== total) throw new Error("行情分页总数发生变化");
+      rows.push(...pageRows);
+    }
+    if (rows.length !== total) throw new Error("行情分页记录不完整");
+    return { ...first, data: { ...firstData, diff: rows } };
   }
 
   async function fetchWithRetry(url, fetchImpl, options) {
@@ -168,7 +221,14 @@
     item.classList.remove("is-stale", "is-unavailable");
     setText(item, "name", quote.name);
     setText(item, "price", quote.marketPriceCny.toFixed(3));
-    setText(item, "iopv", quote.iopvCny.toFixed(4));
+    setText(
+      item,
+      "reference-label",
+      quote.referenceType === "nav" && quote.referenceDate
+        ? `最新单位净值（${quote.referenceDate}）`
+        : "IOPV",
+    );
+    setText(item, "reference-value", quote.referenceValueCny.toFixed(4));
     setText(item, "premium", formatSigned(quote.premiumPct));
     setText(item, "change", formatSigned(quote.changePct));
     setText(item, "turnover", formatTurnover(quote.turnoverCny));
@@ -229,14 +289,14 @@
       button.setAttribute("aria-busy", "true");
       status.textContent = "正在刷新约15分钟延迟行情…";
       try {
-        const payload = await fetchWithRetry(config.refreshUrl, global.fetch.bind(global));
+        const payload = await fetchPagedQuotes(config, global.fetch.bind(global));
         const result = normalizeResponse(payload, config.entries, shanghaiDate(new Date()));
         result.valid.forEach((quote, code) => {
           const item = panel.querySelector(`[data-etf-code="${code}"]`);
           if (item) updateRow(item, quote);
         });
         sortPremiumRows(panel);
-        if (result.valid.size === 0) throw new Error("没有ETF通过行情校验");
+        if (result.valid.size === 0) throw new Error("没有场内 QDII 通过行情校验");
         const suffix = result.errors.length ? `，${result.errors.length}只保留原值` : "";
         status.textContent = `更新${result.valid.size}/${config.entries.length}只${suffix}；请求于 ${shanghaiDateTime(new Date())}，行情约延迟15分钟。`;
       } catch (error) {
@@ -253,6 +313,8 @@
     normalizeQuote,
     normalizeResponse,
     fetchWithRetry,
+    fetchPagedQuotes,
+    pageUrl,
     premiumBand,
     formatTurnover,
     updateRow,

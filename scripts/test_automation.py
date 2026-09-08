@@ -185,6 +185,7 @@ def make_record(rank, ranking_list="us_main"):
         "one_year_performance_start_date": "2025-08-18",
         "one_year_performance_end_date": "2026-08-18",
         "three_year_return_pct": 80.0 + rank,
+        "three_year_boundary_shortfall_days": 0,
         "three_year_max_drawdown_pct": -20.0 - rank,
         "three_year_performance_start_date": "2023-08-18",
         "three_year_performance_end_date": "2026-08-18",
@@ -259,7 +260,7 @@ def make_global_record(rank):
 
 def make_payload():
     return {
-        "schema_version": 12,
+        "schema_version": 13,
         "run_date": RUN_DATE,
         "generated_at": "2026-08-20T09:08:00+08:00",
         "holder_report_date": "2025-12-31",
@@ -269,6 +270,7 @@ def make_payload():
             "min_scale_billion_cny": None,
             "min_age_years": 3,
             "min_three_year_return_pct": 30.0,
+            "three_year_boundary_tolerance_days": 7,
             "min_five_year_return_pct_if_available": 50.0,
             "min_ten_year_return_pct_if_available": 100.0,
             "min_us_equity_pct": 50.0,
@@ -383,6 +385,116 @@ class RankingValidatorTests(unittest.TestCase):
         self.assertEqual(3, len(payload["global_supplement"]["records"]))
         self.assertEqual(25, len(payload["exchange_premium"]["records"]))
         self.assertEqual(3, len(warnings))
+
+    @staticmethod
+    def boundary_payload():
+        payload = make_payload()
+        record = payload["records"][0]
+        record.update({
+            "inception_date": "2023-08-19", "nav_history_start_date": "2023-08-19",
+            "three_year_performance_start_date": "2023-08-19",
+            "three_year_boundary_shortfall_days": 1,
+        })
+        for prefix in ("five_year", "ten_year"):
+            for suffix in ("return_pct", "performance_start_date", "performance_end_date"):
+                record[f"{prefix}_{suffix}"] = None
+        payload["warnings"].append(
+            "三年边界容差 000001：成立日 2023-08-19；"
+            "2023-08-19 至 2026-08-18，距完整三年少 1 天。"
+        )
+        return payload
+
+    def test_accepts_boundary_artifacts_and_discloses_excluded_candidate(self):
+        payload = self.boundary_payload()
+        payload["warnings"].append(
+            "三年边界容差 000099：成立日 2023-08-19；"
+            "2023-08-19 至 2026-08-12，距完整三年少 7 天。"
+        )
+        _, warnings = self.validate(payload)
+        self.assertEqual(5, len(warnings))
+        self.assertIn(payload["warnings"][-1], mailer.material_notes(payload))
+
+    def test_rejects_boundary_metadata_tampering(self):
+        for value in (None, -1, 0, 2, 8, True, 1.0):
+            with self.subTest(value=value):
+                payload = self.boundary_payload()
+                payload["records"][0]["three_year_boundary_shortfall_days"] = value
+                with self.assertRaisesRegex(validator.ValidationError, "boundary"):
+                    self.validate(payload)
+        payload = self.boundary_payload()
+        del payload["records"][0]["three_year_boundary_shortfall_days"]
+        with self.assertRaisesRegex(validator.ValidationError, "boundary"):
+            self.validate(payload)
+
+    def test_rejects_missing_boundary_warning_and_inception_mismatch(self):
+        payload = self.boundary_payload()
+        payload["warnings"].pop()
+        with self.assertRaisesRegex(validator.ValidationError, "boundary warning"):
+            self.validate(payload)
+        payload = self.boundary_payload()
+        payload["records"][0]["inception_date"] = "2023-08-18"
+        with self.assertRaisesRegex(validator.ValidationError, "boundary must start"):
+            self.validate(payload)
+
+    def test_rejects_invalid_boundary_warnings_for_excluded_candidates(self):
+        valid = "三年边界容差 000099：成立日 2023-08-19；2023-08-19 至 2026-08-18，距完整三年少 1 天。"
+        for warning in (
+            valid.replace("少 1 天", "少 7 天"),
+            valid.replace("少 1 天", "少 8 天"),
+            valid.replace("成立日 2023-08-19", "成立日 2023-08-18"),
+            valid.replace("2023-08-19", "2023-08-20").replace("少 1 天", "少 2 天"),
+            "三年边界容差 000099：无法获取净值。",
+        ):
+            with self.subTest(warning=warning):
+                payload = make_payload()
+                payload["warnings"].append(warning)
+                with self.assertRaises(validator.ValidationError):
+                    self.validate(payload)
+
+    def test_rejects_boundary_csv_or_html_omission(self):
+        for artifact in ("latest.csv", "latest.html"):
+            with self.subTest(artifact=artifact), TemporaryDirectory() as directory:
+                payload = self.boundary_payload()
+                output, public = write_artifacts(Path(directory), payload)
+                path = output / artifact
+                document = path.read_text(encoding="utf-8-sig")
+                if artifact.endswith("csv"):
+                    document = document.replace("three_year_boundary_shortfall_days", "removed")
+                else:
+                    document = document.replace(mailer.format_three_year_boundary(payload["records"][0]), "removed")
+                    (public / "index.html").write_text(document, encoding="utf-8")
+                path.write_text(document, encoding="utf-8")
+                with self.assertRaisesRegex(validator.ValidationError, "boundary"):
+                    validator.validate_local_artifacts(output, public, RUN_DATE)
+
+    def test_global_boundary_annualization_uses_actual_days(self):
+        payload = self.boundary_payload()
+        record = payload["global_supplement"]["records"][0]
+        boundary = payload["records"][0]
+        for field in ("inception_date", "nav_history_start_date", "three_year_performance_start_date",
+                      "three_year_boundary_shortfall_days"):
+            record[field] = boundary[field]
+        for prefix in ("five_year", "ten_year"):
+            for suffix in ("return_pct", "performance_start_date", "performance_end_date"):
+                record[f"{prefix}_{suffix}"] = None
+        ratio, annualized = ranking.calculate_return_drawdown_ratio(record)
+        record["return_drawdown_ratio"] = round(ratio, 4)
+        record["three_year_annualized_return_pct"] = round(annualized, 2)
+        expected = ((1 + record["three_year_return_pct"] / 100) ** (365 / 1095) - 1) * 100
+        self.assertAlmostEqual(expected, annualized)
+        payload["warnings"].append(
+            f"三年边界容差 {record['code']}：成立日 {record['inception_date']}；"
+            f"{mailer.format_three_year_boundary(record)}。"
+        )
+        self.validate(payload)
+
+    def test_rejects_boundary_warning_contradicting_complete_record(self):
+        payload = make_payload()
+        payload["warnings"].append(
+            "三年边界容差 000001：成立日 2023-08-19；2023-08-19 至 2026-08-18，距完整三年少 1 天。"
+        )
+        with self.assertRaisesRegex(validator.ValidationError, "boundary warning contradicts"):
+            self.validate(payload)
 
     def test_accepts_non_blocking_exchange_premium_warning(self):
         payload = make_payload()

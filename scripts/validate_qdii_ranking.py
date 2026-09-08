@@ -27,6 +27,7 @@ EXPECTED_FILTERS = {
     "min_scale_billion_cny": None,
     "min_age_years": 3,
     "min_three_year_return_pct": 30.0,
+    "three_year_boundary_tolerance_days": 7,
     "min_five_year_return_pct_if_available": 50.0,
     "min_ten_year_return_pct_if_available": 100.0,
     "min_us_equity_pct": 50.0,
@@ -60,6 +61,11 @@ ETF_QUOTE_API_URL = "https://push2delay.eastmoney.com/api/qt/ulist.np/get"
 ETF_MARKET_LIST_API_URL = "https://push2delay.eastmoney.com/api/qt/clist/get"
 MARKDOWN_ROW_RE = re.compile(
     r"^\|\s*(\d+)\s*\|\s*\[(.+)\s+(\d{6})\]\([^)]+\)\s*\|"
+)
+BOUNDARY_WARNING_RE = re.compile(
+    r"三年边界容差 (?P<code>\d{6})：成立日 (?P<inception>\d{4}-\d{2}-\d{2})；"
+    r"(?P<start>\d{4}-\d{2}-\d{2}) 至 (?P<end>\d{4}-\d{2}-\d{2})，"
+    r"距完整三年少 (?P<days>[1-7]) 天。"
 )
 
 
@@ -227,14 +233,47 @@ def is_reportable_warning(warning: str) -> bool:
     return False
 
 
-def classify_warnings(warnings: Any) -> tuple[list[str], list[str]]:
+def validate_three_year_window(record: dict[str, Any], run_date: date) -> None:
+    code = record["code"]
+    days = record.get("three_year_boundary_shortfall_days")
+    require(type(days) is int and 0 <= days <= 7, f"{code} boundary shortfall is invalid")
+    start = parse_date(str(record.get("three_year_performance_start_date")))
+    end = parse_date(str(record.get("three_year_performance_end_date")))
+    nav_start = parse_date(str(record.get("nav_history_start_date")))
+    nav_end = parse_date(str(record.get("nav_history_end_date")))
+    require(nav_start <= start < end == nav_end <= run_date, f"{code} three-year dates are invalid")
+    shortfall = max(0, (start - years_ago(end, 3)).days)
+    require(days == shortfall, f"{code} boundary shortfall differs from dates")
+    if days:
+        inception = parse_date(str(record.get("inception_date")))
+        require(start == nav_start == inception, f"{code} boundary must start at inception")
+        require(inception < years_ago(run_date, 3), f"{code} boundary fund is not older than three years")
+
+
+def classify_warnings(warnings: Any, run_date: date | None = None) -> tuple[list[str], list[str]]:
     require(isinstance(warnings, list), "warnings must be a list")
     require(
         all(isinstance(warning, str) and warning.strip() for warning in warnings),
         "warnings must contain non-empty strings",
     )
-    reportable = [warning for warning in warnings if is_reportable_warning(warning)]
-    blocking = [warning for warning in warnings if not is_reportable_warning(warning)]
+    boundary_warnings = set()
+    for warning in warnings:
+        if not warning.startswith("三年边界容差 "):
+            continue
+        match = BOUNDARY_WARNING_RE.fullmatch(warning)
+        require(match is not None and run_date is not None, "Invalid boundary warning")
+        validate_three_year_window({
+            "code": match["code"],
+            "inception_date": match["inception"],
+            "nav_history_start_date": match["start"],
+            "nav_history_end_date": match["end"],
+            "three_year_performance_start_date": match["start"],
+            "three_year_performance_end_date": match["end"],
+            "three_year_boundary_shortfall_days": int(match["days"]),
+        }, run_date)
+        boundary_warnings.add(warning)
+    reportable = [warning for warning in warnings if warning in boundary_warnings or is_reportable_warning(warning)]
+    blocking = [warning for warning in warnings if warning not in reportable]
     return reportable, blocking
 
 
@@ -596,6 +635,13 @@ def validate_records(
         nav_start = parse_date(str(record.get("nav_history_start_date")))
         nav_end = parse_date(str(record.get("nav_history_end_date")))
         require(nav_start <= nav_end <= run_date, f"{code} NAV history dates are invalid")
+        validate_three_year_window(record, run_date)
+        if record["three_year_boundary_shortfall_days"]:
+            expected_warning = (
+                f"三年边界容差 {code}：成立日 {record['inception_date']}；"
+                f"{mailer.format_three_year_boundary(record)}。"
+            )
+            require(expected_warning in payload.get("warnings", []), f"{code} boundary warning is missing")
         for prefix, years in (("five_year", 5), ("ten_year", 10)):
             value = record.get(f"{prefix}_return_pct")
             start_value = record.get(f"{prefix}_performance_start_date")
@@ -765,6 +811,10 @@ def validate_csv(path: Path, records: list[dict[str, Any]]) -> None:
         for field in ("ranking_list", "routing_reason", "code", "name"):
             require(row.get(field) == str(record[field]), f"CSV {field} differs for {code}")
         require(row.get("rank") == str(record["rank"]), f"CSV rank differs for {code}")
+        require(
+            row.get("three_year_boundary_shortfall_days") == str(record["three_year_boundary_shortfall_days"]),
+            f"CSV boundary shortfall differs for {code}",
+        )
         for field in (
             "institution_holding_ratio_pct",
             "scale_billion_cny",
@@ -780,6 +830,8 @@ def validate_csv(path: Path, records: list[dict[str, Any]]) -> None:
         for field in (
             "nav_history_start_date",
             "nav_history_end_date",
+            "three_year_performance_start_date",
+            "three_year_performance_end_date",
             "five_year_performance_start_date",
             "five_year_performance_end_date",
             "ten_year_performance_start_date",
@@ -883,6 +935,9 @@ def validate_markdown(path: Path, payload: dict[str, Any], records: list[dict[st
     require(path.is_file(), f"Missing artifact: {path}")
     document = path.read_text(encoding="utf-8")
     require(f"- 更新日期：{payload['run_date']}" in document, "Markdown run date differs")
+    for warning in payload["warnings"]:
+        if warning.startswith("三年边界容差 "):
+            require(warning in document, "Markdown boundary warning is missing")
     parsed: list[tuple[int, str, str, str]] = []
     for line in document.splitlines():
         match = MARKDOWN_ROW_RE.match(line)
@@ -892,6 +947,7 @@ def validate_markdown(path: Path, payload: dict[str, Any], records: list[dict[st
     for record, (rank, code, name, line) in zip(records, parsed):
         require(rank == record["rank"] and code == record["code"], f"Markdown order differs at {record['code']}")
         require(name == record["name"], f"Markdown name differs for {record['code']}")
+        require(mailer.format_three_year_boundary(record) in document, f"Markdown boundary differs for {code}")
         expected_values = [
             mailer.format_routing_reason(record["routing_reason"]),
             format_percentage(record["three_year_return_pct"], show_sign=True),
@@ -1192,6 +1248,9 @@ def validate_html_document(
         f"{label} routing reasons differ from JSON",
     )
     all_text = " ".join(parser.all_text)
+    for warning in payload["warnings"]:
+        if warning.startswith("三年边界容差 "):
+            require(warning in all_text, f"{label} boundary warning is missing")
     require(
         "美国主榜" in all_text and "全球补充榜" in all_text and "场内溢价" in all_text,
         f"{label} tabs are missing",
@@ -1253,6 +1312,7 @@ def validate_html_document(
     for record in records:
         code = record["code"]
         block = parser.blocks[code]
+        require(mailer.format_three_year_boundary(record) in block, f"{label} boundary differs for {code}")
         expected_values = [
             record["name"],
             mailer.format_routing_reason(record["routing_reason"]),
@@ -1305,10 +1365,17 @@ def validate_email_rendering(payload: dict[str, Any], records: list[dict[str, An
     plain = mailer.success_plain_text(payload, page_url)
     html_document = mailer.success_html(payload, page_url)
     for document, label in ((plain, "Plain email"), (html_document, "HTML email")):
+        for warning in payload["warnings"]:
+            if warning.startswith("三年边界容差 "):
+                require(warning in document, f"{label} boundary warning is missing")
         positions = [document.find(record["code"]) for record in records]
         require(all(position >= 0 for position in positions), f"{label} is missing a fund code")
         require(positions == sorted(positions), f"{label} fund order differs from JSON")
         for record in records:
+            require(
+                mailer.format_three_year_boundary(record) in document,
+                f"{label} boundary differs for {record['code']}",
+            )
             expected = [
                 record["contract_benchmark"]["benchmark_name"],
                 mailer.format_routing_reason(record["routing_reason"]),
@@ -1340,7 +1407,7 @@ def validate_local_artifacts(
     output_dir: Path, publish_dir: Path, expected_date: str
 ) -> tuple[dict[str, Any], list[str]]:
     payload = load_payload(output_dir / "latest.json")
-    require(payload.get("schema_version") == 12, "Unexpected JSON schema version")
+    require(payload.get("schema_version") == 13, "Unexpected JSON schema version")
     require(payload.get("run_date") == expected_date, "Ranking date is not today's Shanghai date")
     require(
         str(payload.get("generated_at", ""))[:10] == expected_date,
@@ -1364,8 +1431,20 @@ def validate_local_artifacts(
     records = [*us_records, *global_records]
     codes = [record["code"] for record in records]
     require(len(codes) == len(set(codes)), "Fund codes are duplicated across ranking lists")
-    reportable, blocking = classify_warnings(payload.get("warnings"))
+    reportable, blocking = classify_warnings(payload.get("warnings"), parse_date(expected_date))
     require(not blocking, "Blocking warnings: " + " | ".join(blocking))
+    by_code = {record["code"]: record for record in records}
+    for warning in reportable:
+        match = BOUNDARY_WARNING_RE.fullmatch(warning)
+        if match and match["code"] in by_code:
+            record = by_code[match["code"]]
+            require(
+                record["three_year_boundary_shortfall_days"] == int(match["days"])
+                and record["inception_date"] == match["inception"]
+                and record["three_year_performance_start_date"] == match["start"]
+                and record["three_year_performance_end_date"] == match["end"],
+                f"{record['code']} boundary warning contradicts record",
+            )
     validate_csv(output_dir / "latest.csv", records)
     validate_markdown(output_dir / "latest.md", payload, records)
     validate_email_rendering(payload, records)

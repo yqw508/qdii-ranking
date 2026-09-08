@@ -805,6 +805,149 @@ class PerformanceTests(unittest.TestCase):
         self.assertEqual(date(2026, 8, 18), points[0]["date"])
 
 
+class ThreeYearBoundaryTests(unittest.TestCase):
+    @staticmethod
+    def points(days=1, end=date(2026, 9, 4), final_nav=1.6):
+        start = ranking.years_ago(end, 3) + timedelta(days=days)
+        return [
+            {"date": observed, "nav": nav, "equity_return_pct": None, "unit_money": ""}
+            for observed, nav in (
+                (start, 1.0), (end - timedelta(days=730), 1.5),
+                (end - timedelta(days=365), 1.2), (end, final_nav),
+            )
+        ]
+
+    def test_full_window_and_inclusive_tolerance_limits(self):
+        for days in (0, 1, 7, 8):
+            with self.subTest(days=days):
+                points = self.points(days)
+                result = ranking.calculate_trailing_performance(
+                    points, "000001", date(2026, 9, 15), 3,
+                    inception_date=points[0]["date"].isoformat(),
+                )
+                if days == 8:
+                    self.assertIsNone(result)
+                else:
+                    self.assertEqual(days, result["boundary_shortfall_days"])
+                    self.assertEqual(60.0, result["return_pct"])
+                    self.assertEqual(-20.0, result["max_drawdown_pct"])
+                    self.assertEqual(str(points[0]["date"]), result["start_date"])
+
+    def test_requires_inception_match_and_strict_age(self):
+        points = self.points()
+        for inception, as_of in (
+            (None, date(2026, 9, 8)),
+            ("2023-09-04", date(2026, 9, 8)),
+            ("2023-09-05", date(2026, 9, 5)),
+            ("2023-09-05", date(2026, 9, 4)),
+        ):
+            with self.subTest(inception=inception, as_of=as_of):
+                self.assertIsNone(ranking.calculate_trailing_performance(
+                    points, "000001", as_of, 3, inception_date=inception,
+                ))
+
+    def test_complete_window_takes_precedence(self):
+        points = self.points()
+        points.insert(0, {**points[0], "date": date(2023, 9, 1), "nav": 0.8})
+        result = ranking.calculate_trailing_performance(
+            points, "000001", date(2026, 9, 8), 3, inception_date="2023-09-01",
+        )
+        self.assertEqual(0, result["boundary_shortfall_days"])
+        self.assertEqual("2023-09-01", result["start_date"])
+        self.assertEqual(100.0, result["return_pct"])
+
+    def test_leap_day_and_future_points_use_historical_endpoint(self):
+        points = self.points(1, end=date(2024, 2, 29))
+        points.append({**points[-1], "date": date(2024, 3, 10), "nav": 2.0})
+        result = ranking.calculate_trailing_performance(
+            points, "000001", date(2024, 3, 2), 3, inception_date="2021-03-01",
+        )
+        self.assertEqual("2024-02-29", result["end_date"])
+        self.assertEqual(1, result["boundary_shortfall_days"])
+        self.assertEqual(60.0, result["return_pct"])
+
+    def test_other_windows_never_use_tolerance(self):
+        for years in (1, 5, 10):
+            points = self.points()
+            points = [
+                {**points[0], "date": date(2026 - years, 9, 5)}, points[-1],
+            ]
+            with self.subTest(years=years):
+                self.assertIsNone(ranking.calculate_trailing_performance(
+                    points, "000001", date(2026, 9, 8), years,
+                    inception_date=str(points[0]["date"]),
+                ))
+
+    def test_affected_funds_keep_real_returns_and_rejected_warning(self):
+        for code, nav, qualifies in (
+            ("018851", 1.2027, False), ("019155", 1.6207, True), ("019156", 1.5963, True),
+        ):
+            with self.subTest(code=code):
+                performance, warnings = ranking.calculate_performance_from_points(
+                    self.points(final_nav=nav), code, date(2026, 9, 8), "https://example.test/nav",
+                    inception_date="2023-09-05",
+                )
+                self.assertEqual(round((nav - 1) * 100, 2), performance["three_year_return_pct"])
+                self.assertEqual(1, performance["three_year_boundary_shortfall_days"])
+                self.assertEqual(1, len(warnings))
+                self.assertIn("距完整三年少 1 天", warnings[0])
+                with patch.object(ranking, "fetch_trailing_performance", return_value=(performance, warnings)):
+                    selected, retained, scanned = ranking.filter_performance_full_scan(
+                        object(), [{"code": code}], date(2026, 9, 8), 30.0, top=10,
+                    )
+                self.assertEqual(qualifies, bool(selected))
+                self.assertEqual(warnings, retained)
+                self.assertEqual(1, scanned)
+
+    def test_plain_fetch_cache_304_and_forced_fetch_agree(self):
+        points = self.points()
+        trend = [
+            {"x": int(datetime.combine(p["date"], datetime.min.time(), ranking.SHANGHAI_TZ).timestamp() * 1000),
+             "y": p["nav"], "unitMoney": ""}
+            for p in points
+        ]
+        source = "var Data_netWorthTrend = " + json.dumps(trend) + ";"
+        fund = {"code": "000001", "inception_date": "2023-09-05",
+                "fund_page_url": "https://example.test/fund", "latest_nav_date": "2026-09-04",
+                "latest_nav_value": 1.6}
+        benchmark = ranking.Nasdaq100Benchmark({}, {})
+        as_of = date(2026, 9, 8)
+
+        class Client:
+            def __init__(self):
+                self.responses = [(200, source, "modified"), (304, None, "modified"),
+                                  (304, None, "modified"), (200, source, "modified")]
+                self.validators = []
+
+            def get_text(self, *_args, **_kwargs):
+                return source
+
+            def get_conditional_text(self, _url, referer=None, last_modified=None):
+                self.validators.append(last_modified)
+                return self.responses.pop(0)
+
+        client = Client()
+        expected = ranking.fetch_trailing_performance(client, fund, as_of, benchmark)
+        with TemporaryDirectory() as directory:
+            cache = ranking.PerformanceResultCache(Path(directory))
+            self.assertEqual(expected, cache.get(client, fund, as_of, benchmark))
+            self.assertEqual(expected, cache.get(client, fund, as_of, benchmark))
+            performance, warnings = cache.get(
+                client, {**fund, "latest_nav_date": "2026-09-07", "latest_nav_value": 1.7}, as_of, benchmark,
+            )
+            self.assertEqual(expected[0], performance)
+            self.assertEqual(expected[1], warnings[:-1])
+            self.assertIn("强制重新验证", warnings[-1])
+            with patch.object(client, "get_conditional_text", side_effect=ranking.DataError("offline")):
+                with self.assertRaisesRegex(ranking.DataError, "offline"):
+                    cache.get(client, fund, as_of, benchmark)
+            with patch.object(client, "get_text", side_effect=ranking.DataError("offline")):
+                with self.assertRaisesRegex(ranking.DataError, "offline"):
+                    ranking.fetch_trailing_performance(client, fund, as_of, benchmark)
+        self.assertEqual([None, "modified", "modified", None], client.validators)
+        self.assertEqual(1, cache.stats()["not_modified"])
+
+
 class Nasdaq100FitTests(unittest.TestCase):
     def test_parses_official_benchmark_sources(self):
         timestamp = int(datetime(2026, 8, 18, tzinfo=timezone.utc).timestamp() * 1000)
@@ -926,6 +1069,7 @@ class PerformanceCacheTests(unittest.TestCase):
             "one_year_performance_start_date": "2025-08-19",
             "one_year_performance_end_date": "2026-08-19",
             "three_year_return_pct": 60.0,
+            "three_year_boundary_shortfall_days": 0,
             "three_year_max_drawdown_pct": -20.0,
             "three_year_performance_start_date": "2023-08-19",
             "three_year_performance_end_date": "2026-08-19",
@@ -1542,6 +1686,7 @@ class HtmlOutputTests(unittest.TestCase):
                 "min_scale_billion_cny": None,
                 "min_age_years": 3,
                 "min_three_year_return_pct": 30.0,
+                "three_year_boundary_tolerance_days": 7,
                 "min_five_year_return_pct_if_available": 50.0,
                 "min_ten_year_return_pct_if_available": 100.0,
                 "min_us_equity_pct": 50.0,

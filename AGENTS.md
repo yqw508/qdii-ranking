@@ -22,6 +22,12 @@
   five-year return exists, require at least 50%; when a complete ten-year return exists, require at
   least 100%. Missing five- or ten-year history bypasses only that corresponding threshold. Require a known
   direct-sale quota of at least CNY 200; unlimited direct sale and exactly CNY 200 both qualify.
+- For the three-year return and drawdown only, allow a 1-7 calendar-day start shortfall when no NAV
+  exists on or before the target start, the first NAV date equals inception, and inception remains
+  strictly over three years before the ranking date. Revalidate the source in the same run, use only
+  actual NAVs, and disclose actual dates and shortfall days for every affected candidate. A longer
+  shortfall, missing inception, or a first NAV after inception remains blocking. Other return windows
+  and Nasdaq fit requirements never use this tolerance.
 - Parse the latest prospectus benchmark for display. Keep recognized, composite, unrecognized, and
   unreadable states. Benchmark identity, market, country/region, asset class, structure, weight,
   conflicts, and parse status must never exclude or route a fund. Cross-check the latest RMB product
@@ -95,6 +101,8 @@ authorization to complete the full update and publication workflow:
    full-scan counters, both final orderings, the complete discovered listed-QDII premium snapshot and holding costs, benchmark and quota sources,
    the ranking date, all seven valuation asset IDs, proxy models/sample counts, and both pairs of
    byte-identical HTML files.
+   Ranking schema 13 must include the seven-day tolerance filter and each record's
+   `three_year_boundary_shortfall_days`; validate every boundary warning, including excluded candidates.
 7. Stage only intended repository changes, including both generated public pages, commit them, and push
    `main` to `origin`.
 8. Deploy the verified static page with:

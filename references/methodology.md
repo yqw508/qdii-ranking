@@ -87,6 +87,17 @@ empty or shorter than ten without relaxing thresholds; both lists empty stops pu
 - Correlation is Pearson correlation, beta is sample covariance divided by benchmark sample variance,
   and tracking error is the sample standard deviation of weekly active returns times `sqrt(52)`.
 
+Only the three-year return and drawdown allow a start-boundary tolerance of at most seven calendar
+days, inclusive. First try the complete window. If no NAV exists on or before the target start,
+the first NAV may be used only when its date equals inception, inception is strictly more than three
+years before the ranking date, and the first NAV is 1-7 days after the target. Missing inception,
+an unmatched first NAV, or a larger shortfall retains the blocking history warning. Normal fetches,
+conditional 304 responses, and forced full downloads use the same rule after source revalidation.
+No NAVs are fabricated and cumulative returns are not extrapolated; the 30% threshold still applies
+to the actual return. Annualized return uses the actual elapsed days. One-, five-, and ten-year
+windows and Nasdaq fit sample requirements are unchanged. Every affected candidate emits a visible
+warning with inception, actual start/end, and shortfall, even if subsequently excluded.
+
 Five- and ten-year returns apply only their conditional eligibility thresholds and do not participate
 in ranking. The annualized comprehensive operating expense is display-only and is not an application
 or redemption fee. Adjusted NAV returns already reflect fund operating expenses, so the displayed
@@ -150,12 +161,18 @@ the old value with unavailable; only an announcement-index outage may reuse the 
 is visibly marked stale. This expense is display-only, is already reflected in fund assets, and excludes
 investor-specific brokerage commissions.
 
-JSON schema 12 is the structured source of truth. `records` contains the US main list,
+JSON schema 13 is the structured source of truth. `records` contains the US main list,
 `global_supplement.records` contains the supplement, and `exclusion_summary` records reason counts and
 codes. `exchange_premium.records` contains the auxiliary snapshot of all discovered listed QDII products. Each ranking record has a
 `routing_reason`; filters expose `us_main_exclude_keywords` and an empty
 `global_exclude_keywords`. CSV and Markdown combine both lists with explicit list and routing fields. `latest.html` and
 `public/index.html` are generated from the same payload and must be byte-identical.
+
+Filters expose `three_year_boundary_tolerance_days: 7`. Each ranking record and CSV row includes
+`three_year_boundary_shortfall_days` (zero for a complete window). Markdown, HTML, and email disclose
+actual dates and shortfall for tolerance records. Validation independently checks the dates,
+inception condition, shortfall, and matching warnings; generic history failures still block publication.
+The normalized NAV cache schema is unchanged because derived returns are recalculated every run.
 
 ## Multi-Asset Valuation Research Page
 

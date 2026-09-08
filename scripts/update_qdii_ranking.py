@@ -27,6 +27,8 @@ from pathlib import Path
 from threading import Lock, get_ident
 from typing import Any, Iterable
 
+from send_qdii_email import format_three_year_boundary
+
 try:
     from pypdf import PdfReader
 except ImportError as exc:  # pragma: no cover - exercised by the runtime dependency check
@@ -87,6 +89,7 @@ ETF_PREMIUM_DELAY_MINUTES = 15
 ETF_PREMIUM_GROUP_ORDER = ("标普500", "纳指100", "美国50", "道琼斯", "行业主题")
 DEFAULT_MIN_DIRECT_LIMIT_CNY = 200
 DEFAULT_MIN_THREE_YEAR_RETURN_PCT = 30.0
+THREE_YEAR_BOUNDARY_TOLERANCE_DAYS = 7
 DEFAULT_MIN_FIVE_YEAR_RETURN_PCT = 50.0
 DEFAULT_MIN_TEN_YEAR_RETURN_PCT = 100.0
 ROUTING_REASON_CONFIRMED_US = "confirmed_us_exposure"
@@ -1282,7 +1285,8 @@ def calculate_nasdaq100_fit(
 
 
 def calculate_trailing_performance(
-    points: list[dict[str, Any]], code: str, as_of: date, years: int
+    points: list[dict[str, Any]], code: str, as_of: date, years: int,
+    *, inception_date: str | None = None,
 ) -> dict[str, Any] | None:
     available = [point for point in points if point["date"] <= as_of]
     if not available:
@@ -1292,9 +1296,20 @@ def calculate_trailing_performance(
     anchor_indexes = [
         index for index, point in enumerate(available) if point["date"] <= target_start
     ]
-    if not anchor_indexes:
-        return None
-    anchor_index = anchor_indexes[-1]
+    shortfall_days = 0
+    if anchor_indexes:
+        anchor_index = anchor_indexes[-1]
+    else:
+        shortfall_days = (available[0]["date"] - target_start).days
+        if not (
+            years == 3
+            and inception_date is not None
+            and parse_date(inception_date) == available[0]["date"]
+            and is_older_than_years(inception_date, as_of, 3)
+            and 1 <= shortfall_days <= THREE_YEAR_BOUNDARY_TOLERANCE_DAYS
+        ):
+            return None
+        anchor_index = 0
     window = available[anchor_index:]
     wealth = 1.0
     peak = 1.0
@@ -1308,6 +1323,7 @@ def calculate_trailing_performance(
         "max_drawdown_pct": round(max_drawdown * 100, 2),
         "start_date": window[0]["date"].isoformat(),
         "end_date": window[-1]["date"].isoformat(),
+        "boundary_shortfall_days": shortfall_days,
     }
 
 
@@ -1317,8 +1333,12 @@ def calculate_performance_from_points(
     as_of: date,
     source_url: str,
     benchmark: Nasdaq100Benchmark | None = None,
+    *, inception_date: str | None = None,
 ) -> tuple[dict[str, Any], list[str]]:
-    output: dict[str, Any] = {"performance_source_url": source_url}
+    output: dict[str, Any] = {
+        "performance_source_url": source_url,
+        "three_year_boundary_shortfall_days": 0,
+    }
     warnings: list[str] = []
     output["nav_history_start_date"] = points[0]["date"].isoformat()
     output["nav_history_end_date"] = max(
@@ -1331,7 +1351,9 @@ def calculate_performance_from_points(
         (5, "five_year", "近五年"),
         (10, "ten_year", "近十年"),
     ):
-        performance = calculate_trailing_performance(points, code, as_of, years)
+        performance = calculate_trailing_performance(
+            points, code, as_of, years, inception_date=inception_date
+        )
         if performance is None:
             output.update(
                 {
@@ -1354,6 +1376,13 @@ def calculate_performance_from_points(
                 f"{prefix}_performance_end_date": performance["end_date"],
             }
         )
+        if years == 3:
+            output["three_year_boundary_shortfall_days"] = performance["boundary_shortfall_days"]
+            if performance["boundary_shortfall_days"]:
+                warnings.append(
+                    f"三年边界容差 {code}：成立日 {inception_date}；"
+                    f"{format_three_year_boundary(output)}。"
+                )
     if benchmark is not None:
         try:
             output["nasdaq100_fit"] = calculate_nasdaq100_fit(
@@ -1376,7 +1405,8 @@ def fetch_trailing_performance(
     url = PERFORMANCE_DATA_URL.format(code=code, cache_buster=as_of.strftime("%Y%m%d"))
     payload = client.get_text(url, referer=fund["fund_page_url"])
     return calculate_performance_from_points(
-        parse_performance_page(payload, code), code, as_of, url, benchmark
+        parse_performance_page(payload, code), code, as_of, url, benchmark,
+        inception_date=fund.get("inception_date"),
     )
 
 
@@ -1554,7 +1584,8 @@ class PerformanceResultCache:
                     self.hits += 1
                     self.not_modified += 1
                 return calculate_performance_from_points(
-                    points, code, as_of, url, benchmark
+                    points, code, as_of, url, benchmark,
+                    inception_date=fund.get("inception_date"),
                 )
 
         if status != 200 or response_text is None:
@@ -1568,7 +1599,8 @@ class PerformanceResultCache:
             self.updates += 1
         self._save(path, code, response_last_modified, points)
         performance, warnings = calculate_performance_from_points(
-            points, code, as_of, url, benchmark
+            points, code, as_of, url, benchmark,
+            inception_date=fund.get("inception_date"),
         )
         if page_warning is not None:
             warnings.append(page_warning)
@@ -4719,6 +4751,7 @@ def write_csv(path: Path, payload: dict[str, Any]) -> None:
         "three_year_max_drawdown_pct",
         "three_year_performance_start_date",
         "three_year_performance_end_date",
+        "three_year_boundary_shortfall_days",
         "five_year_return_pct",
         "five_year_performance_start_date",
         "five_year_performance_end_date",
@@ -4823,6 +4856,7 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
         f"- 规模报告期：{scale_dates}",
         f"- 近一年净值观察区间：{summarize_periods(combined, 'one_year')}",
         f"- 近三年净值观察区间：{summarize_periods(combined, 'three_year')}",
+        f"- 三年起点边界容差：最多 {payload['filters']['three_year_boundary_tolerance_days']} 个自然日，仅限首条净值与成立日一致且成立严格超过三年的基金。",
         f"- 申购额度评估日：{payload['run_date']}",
         f"- 筛选条件：{scale_requirement}；"
         f"成立超过 {payload['filters']['min_age_years']} 年；"
@@ -4876,6 +4910,8 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
             f"状态 {contract['status']}；产品标签：{' / '.join(item['product_structure_tags'])}；"
             f"额度计算：{rule}"
         )
+        if item.get("three_year_boundary_shortfall_days"):
+            lines.append(f"  - {format_three_year_boundary(item)}")
     if not records:
         lines.append("| - | 暂无符合全部条件的基金 | - | - | - | - | - | - | - | - | - | - |")
 
@@ -4906,6 +4942,8 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
             f"{format_limit(item['direct_limit'])} | {format_limit(item['agency_limit'])} |"
         )
         lines.append(f"  - 产品标签：{' / '.join(item['product_structure_tags'])}")
+        if item.get("three_year_boundary_shortfall_days"):
+            lines.append(f"  - {format_three_year_boundary(item)}")
     if not global_records:
         lines.append("| - | 暂无符合全部条件的基金 | - | - | - | - | - | - | - | - | - | - |")
     if payload["warnings"]:
@@ -4955,6 +4993,7 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
         scale_requirement,
         f"成立 > {filters['min_age_years']} 年",
         f"三年收益 ≥ {filters['min_three_year_return_pct']:g}%",
+        f"三年起点容差 ≤ {filters['three_year_boundary_tolerance_days']} 天",
         f"五年有数据 ≥ {filters['min_five_year_return_pct_if_available']:g}%",
         f"十年有数据 ≥ {filters['min_ten_year_return_pct_if_available']:g}%",
         f"直销 ≥ {filters['min_direct_limit_cny_inclusive']:,} 元",
@@ -5020,6 +5059,10 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
             format_holding_cost(holding_cost), holding_cost.get("source_url")
         )
         prospectus_date = contract.get("prospectus_published_date") or "--"
+        boundary_detail = (
+            f'<div><dt>三年实际区间</dt><dd>{html.escape(format_three_year_boundary(item))}</dd></div>'
+            if item.get("three_year_boundary_shortfall_days") else ""
+        )
         return f"""
       <details class="fund-item" data-code="{html.escape(item['code'], quote=True)}" data-list="{html.escape(item['ranking_list'], quote=True)}" data-routing-reason="{html.escape(item['routing_reason'], quote=True)}">
         <summary>
@@ -5064,6 +5107,7 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
           <dl class="rule-grid">
             <div><dt>额度计算</dt><dd>{html.escape(format_rule(item['share_class_rule'], item['channel_rule']))}</dd></div>
             <div><dt>完整净值历史</dt><dd>{html.escape(item['nav_history_start_date'])} 至 {html.escape(item['nav_history_end_date'])}</dd></div>
+            {boundary_detail}
             <div><dt>招募说明书日期</dt><dd>{html.escape(prospectus_date)}</dd></div>
           </dl>
           <div class="source-row">
@@ -5485,6 +5529,7 @@ def build_output_record(
         "three_year_max_drawdown_pct": fund["three_year_max_drawdown_pct"],
         "three_year_performance_start_date": fund["three_year_performance_start_date"],
         "three_year_performance_end_date": fund["three_year_performance_end_date"],
+        "three_year_boundary_shortfall_days": fund["three_year_boundary_shortfall_days"],
         "five_year_return_pct": fund["five_year_return_pct"],
         "five_year_performance_start_date": fund["five_year_performance_start_date"],
         "five_year_performance_end_date": fund["five_year_performance_end_date"],
@@ -5833,7 +5878,7 @@ def build_payload(
         "scale_billion_cny desc, code asc"
     )
     return {
-        "schema_version": 12,
+        "schema_version": 13,
         "run_date": as_of.isoformat(),
         "generated_at": datetime.now(SHANGHAI_TZ).isoformat(timespec="seconds"),
         "holder_report_date": selected.report_date,
@@ -5843,6 +5888,7 @@ def build_payload(
             "min_scale_billion_cny": args.min_scale,
             "min_age_years": args.min_age_years,
             "min_three_year_return_pct": args.min_three_year_return_pct,
+            "three_year_boundary_tolerance_days": THREE_YEAR_BOUNDARY_TOLERANCE_DAYS,
             "min_five_year_return_pct_if_available": args.min_five_year_return_pct,
             "min_ten_year_return_pct_if_available": args.min_ten_year_return_pct,
             "min_us_equity_pct": args.min_us_equity_pct,

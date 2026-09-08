@@ -59,6 +59,16 @@ def format_optional_percentage(value: Any) -> str:
     return "--" if value is None else format_percentage(value, show_sign=True)
 
 
+def format_three_year_boundary(record: Mapping[str, Any]) -> str:
+    days = record.get("three_year_boundary_shortfall_days", 0)
+    if not days:
+        return ""
+    return (
+        f"{record['three_year_performance_start_date']} 至 "
+        f"{record['three_year_performance_end_date']}，距完整三年少 {days} 天"
+    )
+
+
 def format_holding_cost(cost: Mapping[str, Any]) -> str:
     value = cost.get("annualized_pct")
     return "--" if value is None else f"{float(value):.2f}%/年"
@@ -128,6 +138,7 @@ def material_notes(payload: Mapping[str, Any]) -> list[str]:
                 "合同基准告警 ",
                 "产品概要告警 ",
                 "持有费率告警 ",
+                "三年边界容差 ",
                 "额度剔除 ",
                 "美国主榜仅 ",
                 "全球补充榜仅 ",
@@ -194,6 +205,8 @@ def success_plain_text(payload: Mapping[str, Any], page_url: str) -> str:
             f"{format_holding_cost(record['holding_cost'])}  "
             f"{format_limit(record['direct_limit'])}/{format_limit(record['agency_limit'])}"
         )
+        if record.get("three_year_boundary_shortfall_days"):
+            lines.append(f"    {format_three_year_boundary(record)}")
     if not payload["records"]:
         lines.append("暂无符合全部条件的基金")
     lines.extend(
@@ -217,6 +230,8 @@ def success_plain_text(payload: Mapping[str, Any], page_url: str) -> str:
             f"{format_ratio(record['return_drawdown_ratio'])}  "
             f"{format_limit(record['direct_limit'])}/{format_limit(record['agency_limit'])}"
         )
+        if record.get("three_year_boundary_shortfall_days"):
+            lines.append(f"    {format_three_year_boundary(record)}")
     if not global_records:
         lines.append("暂无符合全部条件的基金")
     exclusions = exclusion_lines(payload)
@@ -233,11 +248,16 @@ def success_html(payload: Mapping[str, Any], page_url: str) -> str:
     us_rows: list[str] = []
     for record in payload["records"]:
         fit = record["nasdaq100_fit"]
+        boundary_note = (
+            f"<br><small>{html.escape(format_three_year_boundary(record))}</small>"
+            if record.get("three_year_boundary_shortfall_days") else ""
+        )
         us_rows.append(
             "<tr>"
             f"<td>{record['rank']}</td>"
             f"<td><strong>{html.escape(record['name'])}</strong>"
-            f"<br><span>{html.escape(record['code'])}</span></td>"
+            f"<br><span>{html.escape(record['code'])}</span>"
+            f"{boundary_note}</td>"
             f"<td>{html.escape(format_routing_reason(record['routing_reason']))}</td>"
             f"<td>{html.escape(record['contract_benchmark']['benchmark_name'])}</td>"
             f"<td>{format_correlation(fit['correlation'])}<br>β {format_beta(fit['beta'])}</td>"
@@ -250,10 +270,15 @@ def success_html(payload: Mapping[str, Any], page_url: str) -> str:
         )
     global_rows: list[str] = []
     for record in payload["global_supplement"]["records"]:
+        boundary_note = (
+            f"<br><small>{html.escape(format_three_year_boundary(record))}</small>"
+            if record.get("three_year_boundary_shortfall_days") else ""
+        )
         global_rows.append(
             "<tr>"
             f"<td>{record['rank']}</td>"
-            f"<td><strong>{html.escape(record['name'])}</strong><br><span>{html.escape(record['code'])}</span></td>"
+            f"<td><strong>{html.escape(record['name'])}</strong><br><span>{html.escape(record['code'])}</span>"
+            f"{boundary_note}</td>"
             f"<td>{html.escape(format_routing_reason(record['routing_reason']))}</td>"
             f"<td>{html.escape(record['contract_benchmark']['benchmark_name'])}</td>"
             f"<td>{format_percentage(record['us_equity_exposure']['confirmed_pct'])}-<br>{format_percentage(record['us_equity_exposure']['possible_pct'])}</td>"

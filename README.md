@@ -17,6 +17,11 @@
 长期收益按上述条件参与筛选但不参与排序，费率只展示。完整规则见
 [`references/methodology.md`](references/methodology.md)。
 
+三年净值区间允许最多 7 个自然日的起点边界容差：仍要求成立严格超过三年，仅当目标起点及之前
+没有净值、且首条净值日期就是成立日时适用。收益和回撤按实际净值计算，页面披露实际起止日期与
+“距完整三年少 N 天”；所有使用容差的候选都保留告警。超过 7 天或净值历史与成立日不一致仍阻断
+发布。一年、五年、十年计算及纳指相关性样本要求不放宽。
+
 网页另有“场内溢价”页签，抓取全部场内 QDII（含 `指数型-海外股票`），并展示其中有当前或缓存行情产品的价格、参考值（ETF 为 IOPV、LOF 为最新单位净值）、溢价率、涨跌幅、
 基金运作综合费率（年化）、成交额和行情时间。07:07 日报保存上一交易日快照；页签内可以手动刷新约
 15 分钟延迟行情。页面使用一张紧凑表格按溢价从高到低排列，点击单只产品可展开行情、综合费率、
@@ -60,11 +65,13 @@ node --test scripts/test_premium_refresh.mjs
 node --test scripts/test_valuation_page.mjs
 ```
 
-JSON schema 为 12：顶层 `records` 是美国主榜，`global_supplement.records` 是全球补充榜，
+JSON schema 为 13：顶层 `records` 是美国主榜，`global_supplement.records` 是全球补充榜，
 `exchange_premium.records` 是全部场内 QDII 产品的溢价快照，
 每条记录的 `routing_reason` 说明按美股确认占比分流或按地域名称覆盖分流；
 `exclusion_summary` 汇总候选剔除原因。CSV、Markdown、`latest.html` 和 `public/index.html` 均由
 同一份 JSON 数据生成，两个 HTML 必须字节一致。
+筛选条件中的 `three_year_boundary_tolerance_days` 固定为 7；每条排名记录及 CSV 的
+`three_year_boundary_shortfall_days` 记录实际短缺天数，完整区间为 0。
 
 估值页另写 `output/index-valuation/latest.json`、`latest.html`、`run-metrics.json` 和字节一致的
 `public/valuation/index.html`。schema v2 的 `assets` 固定包含 6 个指数和 1 个黄金标的，资产状态为

@@ -2196,13 +2196,14 @@ class PeriodicReportCache:
         client: HttpClient,
         report: PeriodicReport | LegalDocument,
         referer: str,
+        force_refresh: bool = False,
     ) -> str:
         with self._key_locks_lock:
             key_lock = self._key_locks.setdefault(report.announcement_id, Lock())
         with key_lock:
             self.directory.mkdir(parents=True, exist_ok=True)
             path = self.directory / f"{report.announcement_id}.pdf"
-            if path.exists():
+            if path.exists() and not force_refresh:
                 try:
                     text = self._validate(path.read_bytes())
                     with self._stats_lock:
@@ -3612,6 +3613,7 @@ class QuotaNoticeParseCache:
         self.misses = 0
         self.failures = 0
         self.corrupt_rebuilds = 0
+        self._run_failures: dict[tuple[str, str, str, str], str] = {}
         self._stats_lock = Lock()
         self._key_locks: dict[str, Lock] = {}
         self._key_locks_lock = Lock()
@@ -3675,22 +3677,30 @@ class QuotaNoticeParseCache:
         document_cache: PeriodicReportCache,
     ) -> list[dict[str, Any]]:
         identity = self._identity(notice)
+        identity_key = (
+            identity["id"],
+            identity["title"],
+            identity["published_date"],
+            identity["source_url"],
+        )
+        run_error = self._run_failures.get(identity_key)
+        if run_error is not None:
+            with self._stats_lock:
+                self.hits += 1
+            raise DataError(run_error)
         path = self.directory / f"{identity['id']}.json"
         if path.exists():
             try:
                 transitions, error = self._decode(
                     json.loads(path.read_text(encoding="utf-8")), identity
                 )
-                with self._stats_lock:
-                    self.hits += 1
-                if error is not None:
-                    raise DataError(error)
-                if transitions is None:
-                    raise DataError("Cached quota notice result is missing")
-                return transitions
-            except DataError as exc:
-                if str(exc) and "Cached quota" not in str(exc):
-                    raise
+                if error is None:
+                    if transitions is None:
+                        raise DataError("Cached quota notice result is missing")
+                    with self._stats_lock:
+                        self.hits += 1
+                    return transitions
+            except DataError:
                 with self._stats_lock:
                     self.corrupt_rebuilds += 1
             except (OSError, ValueError, json.JSONDecodeError):
@@ -3705,23 +3715,19 @@ class QuotaNoticeParseCache:
             "quota_notice",
         )
         try:
-            text = document_cache.get_text(client, document, fund["fund_page_url"])
+            text = document_cache.get_text(
+                client,
+                document,
+                fund["fund_page_url"],
+                force_refresh=True,
+            )
             transitions = parse_quota_notice(
                 text, notice["published"], identity["source_url"]
             )
             if not transitions:
                 raise DataError("quota notice produced no effective limit transition")
         except DataError as exc:
-            write_json(
-                path,
-                {
-                    "schema_version": QUOTA_NOTICE_CACHE_SCHEMA_VERSION,
-                    "method_version": QUOTA_NOTICE_METHOD_VERSION,
-                    "identity": identity,
-                    "ok": False,
-                    "error": str(exc),
-                },
-            )
+            self._run_failures[identity_key] = str(exc)
             with self._stats_lock:
                 self.misses += 1
                 self.failures += 1
@@ -5293,18 +5299,33 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
     h1 {{ margin:0; font-size:22px; line-height:1.25; letter-spacing:0; }}
     .run-date,.metric-label,dt,.quota-grid span,.benchmark-detail>span {{ color:var(--muted); font-size:12px; }}
     .run-date {{ white-space:nowrap; }}
-    .filter-line {{ display:flex; flex-wrap:wrap; gap:2px 8px; margin:10px 0 0; color:#35414d; font-size:14px; }}
+    .overview-details {{ margin-top:10px; }}
+    .overview-toggle {{ display:flex; min-height:40px; align-items:center; justify-content:space-between; gap:12px; padding:0 2px; color:#35414d; cursor:pointer; font-weight:700; list-style:none; }}
+    .overview-toggle::-webkit-details-marker {{ display:none; }}
+    .overview-chevron {{ width:9px; height:9px; flex:0 0 auto; border-right:2px solid #7a8793; border-bottom:2px solid #7a8793; transform:rotate(45deg); transition:transform 150ms ease; }}
+    .overview-details[open] .overview-chevron {{ transform:rotate(225deg); }}
+    .overview-content {{ padding-top:2px; }}
+    .filter-line {{ display:flex; flex-wrap:wrap; gap:2px 8px; margin:0; color:#35414d; font-size:14px; }}
     .filter-condition {{ white-space:nowrap; }}
     .filter-condition:not(:last-child)::after {{ content:" ·"; color:var(--muted); }}
     .meta-grid {{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 14px; margin:14px 0 0; }}
     .meta-grid div, .detail-grid div, .rule-grid div {{ min-width:0; }}
     dd {{ margin:2px 0 0; font-weight:650; }}
-    .tabs {{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:4px; margin:0 0 12px; padding:4px; border:1px solid var(--border); border-radius:6px; background:#e9edf1; }}
+    .tabs {{ display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:4px; margin:0 0 12px; padding:4px; border:1px solid var(--border); border-radius:6px; background:#e9edf1; }}
     .tab {{ display:grid; min-height:42px; place-content:center; border:0; border-radius:4px; color:#42505d; background:transparent; cursor:pointer; font-weight:700; text-align:center; text-decoration:none; }}
     .tab[aria-selected="true"] {{ color:var(--text); background:var(--surface); box-shadow:0 1px 2px rgba(20,32,44,.12); }}
     .tab-link {{ color:#284c69; }}
     .tab-count {{ margin-left:6px; color:var(--muted); font-variant-numeric:tabular-nums; }}
-    .tab:focus-visible,.fund-item summary:focus-visible,.refresh-button:focus-visible {{ outline:3px solid #86b7e8; outline-offset:2px; }}
+    .tab:focus-visible,.overview-toggle:focus-visible,.reference-item-link:focus-visible,.fund-item summary:focus-visible,.refresh-button:focus-visible {{ outline:3px solid #86b7e8; outline-offset:2px; }}
+    .reference-panel {{ display:grid; gap:12px; }}
+    .reference-heading h2 {{ margin:0; font-size:17px; }}
+    .reference-heading p {{ margin:3px 0 0; color:var(--muted); font-size:12px; }}
+    .reference-list {{ display:grid; gap:8px; }}
+    .reference-item {{ display:flex; min-width:0; align-items:center; justify-content:space-between; gap:14px; padding:14px; border:1px solid var(--border); border-left:3px solid var(--blue); border-radius:6px; background:var(--surface); }}
+    .reference-copy {{ display:grid; min-width:0; gap:2px; }}
+    .reference-source {{ color:var(--muted); font-size:12px; }}
+    .reference-copy strong {{ font-size:15px; }}
+    .reference-item-link {{ display:inline-flex; min-height:40px; flex:0 0 auto; align-items:center; justify-content:center; gap:5px; padding:7px 11px; border-radius:4px; color:#fff; background:var(--blue); font-weight:700; text-decoration:none; white-space:nowrap; }}
     .ranking-list {{ display:grid; gap:10px; }}
     .fund-item {{ border:1px solid var(--border); border-radius:6px; background:var(--surface); overflow:clip; }}
     .fund-item summary {{ display:grid; grid-template-columns:34px minmax(0,1fr) 18px; align-items:center; gap:0 10px; min-height:72px; padding:12px; cursor:pointer; list-style:none; -webkit-tap-highlight-color:transparent; }}
@@ -5388,7 +5409,8 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
     @keyframes spin {{ to {{ transform:rotate(360deg); }} }}
     @media (max-width:700px) {{
       .title-row {{ gap:8px; }} h1 {{ font-size:20px; }}
-      .tab {{ min-height:50px; padding:5px 2px; font-size:13px; }} .tab-count {{ display:block; margin-left:0; font-size:11px; }}
+      .tab {{ min-height:52px; padding:5px 1px; font-size:12px; }} .tab-count {{ display:block; margin-left:0; font-size:11px; }}
+      .reference-item {{ align-items:stretch; flex-direction:column; gap:10px; }} .reference-item-link {{ align-self:flex-start; }}
       .premium-toolbar {{ align-items:stretch; flex-direction:column; gap:9px; }} .refresh-button {{ align-self:flex-start; }}
       .premium-table-wrap {{ overflow:visible; border:0; background:transparent; }} .premium-table {{ min-width:0; table-layout:auto; }}
       .premium-table thead {{ display:none; }} .premium-table,.premium-item {{ display:block; }}
@@ -5401,24 +5423,29 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
       .premium-detail-grid {{ grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 16px; padding:11px 12px 8px; border-top:1px solid #e5e9ed; }} .premium-source-row {{ margin:0 12px 11px; }}
     }}
     @media (min-width:820px) {{ .page {{ padding-top:28px; }} .meta-grid {{ grid-template-columns:repeat(4,minmax(0,1fr)); }} .fund-item summary {{ grid-template-columns:38px minmax(210px,1fr) minmax(520px,560px) 18px; gap:12px; padding:14px 16px; }} .summary-metrics {{ grid-column:3; grid-row:1; grid-template-columns:repeat(5,minmax(0,1fr)); margin-top:0; }} .chevron {{ grid-column:4; }} .fund-detail {{ padding:18px 66px 20px; }} .detail-grid {{ grid-template-columns:repeat(4,minmax(0,1fr)); }} .rule-grid {{ grid-template-columns:repeat(3,minmax(0,1fr)); }} }}
-    @media (prefers-reduced-motion:reduce) {{ .chevron {{ transition:none; }} .refresh-button[aria-busy="true"] .refresh-icon {{ animation:none; }} }}
+    @media (prefers-reduced-motion:reduce) {{ .overview-chevron,.chevron {{ transition:none; }} .refresh-button[aria-busy="true"] .refresh-icon {{ animation:none; }} }}
   </style>
 </head>
 <body>
   <div class="page">
     <header class="page-header">
       <div class="title-row"><h1>QDII 榜单与场内溢价</h1><time class="run-date" datetime="{html.escape(payload['run_date'], quote=True)}">{html.escape(payload['run_date'])}</time></div>
-      <p class="filter-line">{filter_html}</p>
-      <dl class="meta-grid">
-        <div><dt>机构持仓报告期</dt><dd>{html.escape(payload['holder_report_date'])}</dd></div>
-        <div><dt>规模报告期</dt><dd>{html.escape(scale_dates)}</dd></div>
-        <div><dt>净值区间</dt><dd>{html.escape(summarize_periods(combined, 'three_year'))}</dd></div>
-        <div><dt>纳指基准更新</dt><dd>XNDX {html.escape(payload['benchmark']['index_latest_date'])} · 汇率 {html.escape(payload['benchmark']['fx_latest_date'])}</dd></div>
-        <div><dt>基础候选</dt><dd>{filters['base_candidates_total']} 只</dd></div>
-        <div><dt>合同扫描</dt><dd>{filters['contract_candidates_scanned']} 只</dd></div>
-        <div><dt>美国 / 全球入榜</dt><dd>{len(us_records)} / {len(global_records)} 只</dd></div>
-        <div><dt>数据警告</dt><dd>{len(payload['warnings'])} 项</dd></div>
-      </dl>
+      <details class="overview-details">
+        <summary class="overview-toggle"><span>筛选与数据概览</span><span class="overview-chevron" aria-hidden="true"></span></summary>
+        <div class="overview-content">
+          <p class="filter-line">{filter_html}</p>
+          <dl class="meta-grid">
+            <div><dt>机构持仓报告期</dt><dd>{html.escape(payload['holder_report_date'])}</dd></div>
+            <div><dt>规模报告期</dt><dd>{html.escape(scale_dates)}</dd></div>
+            <div><dt>净值区间</dt><dd>{html.escape(summarize_periods(combined, 'three_year'))}</dd></div>
+            <div><dt>纳指基准更新</dt><dd>XNDX {html.escape(payload['benchmark']['index_latest_date'])} · 汇率 {html.escape(payload['benchmark']['fx_latest_date'])}</dd></div>
+            <div><dt>基础候选</dt><dd>{filters['base_candidates_total']} 只</dd></div>
+            <div><dt>合同扫描</dt><dd>{filters['contract_candidates_scanned']} 只</dd></div>
+            <div><dt>美国 / 全球入榜</dt><dd>{len(us_records)} / {len(global_records)} 只</dd></div>
+            <div><dt>数据警告</dt><dd>{len(payload['warnings'])} 项</dd></div>
+          </dl>
+        </div>
+      </details>
     </header>
     <main>
       <div class="tabs" role="tablist" aria-label="榜单切换">
@@ -5426,6 +5453,7 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
         <button class="tab" id="tab-global" type="button" role="tab" aria-selected="false" aria-controls="panel-global" data-panel="panel-global">全球补充榜<span class="tab-count">{len(global_records)}</span></button>
         <button class="tab" id="tab-premium" type="button" role="tab" aria-selected="false" aria-controls="panel-premium" data-panel="panel-premium">场内溢价<span class="tab-count">{len(premium_records)}</span></button>
         <a class="tab tab-link" id="tab-valuation" href="valuation/" role="tab" aria-selected="false">估值代理<span class="tab-count">研究版</span></a>
+        <button class="tab" id="tab-reference" type="button" role="tab" aria-selected="false" aria-controls="panel-reference" data-panel="panel-reference">平台参考<span class="tab-count">外部</span></button>
       </div>
       <section id="panel-us" class="ranking-list" role="tabpanel" aria-labelledby="tab-us">{render_list(us_records)}</section>
       <section id="panel-global" class="ranking-list" role="tabpanel" aria-labelledby="tab-global" hidden>{render_list(global_records)}</section>
@@ -5440,6 +5468,15 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
             <thead><tr><th>{premium_product_label}</th><th>{premium_group_label}</th><th>溢价</th><th>综合费率</th><th>涨跌</th></tr></thead>
             {premium_rows}
           </table>
+        </div>
+      </section>
+      <section id="panel-reference" class="reference-panel" role="tabpanel" aria-labelledby="tab-reference" hidden>
+        <div class="reference-heading"><h2>第三方平台参考</h2><p>第三方公开榜单，仅作平台热度参考，不代表本站榜单或投资建议。</p></div>
+        <div class="reference-list">
+          <article class="reference-item">
+            <div class="reference-copy"><span class="reference-source">天天基金</span><strong>天天基金月销量总榜</strong></div>
+            <a class="reference-item-link" href="https://fund.eastmoney.com/fundhot8.html" target="_blank" rel="noopener noreferrer"><span>查看榜单</span><span aria-hidden="true">↗</span></a>
+          </article>
         </div>
       </section>
       {warning_section}

@@ -2053,15 +2053,19 @@ class PeriodicReportTests(unittest.TestCase):
             cache = ranking.PeriodicReportCache(Path(directory))
             self.assertEqual("parsed", cache.get_text(client, report, "referer"))
             self.assertEqual("parsed", cache.get_text(client, report, "referer"))
+            self.assertEqual(
+                "parsed",
+                cache.get_text(client, report, "referer", force_refresh=True),
+            )
             (Path(directory) / "report-id.pdf").write_bytes(b"bad")
             self.assertEqual("parsed", cache.get_text(client, report, "referer"))
-            self.assertEqual(2, client.calls)
+            self.assertEqual(3, client.calls)
             self.assertEqual(
                 {
                     "hits": 1,
-                    "downloads": 2,
+                    "downloads": 3,
                     "corrupt_redownloads": 1,
-                    "text_extractions": 3,
+                    "text_extractions": 4,
                 },
                 cache.stats(),
             )
@@ -2718,13 +2722,15 @@ class QuotaNoticeTests(unittest.TestCase):
 
 
 class QuotaParseCacheTests(unittest.TestCase):
-    def test_reuses_success_and_failure_by_announcement_id(self):
+    def test_reuses_success_across_runs_and_failure_within_run(self):
         class Documents:
             def __init__(self):
                 self.calls = 0
 
-            def get_text(self, *_args):
+            def get_text(self, *_args, **kwargs):
                 self.calls += 1
+                if kwargs.get("force_refresh") is not True:
+                    raise AssertionError("quota cache misses must refresh the PDF")
                 return "notice text"
 
         fund = {"code": "000001", "fund_page_url": "https://example.test/fund"}
@@ -2753,17 +2759,135 @@ class QuotaParseCacheTests(unittest.TestCase):
                 self.assertEqual([transition], cache.get(object(), fund, notice, documents))
                 self.assertEqual([transition], cache.get(object(), fund, notice, documents))
                 self.assertEqual(1, parse.call_count)
+            reloaded_cache = ranking.QuotaNoticeParseCache(Path(directory))
+            with patch.object(ranking, "parse_quota_notice") as parse:
+                self.assertEqual(
+                    [transition], reloaded_cache.get(object(), fund, notice, documents)
+                )
+                parse.assert_not_called()
             failed = {**notice, "id": "notice-2", "url": "https://example.test/notice-2.pdf"}
             with patch.object(ranking, "parse_quota_notice", return_value=[]) as parse:
                 with self.assertRaisesRegex(ranking.DataError, "no effective"):
                     cache.get(object(), fund, failed, documents)
                 with self.assertRaisesRegex(ranking.DataError, "no effective"):
-                    cache.get(object(), fund, failed, documents)
+                    cache.get(
+                        object(),
+                        {**fund, "code": "000002"},
+                        failed,
+                        documents,
+                    )
                 self.assertEqual(1, parse.call_count)
+            self.assertFalse((Path(directory) / "notice-2.json").exists())
         self.assertEqual(2, documents.calls)
         self.assertEqual(2, cache.stats()["hits"])
         self.assertEqual(2, cache.stats()["misses"])
         self.assertEqual(1, cache.stats()["failures"])
+
+    def test_retries_failure_in_a_new_run_and_persists_recovery(self):
+        class Documents:
+            def __init__(self):
+                self.calls = 0
+
+            def get_text(self, *_args, **kwargs):
+                self.calls += 1
+                if kwargs.get("force_refresh") is not True:
+                    raise AssertionError("quota cache misses must refresh the PDF")
+                return "notice text"
+
+        fund = {"code": "016701", "fund_page_url": "https://example.test/016701"}
+        notice = {
+            "id": "notice-recovery",
+            "title": "调整大额申购限制金额的公告",
+            "published": date(2026, 9, 7),
+            "url": "https://example.test/notice-recovery.pdf",
+        }
+        transition = {
+            "effective_date": date(2026, 9, 8),
+            "direct_amount_cny": 2000000,
+            "agency_amount_cny": 1000,
+            "global_amount_cny": 2000000,
+            "global_status": "limited",
+            "source_url": notice["url"],
+            "published_date": "2026-09-07",
+            "share_aggregation": "A/C combined",
+            "all_channels_combined": False,
+            "confidence": "high",
+        }
+        documents = Documents()
+        with TemporaryDirectory() as directory:
+            first_run = ranking.QuotaNoticeParseCache(Path(directory))
+            with patch.object(ranking, "parse_quota_notice", return_value=[]):
+                with self.assertRaisesRegex(ranking.DataError, "no effective"):
+                    first_run.get(object(), fund, notice, documents)
+
+            second_run = ranking.QuotaNoticeParseCache(Path(directory))
+            with patch.object(ranking, "parse_quota_notice", return_value=[transition]) as parse:
+                self.assertEqual(
+                    [transition], second_run.get(object(), fund, notice, documents)
+                )
+                self.assertEqual(1, parse.call_count)
+
+            third_run = ranking.QuotaNoticeParseCache(Path(directory))
+            with patch.object(ranking, "parse_quota_notice") as parse:
+                self.assertEqual(
+                    [transition], third_run.get(object(), fund, notice, documents)
+                )
+                parse.assert_not_called()
+        self.assertEqual(2, documents.calls)
+
+    def test_retries_legacy_persisted_failure(self):
+        class Documents:
+            def __init__(self):
+                self.calls = 0
+
+            def get_text(self, *_args, **kwargs):
+                self.calls += 1
+                if kwargs.get("force_refresh") is not True:
+                    raise AssertionError("quota cache misses must refresh the PDF")
+                return "notice text"
+
+        fund = {"code": "016701", "fund_page_url": "https://example.test/016701"}
+        notice = {
+            "id": "legacy-failure",
+            "title": "调整大额申购限制金额的公告",
+            "published": date(2026, 9, 7),
+            "url": "https://example.test/legacy-failure.pdf",
+        }
+        identity = ranking.QuotaNoticeParseCache._identity(notice)
+        transition = {
+            "effective_date": date(2026, 9, 8),
+            "direct_amount_cny": 2000000,
+            "agency_amount_cny": 1000,
+            "global_amount_cny": 2000000,
+            "global_status": "limited",
+            "source_url": notice["url"],
+            "published_date": "2026-09-07",
+            "share_aggregation": "A/C combined",
+            "all_channels_combined": False,
+            "confidence": "high",
+        }
+        documents = Documents()
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "legacy-failure.json"
+            ranking.write_json(
+                path,
+                {
+                    "schema_version": ranking.QUOTA_NOTICE_CACHE_SCHEMA_VERSION,
+                    "method_version": ranking.QUOTA_NOTICE_METHOD_VERSION,
+                    "identity": identity,
+                    "ok": False,
+                    "error": "quota notice produced no effective limit transition",
+                },
+            )
+            cache = ranking.QuotaNoticeParseCache(Path(directory))
+            with patch.object(ranking, "parse_quota_notice", return_value=[transition]) as parse:
+                self.assertEqual([transition], cache.get(object(), fund, notice, documents))
+                self.assertEqual(1, parse.call_count)
+            persisted = json.loads(path.read_text(encoding="utf-8"))
+            self.assertTrue(persisted["ok"])
+            self.assertEqual(1, cache.stats()["misses"])
+            self.assertEqual(0, cache.stats()["corrupt_rebuilds"])
+        self.assertEqual(1, documents.calls)
 
 
 if __name__ == "__main__":

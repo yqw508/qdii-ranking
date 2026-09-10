@@ -127,8 +127,10 @@ Each performance-qualified fund has one daily announcement-index snapshot shared
 and quota processing. A cold cache paginates until the legal-document history is seeded; later runs
 check the first page and merge new IDs. Parsed contract profiles, report exposure, and quota transitions
 are keyed by source announcement IDs, catalog fingerprints, and parser versions. A parser-version change
-invalidates only its derived cache. Cached failures remain failures until the source or parser identity
-changes.
+invalidates only its derived cache. Successful quota parses remain reusable across runs. A failed quota
+parse is reused only within the current process and is retried with a fresh PDF after the next
+announcement-index revalidation, so a transient PDF or extraction failure cannot permanently hide an
+eligible fund.
 
 PDF bytes remain cached by announcement ID. On a derived-result cache miss they must still be valid PDFs
 with extractable text. Historical runs never consume a future NAV, benchmark point, allocation, or

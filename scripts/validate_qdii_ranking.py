@@ -87,6 +87,11 @@ class RankingHtmlParser(HTMLParser):
         self.premium_table_count = 0
         self.premium_toggle_count = 0
         self.valuation_link_count = 0
+        self.reference_tab_count = 0
+        self.fund_hot_reference_count = 0
+        self.fund_hot_link_count = 0
+        self.fund_hot_safe_link_count = 0
+        self.overview_details_count = 0
         self.all_text: list[str] = []
         self._current_code: str | None = None
         self._current_text: list[str] = []
@@ -102,12 +107,25 @@ class RankingHtmlParser(HTMLParser):
             self.refresh_button_count += 1
         if tag == "button" and attributes.get("id") == "tab-premium":
             self.premium_tab_count += 1
+        if tag == "button" and attributes.get("id") == "tab-reference":
+            self.reference_tab_count += 1
         if tag == "table" and "premium-table" in classes:
             self.premium_table_count += 1
         if tag == "button" and "premium-row-toggle" in classes:
             self.premium_toggle_count += 1
         if tag == "a" and attributes.get("href") in {"valuation/", "/valuation/"}:
             self.valuation_link_count += 1
+        if tag == "section" and attributes.get("id") == "panel-reference":
+            self.fund_hot_reference_count += 1
+        if tag == "details" and "overview-details" in classes:
+            self.overview_details_count += 1
+            if "open" in attributes:
+                raise ValidationError("Collapsible overview must be closed by default")
+        if tag == "a" and attributes.get("href") == "https://fund.eastmoney.com/fundhot8.html":
+            self.fund_hot_link_count += 1
+            rel = set((attributes.get("rel") or "").split())
+            if attributes.get("target") == "_blank" and {"noopener", "noreferrer"} <= rel:
+                self.fund_hot_safe_link_count += 1
         if tag == "details" and "fund-item" in classes:
             code = attributes.get("data-code")
             if not code or self._current_code is not None:
@@ -1266,6 +1284,22 @@ def validate_html_document(
     require(parser.premium_toggle_count == len(premium_records), f"{label} ETF detail toggles differ")
     require(parser.valuation_link_count == 1, f"{label} valuation-page entry is missing or duplicated")
     require("估值代理" in all_text, f"{label} valuation-page label is missing")
+    require(parser.reference_tab_count == 1, f"{label} platform-reference tab is missing or duplicated")
+    require(parser.fund_hot_reference_count == 1, f"{label} platform-reference panel is missing or duplicated")
+    require(parser.fund_hot_link_count == 1, f"{label} fund-hot external link is missing or duplicated")
+    require(parser.fund_hot_safe_link_count == 1, f"{label} fund-hot external link lacks safe attributes")
+    require(parser.overview_details_count == 1, f"{label} collapsible overview is missing or duplicated")
+    require(parser.all_text.count("筛选与数据概览") == 1, f"{label} overview toggle label is missing or duplicated")
+    require(parser.all_text.count("平台参考") == 1, f"{label} platform-reference tab label is missing or duplicated")
+    require(parser.all_text.count("第三方平台参考") == 1, f"{label} fund-hot reference label is missing or duplicated")
+    require(parser.all_text.count("天天基金月销量总榜") == 1, f"{label} fund-hot title is missing or duplicated")
+    require(
+        document.index('class="tabs"') < document.index('id="panel-reference"'),
+        f"{label} platform-reference panel must follow the tabs",
+    )
+    footer = re.search(r"<footer\b.*?</footer>", document, re.S)
+    require(footer is not None, f"{label} footer is missing")
+    require("fundhot8.html" not in footer.group(0), f"{label} footer still contains the fund-hot link")
     require("约15分钟" in all_text or "约 15 分钟" in all_text, f"{label} quote delay disclosure is missing")
     for record in premium_records:
         code = record["code"]

@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import html
+import io
 import json
 import math
 import os
@@ -15,6 +16,8 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import zipfile
+import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
@@ -24,8 +27,8 @@ from threading import get_ident
 from typing import Any, Callable, Iterable
 
 
-SCHEMA_VERSION = 2
-CACHE_SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
+CACHE_SCHEMA_VERSION = 3
 WINDOW_MONTHS = 120
 # Full Nasdaq scans intentionally fetch a small history buffer before the
 # nominal 120-month window.  DQYDJ can lag the current ended month by one or
@@ -34,6 +37,8 @@ WINDOW_MONTHS = 120
 # history to build the required window.
 FULL_SCAN_BUFFER_MONTHS = 2
 TAIL_DAYS = 100
+NDXTMC_LIVE_START = date(2022, 3, 19)
+NDXTMC_HISTORY_CHUNK_DAYS = 366
 SHANGHAI_TZ = timezone(timedelta(hours=8))
 DEFAULT_CATALOG = (
     Path(__file__).resolve().parents[1] / "references" / "index-valuation-catalog.json"
@@ -48,12 +53,15 @@ SNOWBALL_SOURCE_ID = "snowball"
 GOLD_SOURCE_ID = "gold"
 DQYDJ_SOURCE_ID = "dqydj"
 NASDAQ_TICKERS = ("RSP", "EQWL", "EWU", "SPY")
+NDXTMC_SOURCE_ID = "nasdaq-ndxtmc"
 DIRECT_ASSET_IDS = ("nasdaq-100", "sp-500", "dax")
 PROXY_ASSET_IDS = (
     "sp-500-equal-weight",
     "sp-100-equal-weight",
     "ftse-100-proxy",
+    "nasdaq-100-technology",
 )
+RELATIVE_PROXY_ASSET_ID = "nasdaq-100-technology"
 GOLD_ASSET_ID = "gold-dual-anchor"
 EXPECTED_ASSET_IDS = DIRECT_ASSET_IDS + PROXY_ASSET_IDS + (GOLD_ASSET_ID,)
 PERFORMANCE_TARGETS = {
@@ -72,6 +80,18 @@ NASDAQ_HEADERS = {
     "Accept": "application/json, text/plain, */*",
     "Origin": "https://www.nasdaq.com",
     "Referer": "https://www.nasdaq.com/",
+}
+NDXTMC_WORKBOOK_HEADERS = {
+    **BASE_HEADERS,
+    "Accept": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,*/*",
+    "Referer": "https://indexes.nasdaqomx.com/Index/Overview/NDXTMC",
+}
+NDXTMC_HISTORY_HEADERS = {
+    **BASE_HEADERS,
+    "Accept": "application/json, text/plain, */*",
+    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    "Referer": "https://indexes.nasdaqomx.com/Index/Overview/NDXTMC",
+    "X-Requested-With": "XMLHttpRequest",
 }
 DQYDJ_HEADERS = {
     **BASE_HEADERS,
@@ -112,11 +132,21 @@ class HttpClient:
         self.retries = retries
 
     def fetch(self, url: str, headers: dict[str, str]) -> FetchResponse:
+        return self._request(url, headers, None)
+
+    def post_form(
+        self, url: str, fields: dict[str, str], headers: dict[str, str]
+    ) -> FetchResponse:
+        return self._request(url, headers, urllib.parse.urlencode(fields).encode("ascii"))
+
+    def _request(
+        self, url: str, headers: dict[str, str], body_data: bytes | None
+    ) -> FetchResponse:
         started = time.perf_counter()
         last_error: Exception | None = None
         for attempt in range(1, self.retries + 1):
             try:
-                request = urllib.request.Request(url, headers=headers)
+                request = urllib.request.Request(url, headers=headers, data=body_data)
                 with urllib.request.urlopen(request, timeout=self.timeout) as response:
                     body = response.read()
                     status = int(response.status)
@@ -264,6 +294,165 @@ def parse_nasdaq_history(body: bytes, ticker: str) -> list[dict[str, Any]]:
     if not points:
         raise ValuationError(f"{ticker} Nasdaq response has no valid price rows")
     return [{"date": key, "close": points[key]} for key in sorted(points)]
+
+
+def _store_price_point(
+    points: dict[str, float], trading_date: str, close: float, label: str
+) -> None:
+    previous = points.get(trading_date)
+    if previous is not None and not math.isclose(previous, close, rel_tol=0, abs_tol=1e-9):
+        raise ValuationError(
+            f"{label} contains conflicting values for {trading_date}: "
+            f"{previous} and {close}"
+        )
+    points[trading_date] = close
+
+
+def _xlsx_shared_strings(archive: zipfile.ZipFile) -> list[str]:
+    try:
+        root = ET.fromstring(archive.read("xl/sharedStrings.xml"))
+    except KeyError:
+        return []
+    except ET.ParseError as exc:
+        raise ValuationError("NDXTMC workbook shared strings are invalid") from exc
+    namespace = {"x": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+    return [
+        "".join(node.text or "" for node in item.findall(".//x:t", namespace))
+        for item in root.findall("x:si", namespace)
+    ]
+
+
+def parse_ndxtmc_workbook(body: bytes) -> list[dict[str, Any]]:
+    try:
+        with zipfile.ZipFile(io.BytesIO(body)) as archive:
+            shared = _xlsx_shared_strings(archive)
+            sheet = ET.fromstring(archive.read("xl/worksheets/sheet1.xml"))
+    except (KeyError, OSError, zipfile.BadZipFile, ET.ParseError) as exc:
+        raise ValuationError("NDXTMC official workbook is not a supported XLSX file") from exc
+    namespace = {"x": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+    rows: list[dict[str, str]] = []
+    for row in sheet.findall(".//x:sheetData/x:row", namespace):
+        values: dict[str, str] = {}
+        for cell in row.findall("x:c", namespace):
+            reference = str(cell.get("r") or "")
+            column_match = re.match(r"[A-Z]+", reference)
+            if not column_match:
+                continue
+            value_node = cell.find("x:v", namespace)
+            if value_node is None or value_node.text is None:
+                continue
+            value = value_node.text
+            if cell.get("t") == "s":
+                try:
+                    value = shared[int(value)]
+                except (IndexError, ValueError) as exc:
+                    raise ValuationError("NDXTMC workbook has an invalid shared string") from exc
+            values[column_match.group(0)] = value
+        if values:
+            rows.append(values)
+    if not rows or rows[0].get("A") != "Date" or rows[0].get("B") != "NDXTMC":
+        raise ValuationError("NDXTMC workbook headers must be Date and NDXTMC")
+    points: dict[str, float] = {}
+    excel_epoch = date(1899, 12, 30)
+    for row in rows[1:]:
+        if "A" not in row or "B" not in row:
+            continue
+        try:
+            raw_date = row["A"]
+            if re.fullmatch(r"\d+(?:\.0+)?", raw_date):
+                trading_date = excel_epoch + timedelta(days=int(float(raw_date)))
+            else:
+                trading_date = datetime.fromisoformat(raw_date).date()
+            close = positive_number(row["B"], "NDXTMC workbook value")
+        except (OverflowError, ValueError, ValuationError) as exc:
+            raise ValuationError(f"NDXTMC workbook contains an invalid row: {row!r}") from exc
+        _store_price_point(points, trading_date.isoformat(), close, "NDXTMC workbook")
+    if not points:
+        raise ValuationError("NDXTMC workbook contains no valid index values")
+    return [{"date": key, "close": points[key]} for key in sorted(points)]
+
+
+def parse_ndxtmc_history(body: bytes) -> list[dict[str, Any]]:
+    try:
+        rows = json.loads(body.decode("utf-8-sig"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValuationError("NDXTMC history response is not valid JSON") from exc
+    if not isinstance(rows, list) or not rows:
+        raise ValuationError("NDXTMC history response has no rows")
+    points: dict[str, float] = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            raise ValuationError("NDXTMC history response contains a non-object row")
+        symbol = row.get("FPSymbol")
+        if symbol not in {None, "NDXTMC"}:
+            raise ValuationError(f"NDXTMC history returned unexpected symbol {symbol!r}")
+        try:
+            timestamp = finite_number(row.get("x"), "NDXTMC timestamp")
+            trading_date = datetime.fromtimestamp(timestamp / 1000, timezone.utc).date()
+            close = positive_number(row.get("y"), "NDXTMC index value")
+        except (OSError, OverflowError, ValueError, ValuationError) as exc:
+            raise ValuationError(f"NDXTMC history contains an invalid row: {row!r}") from exc
+        _store_price_point(points, trading_date.isoformat(), close, "NDXTMC history")
+    return [{"date": key, "close": points[key]} for key in sorted(points)]
+
+
+def merge_ndxtmc_points(*series: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    points: dict[str, float] = {}
+    for rows in series:
+        for row in rows:
+            try:
+                trading_date = datetime.strptime(str(row["date"]), "%Y-%m-%d").date()
+                close = positive_number(row["close"], "NDXTMC normalized value")
+            except (KeyError, ValueError, ValuationError) as exc:
+                raise ValuationError(f"Invalid NDXTMC normalized point: {row!r}") from exc
+            _store_price_point(points, trading_date.isoformat(), close, "NDXTMC merge")
+    if not points:
+        raise ValuationError("NDXTMC merged history is empty")
+    return [{"date": key, "close": points[key]} for key in sorted(points)]
+
+
+def validate_ndxtmc_boundary(
+    workbook_points: list[dict[str, Any]], live_points: list[dict[str, Any]]
+) -> None:
+    workbook_end = datetime.strptime(workbook_points[-1]["date"], "%Y-%m-%d").date()
+    live_start = datetime.strptime(live_points[0]["date"], "%Y-%m-%d").date()
+    gap_days = (live_start - workbook_end).days
+    if gap_days < 1 or gap_days > 4:
+        raise ValuationError(
+            "NDXTMC workbook/live boundary is not a normal trading-day transition: "
+            f"{workbook_end.isoformat()} to {live_start.isoformat()}"
+        )
+
+
+def ndxtmc_workbook_matches_cache(
+    workbook_points: list[dict[str, Any]], cached_points: list[dict[str, Any]]
+) -> bool:
+    try:
+        workbook = {
+            str(item["date"]): positive_number(item["close"], "NDXTMC workbook cache comparison")
+            for item in workbook_points
+        }
+        cached = {
+            str(item["date"]): positive_number(item["close"], "NDXTMC cached static comparison")
+            for item in cached_points
+            if datetime.strptime(str(item["date"]), "%Y-%m-%d").date() < NDXTMC_LIVE_START
+        }
+    except (KeyError, ValueError, ValuationError):
+        return False
+    return len(workbook) == len(cached) and all(
+        math.isclose(value, cached.get(trading_date, math.nan), rel_tol=0, abs_tol=1e-9)
+        for trading_date, value in workbook.items()
+    )
+
+
+def parse_normalized_ndxtmc(body: bytes) -> list[dict[str, Any]]:
+    try:
+        rows = json.loads(body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValuationError("NDXTMC normalized response is invalid JSON") from exc
+    if not isinstance(rows, list):
+        raise ValuationError("NDXTMC normalized response is not a list")
+    return merge_ndxtmc_points(rows)
 
 
 def parse_dqydj_pe(body: bytes) -> list[dict[str, Any]]:
@@ -506,10 +695,19 @@ def load_catalog(path: Path) -> tuple[dict[str, Any], str]:
             raise ValuationError("Default valuation asset is missing")
         for item in assets:
             if item["source_mode"] == "proxy":
-                if item["ticker"] not in NASDAQ_TICKERS or item["baseline_ticker"] != "SPY":
+                value_kind = item.get("value_kind", "calibrated_pe")
+                if item["baseline_ticker"] != "SPY":
+                    raise ValuationError("Proxy catalog baseline is unsupported")
+                if value_kind == "relative_score":
+                    if item["id"] != RELATIVE_PROXY_ASSET_ID or item["ticker"] != "NDXTMC":
+                        raise ValuationError("Relative proxy catalog configuration is unsupported")
+                    if "anchor" in item:
+                        raise ValuationError("Relative proxy must not define a PE anchor")
+                elif value_kind == "calibrated_pe" and item["ticker"] in NASDAQ_TICKERS:
+                    month_start(item["anchor"]["month"])
+                    positive_number(item["anchor"]["pe_ttm"], "proxy anchor PE")
+                else:
                     raise ValuationError("Proxy catalog ticker configuration is unsupported")
-                month_start(item["anchor"]["month"])
-                positive_number(item["anchor"]["pe_ttm"], "proxy anchor PE")
     except (KeyError, TypeError, ValueError) as exc:
         raise ValuationError("Valuation catalog is incomplete") from exc
     return catalog, hashlib.sha256(raw).hexdigest()
@@ -522,7 +720,7 @@ def source_cache_id(ticker: str) -> str:
 def all_source_ids() -> tuple[str, ...]:
     return (SNOWBALL_SOURCE_ID, GOLD_SOURCE_ID, DQYDJ_SOURCE_ID) + tuple(
         source_cache_id(ticker) for ticker in NASDAQ_TICKERS
-    )
+    ) + (NDXTMC_SOURCE_ID,)
 
 
 def source_fingerprint(catalog_hash: str, source_id: str) -> str:
@@ -535,6 +733,7 @@ def source_fingerprint(catalog_hash: str, source_id: str) -> str:
             "gold": 1,
             "dqydj": 1,
             "nasdaq": 1,
+            "ndxtmc": 1,
         },
     }
     return hashlib.sha256(
@@ -558,7 +757,7 @@ def _anchor_months(catalog: dict[str, Any]) -> set[str]:
     return {
         asset["anchor"]["month"]
         for asset in catalog["assets"]
-        if asset["source_mode"] == "proxy"
+        if asset["source_mode"] == "proxy" and "anchor" in asset
     }
 
 
@@ -593,12 +792,28 @@ def validate_source_data(
         if not isinstance(data, list):
             raise ValuationError("DQYDJ 规范化缓存不是列表")
         validate_pe_points(data, _anchor_months(catalog))
+    elif source_id == NDXTMC_SOURCE_ID:
+        if not isinstance(data, list):
+            raise ValuationError("NDXTMC 规范化缓存不是列表")
+        validate_price_points(data, "NDXTMC", set())
+        static_points = [
+            item for item in data
+            if datetime.strptime(str(item["date"]), "%Y-%m-%d").date() < NDXTMC_LIVE_START
+        ]
+        live_points = [
+            item for item in data
+            if datetime.strptime(str(item["date"]), "%Y-%m-%d").date() >= NDXTMC_LIVE_START
+        ]
+        if not static_points or not live_points:
+            raise ValuationError("NDXTMC cache lacks an official static or live history segment")
+        validate_ndxtmc_boundary([static_points[-1]], [live_points[0]])
     elif source_id.startswith("nasdaq-"):
         ticker = source_id.removeprefix("nasdaq-").upper()
         required = {
             asset["anchor"]["month"]
             for asset in catalog["assets"]
             if asset["source_mode"] == "proxy"
+            and "anchor" in asset
             and (asset["ticker"] == ticker or asset["baseline_ticker"] == ticker)
         }
         if not isinstance(data, list):
@@ -690,9 +905,84 @@ def conditional_headers(
     return headers
 
 
-def run_parallel_requests(
+def _date_chunks(start: date, end: date) -> list[tuple[date, date]]:
+    chunks: list[tuple[date, date]] = []
+    cursor = start
+    while cursor <= end:
+        chunk_end = min(end, cursor + timedelta(days=NDXTMC_HISTORY_CHUNK_DAYS - 1))
+        chunks.append((cursor, chunk_end))
+        cursor = chunk_end + timedelta(days=1)
+    return chunks
+
+
+def fetch_ndxtmc_source(
     client: HttpClient,
-    requests: dict[str, tuple[str, dict[str, str]]],
+    source: dict[str, Any],
+    cached: dict[str, Any] | None,
+    as_of: date,
+    refresh_mode: str,
+) -> FetchResponse:
+    started = time.perf_counter()
+    workbook_response = client.fetch(
+        source["workbook_url"],
+        conditional_headers(NDXTMC_WORKBOOK_HEADERS, cached),
+    )
+    workbook_changed = workbook_response.status == 200
+    if workbook_changed:
+        workbook_points = parse_ndxtmc_workbook(workbook_response.body)
+        if cached is not None and ndxtmc_workbook_matches_cache(
+            workbook_points, cached["data"]
+        ):
+            workbook_changed = False
+        base_points = workbook_points if workbook_changed else cached["data"]
+    elif workbook_response.status == 304 and cached is not None:
+        workbook_points = []
+        base_points = cached["data"]
+    else:
+        raise ValuationError("NDXTMC workbook returned 304 without a valid cache")
+
+    live_start = (
+        NDXTMC_LIVE_START
+        if refresh_mode == "full" or cached is None or workbook_changed
+        else max(NDXTMC_LIVE_START, as_of - timedelta(days=TAIL_DAYS))
+    )
+    live_parts: list[list[dict[str, Any]]] = []
+    total_bytes = len(workbook_response.body)
+    total_attempts = workbook_response.attempts
+    for chunk_start, chunk_end in _date_chunks(live_start, as_of):
+        response = client.post_form(
+            source["history_url"],
+            {
+                "id": "NDXTMC",
+                "startDate": f"{chunk_start.isoformat()}T00:00:00",
+                "endDate": f"{chunk_end.isoformat()}T00:00:00",
+            },
+            NDXTMC_HISTORY_HEADERS,
+        )
+        live_parts.append(parse_ndxtmc_history(response.body))
+        total_bytes += len(response.body)
+        total_attempts += response.attempts
+    live_points = merge_ndxtmc_points(*live_parts)
+    if workbook_changed:
+        validate_ndxtmc_boundary(workbook_points, live_points)
+    merged = merge_ndxtmc_points(base_points, live_points)
+    body = json.dumps(merged, separators=(",", ":")).encode("utf-8")
+    return FetchResponse(
+        body=body,
+        elapsed_seconds=time.perf_counter() - started,
+        attempts=total_attempts,
+        status=200,
+        url=source["page_url"],
+        headers={
+            "etag": workbook_response.headers.get("etag", ""),
+            "last-modified": workbook_response.headers.get("last-modified", ""),
+            "x-download-bytes": str(total_bytes),
+        },
+    )
+
+
+def run_parallel_requests(
+    requests: dict[str, Callable[[], FetchResponse]],
 ) -> tuple[dict[str, FetchResponse], dict[str, str], float]:
     responses: dict[str, FetchResponse] = {}
     failures: dict[str, str] = {}
@@ -701,8 +991,8 @@ def run_parallel_requests(
         max_workers=len(requests), thread_name_prefix="valuation-source"
     ) as pool:
         futures = {
-            pool.submit(client.fetch, url, headers): source_id
-            for source_id, (url, headers) in requests.items()
+            pool.submit(fetcher): source_id
+            for source_id, fetcher in requests.items()
         }
         for future in as_completed(futures):
             source_id = futures[future]
@@ -777,6 +1067,8 @@ def _parse_response(
         return parse_gold_snapshot(response.body, as_of)
     if source_id == DQYDJ_SOURCE_ID:
         return parse_dqydj_pe(response.body)
+    if source_id == NDXTMC_SOURCE_ID:
+        return parse_normalized_ndxtmc(response.body)
     ticker = source_id.removeprefix("nasdaq-").upper()
     refreshed = parse_nasdaq_history(response.body, ticker)
     if cached is not None:
@@ -792,12 +1084,16 @@ def _parse_response(
 
 
 def _source_name(source_id: str, catalog: dict[str, Any]) -> str:
+    if source_id == NDXTMC_SOURCE_ID:
+        return catalog["sources"]["ndxtmc"]["name"]
     if source_id.startswith("nasdaq-"):
         return f"Nasdaq {source_id.removeprefix('nasdaq-').upper()} 历史行情"
     return catalog["sources"][source_id]["name"]
 
 
 def _source_page_url(source_id: str, catalog: dict[str, Any]) -> str:
+    if source_id == NDXTMC_SOURCE_ID:
+        return catalog["sources"]["ndxtmc"]["page_url"]
     if source_id.startswith("nasdaq-"):
         ticker = source_id.removeprefix("nasdaq-")
         return catalog["sources"]["nasdaq"]["page_url"].format(ticker=ticker)
@@ -970,6 +1266,75 @@ def build_proxy_asset(
     }
 
 
+def build_relative_proxy_asset(
+    config: dict[str, Any], data: dict[str, Any], source_states: dict[str, str], through: str
+) -> dict[str, Any]:
+    target_id = NDXTMC_SOURCE_ID
+    baseline_id = source_cache_id(config["baseline_ticker"])
+    source_ids = [target_id, baseline_id, DQYDJ_SOURCE_ID]
+    status = _asset_status(source_ids, source_states)
+    if status == "unavailable" or any(data.get(source_id) is None for source_id in source_ids):
+        return _unavailable_asset(config, source_ids, "相对 PE 分位模型的指数、行情或盈利数据不可用且无有效缓存。")
+    target = monthly_average(data[target_id])
+    baseline = monthly_average(data[baseline_id])
+    pe = {str(item["month"]): float(item["pe_ttm"]) for item in data[DQYDJ_SOURCE_ID]}
+    try:
+        months = select_contiguous_window(target, baseline, pe, through)
+    except ValuationError as exc:
+        return _unavailable_asset(config, source_ids, str(exc))
+    values: list[float] = []
+    history: list[dict[str, Any]] = []
+    for month in months:
+        value = round(pe[month] * (target[month] / baseline[month]), 6)
+        values.append(value)
+        history.append({"month": month, "relative_score": value})
+    current_value = values[-1]
+    return {
+        "id": config["id"],
+        "asset_class": config["asset_class"],
+        "source_mode": config["source_mode"],
+        "name": config["name"],
+        "code": config["code"],
+        "region": config["region"],
+        "frequency": "monthly",
+        "status": status,
+        "as_of": months[-1],
+        "current": {
+            "relative_percentile_10y": round(
+                percentile_midrank(values, current_value), 2
+            ),
+            "sample_count": len(values),
+            "window_start": months[0],
+            "window_end": months[-1],
+            "reference_levels": {
+                "p30": round(quantile(values, 0.30), 6),
+                "p50": round(quantile(values, 0.50), 6),
+                "p70": round(quantile(values, 0.70), 6),
+            },
+        },
+        "history": history,
+        "history_status": "available",
+        "method": {
+            "id": config["method_id"],
+            "label": "NDXTMC/SPY 相对 PE 分位代理",
+            "value_kind": "relative_score",
+            "formula": "relative_score_m = S&P500_PE_m × (NDXTMC_m / SPY_m)",
+            "price_aggregation": "calendar_month_mean_index_and_close",
+            "percentile": "midrank_120_complete_months",
+            "quantile": "linear_interpolation_inclusive",
+            "definition_url": config["definition_url"],
+            "experimental": False,
+            "limitations": [
+                *config["limitations"],
+                "相对分数仅用于计算自身历史分位，不是 PE 倍数。",
+                "结果不构成投资建议，也不输出低估或高估判断。",
+            ],
+        },
+        "source_ids": source_ids,
+        "warnings": [],
+    }
+
+
 def build_gold_asset(
     config: dict[str, Any],
     data: Any,
@@ -1062,7 +1427,11 @@ def build_payload(
     client: HttpClient,
 ) -> tuple[dict[str, Any], dict[str, dict[str, Any]], dict[str, Any], dict[str, Any]]:
     run_month = as_of.strftime("%Y-%m")
-    all_nasdaq_cached = all(source_cache_id(ticker) in caches for ticker in NASDAQ_TICKERS)
+    all_nasdaq_cached = all(
+        source_id in caches
+        for source_id in tuple(source_cache_id(ticker) for ticker in NASDAQ_TICKERS)
+        + (NDXTMC_SOURCE_ID,)
+    )
     refresh_mode = (
         "tail"
         if manifest is not None
@@ -1079,24 +1448,29 @@ def build_payload(
         else as_of - timedelta(days=TAIL_DAYS)
     )
     sources = catalog["sources"]
-    requests: dict[str, tuple[str, dict[str, str]]] = {
-        SNOWBALL_SOURCE_ID: (
+    requests: dict[str, Callable[[], FetchResponse]] = {
+        SNOWBALL_SOURCE_ID: lambda: client.fetch(
             sources[SNOWBALL_SOURCE_ID]["url"],
             conditional_headers(SNOWBALL_HEADERS, caches.get(SNOWBALL_SOURCE_ID)),
         ),
-        GOLD_SOURCE_ID: (
+        GOLD_SOURCE_ID: lambda: client.fetch(
             sources[GOLD_SOURCE_ID]["url"],
             conditional_headers(GOLD_HEADERS, caches.get(GOLD_SOURCE_ID)),
         ),
-        DQYDJ_SOURCE_ID: (sources[DQYDJ_SOURCE_ID]["url"], DQYDJ_HEADERS),
+        DQYDJ_SOURCE_ID: lambda: client.fetch(
+            sources[DQYDJ_SOURCE_ID]["url"], DQYDJ_HEADERS
+        ),
+        NDXTMC_SOURCE_ID: lambda: fetch_ndxtmc_source(
+            client, sources["ndxtmc"], caches.get(NDXTMC_SOURCE_ID), as_of, refresh_mode
+        ),
     }
     for ticker in NASDAQ_TICKERS:
         source_id = source_cache_id(ticker)
+        url = format_nasdaq_url(ticker, price_start, as_of, sources["nasdaq"]["url"])
         requests[source_id] = (
-            format_nasdaq_url(ticker, price_start, as_of, sources["nasdaq"]["url"]),
-            NASDAQ_HEADERS,
+            lambda request_url=url: client.fetch(request_url, NASDAQ_HEADERS)
         )
-    responses, failures, request_wall_seconds = run_parallel_requests(client, requests)
+    responses, failures, request_wall_seconds = run_parallel_requests(requests)
     parse_started = time.perf_counter()
     normalized: dict[str, Any] = {}
     new_caches: dict[str, dict[str, Any]] = {}
@@ -1174,7 +1548,10 @@ def build_payload(
         )
         source_metrics[source_id] = {
             "seconds": round(response.elapsed_seconds, 3) if response else 0.0,
-            "bytes": len(response.body) if response else 0,
+            "bytes": (
+                int(response.headers.get("x-download-bytes", len(response.body)))
+                if response else 0
+            ),
             "attempts": response.attempts if response else 0,
             "http_status": response.status if response else None,
             "request_mode": request_mode,
@@ -1188,7 +1565,11 @@ def build_payload(
         if config["source_mode"] == "direct":
             asset = build_direct_asset(config, normalized[SNOWBALL_SOURCE_ID], source_states)
         elif config["source_mode"] == "proxy":
-            asset = build_proxy_asset(config, normalized, source_states, through)
+            asset = (
+                build_relative_proxy_asset(config, normalized, source_states, through)
+                if config.get("value_kind") == "relative_score"
+                else build_proxy_asset(config, normalized, source_states, through)
+            )
         else:
             asset = build_gold_asset(
                 config, normalized[GOLD_SOURCE_ID], source_states, catalog, as_of
@@ -1200,6 +1581,7 @@ def build_payload(
         source_states[source_id] == "fresh"
         for source_id in (DQYDJ_SOURCE_ID,)
         + tuple(source_cache_id(ticker) for ticker in NASDAQ_TICKERS)
+        + (NDXTMC_SOURCE_ID,)
     )
     last_full_month = (
         run_month
@@ -1257,6 +1639,12 @@ def _summary_values(asset: dict[str, Any]) -> tuple[str, str, str]:
             current["source_rating"]["label"],
         )
     if asset["source_mode"] == "proxy":
+        if asset.get("method", {}).get("value_kind") == "relative_score":
+            return (
+                f"{current['sample_count']} 月样本",
+                f"{current['relative_percentile_10y']:.1f}%",
+                "--",
+            )
         return (
             f"代理 PE {current['proxy_pe_ttm']:.2f}",
             f"{current['proxy_percentile_10y']:.1f}%",
@@ -1298,11 +1686,14 @@ def render_html(payload: dict[str, Any], page_script: str) -> str:
         "stale": "全部数据来自有效缓存",
         "unavailable": "估值数据暂不可用",
     }[payload["status"]]
-    banner_detail = warning_text or "7 个标的均通过来源与结构校验。"
+    banner_detail = warning_text or "8 个标的均通过来源与结构校验。"
     source_links = "".join(
         f'<a href="{html.escape(source["url"], quote=True)}" target="_blank" rel="noopener noreferrer">{html.escape(source["name"])}</a>'
         for source in payload["sources"]
-        if source["id"] in {SNOWBALL_SOURCE_ID, GOLD_SOURCE_ID, DQYDJ_SOURCE_ID, "nasdaq-spy"}
+        if source["id"] in {
+            SNOWBALL_SOURCE_ID, GOLD_SOURCE_ID, DQYDJ_SOURCE_ID,
+            "nasdaq-spy", NDXTMC_SOURCE_ID,
+        }
     )
     return f"""<!doctype html>
 <html lang="zh-CN">
@@ -1348,7 +1739,7 @@ def render_html(payload: dict[str, Any], page_script: str) -> str:
 <body>
   <div class="page">
     <nav class="route-tabs" aria-label="页面切换">
-      <a class="route-tab" href="../">美国主榜</a><a class="route-tab" href="../?tab=global">全球补充榜</a><a class="route-tab" href="../?tab=premium">场内溢价</a><span class="route-tab current" aria-current="page">估值研究<small>7 个标的</small></span>
+      <a class="route-tab" href="../">美国主榜</a><a class="route-tab" href="../?tab=global">全球补充榜</a><a class="route-tab" href="../?tab=premium">场内溢价</a><span class="route-tab current" aria-current="page">估值研究<small>8 个标的</small></span>
     </nav>
     <header class="page-header"><div><h1>指数与黄金估值研究</h1><p class="subtitle">直取来源数据与研究代理分开呈现。代理值不是官方指数 PE，所有数据仅用于研究。</p></div><time class="as-of" datetime="{html.escape(payload['generated_at'], quote=True)}">生成于 {html.escape(payload['generated_at'])}</time></header>
     <div class="status-banner{banner_class}" role="status"><strong>{html.escape(banner_title)}</strong><span>{html.escape(banner_detail)}</span></div>
@@ -1385,7 +1776,7 @@ def build_performance_metrics(
             f"hot startup downloaded {total_bytes} bytes; target is <{PERFORMANCE_TARGETS['hot_download_bytes']}"
         )
     return {
-        "schema_version": 2,
+        "schema_version": SCHEMA_VERSION,
         "status": "success",
         "generated_at": payload["generated_at"],
         "asset_status": payload["status"],
@@ -1470,7 +1861,7 @@ def main(argv: Iterable[str] | None = None) -> int:
             print(f"SOURCE WARNING: {warning}", file=sys.stderr)
     except (OSError, ValueError, ValuationError) as exc:
         failure = {
-            "schema_version": 2,
+            "schema_version": SCHEMA_VERSION,
             "status": "failure",
             "generated_at": current_shanghai_time().isoformat(),
             "total_seconds": round(time.perf_counter() - started, 3),

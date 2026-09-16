@@ -12,6 +12,10 @@ function history(count = 120) {
   }));
 }
 
+function relativeHistory(count = 120) {
+  return history(count).map(({ month, proxy_pe_ttm }) => ({ month, relative_score: proxy_pe_ttm * 42 }));
+}
+
 function assets() {
   return [
     { id: "nasdaq-100", name: "纳指 100", source_mode: "direct", status: "fresh" },
@@ -43,6 +47,12 @@ test("invalid chart data is rejected", () => {
     () => page.buildChartModel(history(2), { p30: 1, p50: Number.NaN, p70: 3 }),
     /p50 must be finite/,
   );
+});
+
+test("relative score history uses the same chart geometry", () => {
+  const model = page.buildChartModel(relativeHistory(), { p30: 780, p50: 820, p70: 860 });
+  assert.equal(model.points.length, 120);
+  assert.ok(model.points.every((point) => Number.isFinite(point.value)));
 });
 
 test("route distinguishes overview, valid detail, and invalid asset", () => {
@@ -97,6 +107,38 @@ test("chart is only eligible for an available proxy detail", () => {
   assert.equal(page.detailKind({ source_mode: "proxy", status: "fresh" }), "proxy");
   assert.equal(page.detailKind({ source_mode: "direct", status: "fresh" }), "direct");
   assert.equal(page.detailKind({ source_mode: "proxy", status: "unavailable" }), "unavailable");
+  assert.equal(page.detailKind({
+    source_mode: "proxy", status: "fresh", method: { value_kind: "relative_score" },
+  }), "relative_proxy");
+});
+
+test("NDXTMC detail exposes only relative percentile semantics", () => {
+  const asset = {
+    id: "nasdaq-100-technology", name: "纳指科技（NDXTMC）", code: "NDXTMC", region: "美国",
+    source_mode: "proxy", status: "fresh", as_of: "2026-08", source_ids: ["nasdaq-ndxtmc", "nasdaq-spy", "dqydj"],
+    current: {
+      relative_percentile_10y: 99.58, sample_count: 120,
+      window_start: "2016-09", window_end: "2026-08",
+      reference_levels: { p30: 700, p50: 800, p70: 900 },
+    },
+    history: relativeHistory(),
+    method: {
+      id: "ndxtmc_spy_relative_pe_percentile_v1", value_kind: "relative_score",
+      formula: "relative_score_m = S&P500_PE_m × (NDXTMC_m / SPY_m)",
+      definition_url: "https://indexes.nasdaqomx.com/Index/Overview/NDXTMC", limitations: [],
+    },
+  };
+  const payload = { assets: [asset], sources: [
+    { id: "nasdaq-ndxtmc", name: "Nasdaq", status: "fresh", last_success_at: "2026-09-01", url: "https://example.test" },
+    { id: "nasdaq-spy", name: "SPY", status: "fresh", last_success_at: "2026-09-01", url: "https://example.test" },
+    { id: "dqydj", name: "DQYDJ", status: "fresh", last_success_at: "2026-09-01", url: "https://example.test" },
+  ] };
+  const markup = page.renderDetail(asset, payload);
+  assert.match(markup, /10 年相对 PE 分位/);
+  assert.match(markup, /不是官方 PE/);
+  assert.match(markup, /不可与雪球直取 PE/);
+  assert.doesNotMatch(markup, /代理 PE-TTM/);
+  assert.doesNotMatch(markup, /来源评级/);
 });
 
 test("detail document titles do not duplicate the valuation suffix", () => {

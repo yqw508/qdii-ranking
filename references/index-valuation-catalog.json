@@ -1,6 +1,6 @@
 {
-  "schema_version": 2,
-  "catalog_version": "multi_asset_valuation_v1",
+  "schema_version": 3,
+  "catalog_version": "multi_asset_valuation_v2",
   "default_asset_id": "sp-500-equal-weight",
   "sources": {
     "snowball": {
@@ -12,6 +12,12 @@
       "name": "Nasdaq ETF 历史行情",
       "url": "https://api.nasdaq.com/api/quote/{ticker}/historical",
       "page_url": "https://www.nasdaq.com/market-activity/etf/{ticker}/historical"
+    },
+    "ndxtmc": {
+      "name": "Nasdaq NDXTMC 官方历史点位",
+      "workbook_url": "https://indexes.nasdaqomx.com/docs/AdditionalData_NDXTMC.xlsx",
+      "history_url": "https://indexes.nasdaqomx.com/Index/HistoryChartData",
+      "page_url": "https://indexes.nasdaqomx.com/Index/Overview/NDXTMC"
     },
     "dqydj": {
       "name": "DQYDJ S&P 500 月度 TTM PE",
@@ -125,6 +131,24 @@
         "这是实验代理：EWU 跟踪 MSCI UK，成分范围与 FTSE 100 不一致。",
         "锚点来自跟踪 FTSE 100 的 iShares ISF，价格路径与锚点基金并非同一组合。",
         "尚未建立可验证的误差区间，不应视为 FTSE 官方指数 PE。"
+      ]
+    },
+    {
+      "id": "nasdaq-100-technology",
+      "asset_class": "equity_index",
+      "source_mode": "proxy",
+      "value_kind": "relative_score",
+      "name": "纳指科技（NDXTMC）",
+      "code": "NDXTMC",
+      "region": "美国",
+      "ticker": "NDXTMC",
+      "baseline_ticker": "SPY",
+      "method_id": "ndxtmc_spy_relative_pe_percentile_v1",
+      "definition_url": "https://indexes.nasdaqomx.com/Index/Overview/NDXTMC",
+      "limitations": [
+        "该指标不是 Nasdaq 官方 PE，也不是官方 PE 百分位。",
+        "它使用 NDXTMC/SPY 月均值比例调整 DQYDJ S&P 500 月度 TTM PE，只能与自身历史比较。",
+        "不可与雪球直取 PE 或其他代理 PE 倍数直接横向比较。"
       ]
     },
     {

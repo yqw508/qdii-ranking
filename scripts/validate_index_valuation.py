@@ -90,6 +90,9 @@ def load_payload(path: Path) -> dict[str, Any]:
 
 
 def validate_proxy(asset: dict[str, Any], expected_date: datetime) -> None:
+    if asset.get("method", {}).get("value_kind") == "relative_score":
+        validate_relative_proxy(asset, expected_date)
+        return
     history = asset.get("history")
     require(
         isinstance(history, list) and len(history) == valuation.WINDOW_MONTHS,
@@ -158,6 +161,54 @@ def validate_proxy(asset: dict[str, Any], expected_date: datetime) -> None:
     require(asset.get("history_status") == "available", f"{asset['id']} history status is invalid")
 
 
+def validate_relative_proxy(asset: dict[str, Any], expected_date: datetime) -> None:
+    require(asset.get("id") == valuation.RELATIVE_PROXY_ASSET_ID, "Relative proxy asset ID is invalid")
+    history = asset.get("history")
+    require(
+        isinstance(history, list) and len(history) == valuation.WINDOW_MONTHS,
+        f"{asset['id']} history must contain 120 months",
+    )
+    months: list[str] = []
+    values: list[float] = []
+    for index, item in enumerate(history):
+        require(isinstance(item, dict), f"{asset['id']} history row {index} is invalid")
+        require(set(item) == {"month", "relative_score"}, f"{asset['id']} history exposes unsupported values")
+        months.append(valid_date(item.get("month"), f"{asset['id']} history month", monthly=True))
+        values.append(as_positive(item.get("relative_score"), f"{asset['id']} relative score"))
+    require(len(set(months)) == len(months), f"{asset['id']} history months are duplicated")
+    require(
+        months == [valuation.add_months(months[-1], offset) for offset in range(1 - len(months), 1)],
+        f"{asset['id']} history months are not consecutive",
+    )
+    require(asset.get("as_of") == months[-1], f"{asset['id']} as_of differs from history")
+    require(months[-1] <= valuation.last_complete_month(expected_date.date()), f"{asset['id']} includes an unfinished month")
+    current = asset.get("current")
+    require(isinstance(current, dict), f"{asset['id']} current is missing")
+    require("proxy_pe_ttm" not in current, f"{asset['id']} must not expose a proxy PE multiple")
+    require("source_rating" not in current, f"{asset['id']} proxy must not expose a source rating")
+    require(current.get("sample_count") == valuation.WINDOW_MONTHS, f"{asset['id']} sample count is invalid")
+    require(current.get("window_start") == months[0] and current.get("window_end") == months[-1], f"{asset['id']} window is invalid")
+    expected_percentile = round(valuation.percentile_midrank(values, values[-1]), 2)
+    require(
+        math.isclose(as_number(current.get("relative_percentile_10y"), "relative percentile"), expected_percentile, abs_tol=0.005),
+        f"{asset['id']} percentile does not reproduce midrank",
+    )
+    levels = current.get("reference_levels")
+    require(isinstance(levels, dict), f"{asset['id']} reference levels are missing")
+    for key, probability in (("p30", 0.30), ("p50", 0.50), ("p70", 0.70)):
+        expected = round(valuation.quantile(values, probability), 6)
+        require(
+            math.isclose(as_number(levels.get(key), key), expected, abs_tol=0.0000005),
+            f"{asset['id']} {key} differs from the quantile formula",
+        )
+    method = asset.get("method")
+    require(isinstance(method, dict), f"{asset['id']} method is missing")
+    require(method.get("id") == "ndxtmc_spy_relative_pe_percentile_v1", f"{asset['id']} method is unsupported")
+    require(method.get("value_kind") == "relative_score", f"{asset['id']} value kind is invalid")
+    require("anchor" not in method, f"{asset['id']} relative proxy must not contain an anchor")
+    require(asset.get("history_status") == "available", f"{asset['id']} history status is invalid")
+
+
 def validate_direct(asset: dict[str, Any]) -> None:
     current = asset.get("current")
     require(isinstance(current, dict), f"{asset['id']} current is missing")
@@ -222,7 +273,7 @@ def validate_payload(payload: dict[str, Any], expected_date: str) -> None:
     require(generated.date() == expected.date(), "Valuation generation date differs from expected date")
     require(payload.get("default_asset_id") == "sp-500-equal-weight", "Unexpected default asset")
     assets = payload.get("assets")
-    require(isinstance(assets, list) and len(assets) == 7, "Exactly seven valuation assets are required")
+    require(isinstance(assets, list) and len(assets) == 8, "Exactly eight valuation assets are required")
     require(tuple(asset.get("id") for asset in assets) == valuation.EXPECTED_ASSET_IDS, "Valuation asset IDs or order differ")
     allowed_statuses = {"fresh", "cached_stale", "unavailable"}
     available_count = 0
@@ -247,7 +298,7 @@ def validate_payload(payload: dict[str, Any], expected_date: str) -> None:
     require(payload["status"] == expected_status, "Page status does not match asset states")
 
     sources = payload.get("sources")
-    require(isinstance(sources, list) and len(sources) == 7, "Exactly seven normalized sources are required")
+    require(isinstance(sources, list) and len(sources) == 8, "Exactly eight normalized sources are required")
     require(tuple(source.get("id") for source in sources) == valuation.all_source_ids(), "Valuation source IDs differ")
     stale_or_missing = 0
     for source in sources:
@@ -302,7 +353,7 @@ def validate_html(document: str, payload: dict[str, Any], label: str) -> None:
     require("valuation-overview" not in parser.hidden_ids, f"{label} overview must be visible by default")
     require(parser.home_links == 1, f"{label} must link back to the ranking page")
     require(parser.source_links >= 4, f"{label} source links are incomplete")
-    require(parser.asset_links == 14, f"{label} must contain two native detail links per asset")
+    require(parser.asset_links == 16, f"{label} must contain two native detail links per asset")
     for expected in (
         "指数与黄金估值研究",
         "雪球直取",

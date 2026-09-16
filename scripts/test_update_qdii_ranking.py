@@ -1996,6 +1996,23 @@ class PeriodicReportTests(unittest.TestCase):
         self.assertEqual(7.44, rows[0]["weight_pct"])
         self.assertIn("CSOP SK Hynix", rows[0]["fund_name"])
 
+    def test_parses_stock_index_fund_label_from_wrapped_pdf_table(self):
+        text = """
+        前十名基金投资明细
+        序号 基金名称 基金类型 运作方式 管理人 公允价值 占基金资产净值比例
+        1
+        景顺长城纳斯达克科技市值加权交易型开放式指数证券投资基金（QDII）
+        股票型指数基金
+        交易型开放式(ETF)
+        景顺长城基金管理有限公司
+        4,694,211,198.44 94.15
+        7.11 投资组合报告附注
+        """
+        rows = ranking.parse_fund_investment_rows(text, "017091")
+        self.assertEqual(1, len(rows))
+        self.assertEqual(94.15, rows[0]["weight_pct"])
+        self.assertIn("景顺长城纳斯达克科技市值加权", rows[0]["fund_name"])
+
     def test_parses_qdii_label_from_domestic_target_etf_row(self):
         text = """
         前十名基金投资明细

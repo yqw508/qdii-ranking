@@ -179,7 +179,7 @@ The normalized NAV cache schema is unchanged because derived returns are recalcu
 ## Multi-Asset Valuation Research Page
 
 The independent `/valuation/` route never changes QDII eligibility, routing, ordering, warnings, or
-JSON schema. Its schema v2 overview contains three source modes. Snowball supplies current PE, PB,
+JSON schema. Its schema v3 overview contains three source modes. Snowball supplies current PE, PB,
 ten-year source percentiles, ROE, dividend yield, and source rating for NDX, SP500, and GDAXI. The page
 does not manufacture a history from these snapshots. The external gold page supplies its USD spot,
 1/3/5/10-year and full-history model percentiles, residual, three factor values, freshness dates, and
@@ -190,7 +190,7 @@ The route without an `asset` query parameter is an overview-only comparison tabl
 Navigation preserves unrelated cache-busting and deployment query parameters. An unknown asset ID is
 removed and returns to the overview instead of silently opening the configured default asset.
 
-The three research proxies use Nasdaq daily closes and the DQYDJ monthly S&P 500 TTM PE series. For a
+Three calibrated research proxies use Nasdaq daily closes and the DQYDJ monthly S&P 500 TTM PE series. For a
 target ETF `T`, each model forms `R_m = mean(T)_m / mean(SPY)_m`, calibrates
 `K = C_anchor * R_anchor / target_PE_anchor`, and publishes `PE_proxy_m = C_m * R_m / K`. The catalog
 anchors are RSP 20.82 for 2025-06, EQWL 24.16 for 2026-03, and EWU 17.57 for 2026-07. The EWU path is
@@ -202,11 +202,19 @@ Each proxy keeps the latest 120 consecutive ended common months. Its percentile 
 `100 * (count below + 0.5 * count equal) / 120`; P30/P50/P70 use inclusive linear interpolation. Proxy
 details never contain source or house low/high labels and never present the values as official index PE.
 
+The fourth proxy covers the Nasdaq-100 Technology Sector Market-Cap Weighted Index (NDXTMC). It joins
+the conditionally fetched official Nasdaq workbook with date-chunked `HistoryChartData` POST responses,
+deduplicates equal dates, rejects conflicting values, and requires a normal trading-day transition at
+the static/live boundary. Its uncalibrated monthly score is
+`S&P500_PE_m * (mean(NDXTMC)_m / mean(SPY)_m)`. Only the score's 120-month midrank percentile, window,
+sample count, and P30/P50/P70 reference positions are published. The score is not a PE multiple or a
+Nasdaq official PE, cannot be compared directly with Snowball PE, and receives no source or house rating.
+
 Normalized source caches are separate files under `output/qdii-ranking/cache/index-valuation/` and are
 fingerprinted by schema, complete asset-catalog hash, source identity, and parser version. Cold runs
-fetch Snowball, gold, DQYDJ, RSP, EQWL, EWU, and SPY concurrently. Hot runs conditionally revalidate
-Snowball and gold, fully reparse DQYDJ, and merge roughly three months of each Nasdaq series. The first
-fully fresh run in a new calendar month performs all four ten-year Nasdaq scans; a failed scan does not
+fetch Snowball, gold, DQYDJ, RSP, EQWL, EWU, SPY, and NDXTMC concurrently. Hot runs conditionally revalidate
+Snowball, gold, and the NDXTMC workbook, fully reparse DQYDJ, and merge roughly three months of each Nasdaq
+series. The first fully fresh run in a new calendar month performs all five ten-year Nasdaq scans; a failed scan does not
 advance the marker.
 
 A source failure can use only a cache that passes its current fingerprint and structural checks. With

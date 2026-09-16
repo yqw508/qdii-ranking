@@ -62,17 +62,20 @@
 ## Index Valuation Research Page
 
 - Keep `/valuation/` and its schema independent from QDII ranking rules. The overview contains exactly
-  three Snowball direct snapshots, three research proxies, and one external gold-model snapshot. Show
+  three Snowball direct snapshots, four research proxies, and one external gold-model snapshot. Show
   direct/external ratings only as source ratings; never apply those labels to research proxies.
 - Keep `/valuation/` overview-only when no asset is requested. A valid `?asset=<id>` opens a
   detail-only view with a return link and source-grouped selector; preserve unrelated query parameters
   and route unknown asset IDs back to the overview.
-- Build every proxy from the latest 120 consecutive ended common months using DQYDJ S&P 500 PE and a
-  target ETF/SPY monthly mean-price ratio. Preserve the versioned RSP, EQWL, and experimental EWU
+- Build the three calibrated proxies from the latest 120 consecutive ended common months using DQYDJ
+  S&P 500 PE and a target ETF/SPY monthly mean-price ratio. Preserve the versioned RSP, EQWL, and experimental EWU
   anchors in `references/index-valuation-catalog.json`; disclose that EWU does not track FTSE 100.
+- Build the NDXTMC proxy without a PE anchor from DQYDJ S&P 500 PE multiplied by the official NDXTMC
+  monthly mean divided by the SPY monthly mean. Publish only its relative percentile, sample window,
+  and relative-score reference levels; never present the score as an official or estimated PE multiple.
 - Persist only per-source normalized caches under `output/qdii-ranking/cache/index-valuation/`.
-  Revalidate Snowball and gold conditionally, DQYDJ in full, and all four Nasdaq tails every run. The
-  first fully fresh run each month performs four full ten-year scans. Catalog or parser changes
+  Revalidate Snowball and gold conditionally, DQYDJ in full, and all five Nasdaq tails every run. The
+  first fully fresh run each month performs five full ten-year scans. Catalog or parser changes
   invalidate affected caches.
 - A failed source may use only its validated current-fingerprint cache. Without one, keep dependent
   assets visible as unavailable and publish the remaining assets. Block valuation publication only
@@ -99,7 +102,7 @@ authorization to complete the full update and publication workflow:
    `node --test scripts/test_valuation_page.mjs`, then both `scripts/validate_qdii_ranking.py` and
    `scripts/validate_index_valuation.py`. Verify
    full-scan counters, both final orderings, the complete discovered listed-QDII premium snapshot and holding costs, benchmark and quota sources,
-   the ranking date, all seven valuation asset IDs, proxy models/sample counts, and both pairs of
+   the ranking date, all eight valuation asset IDs, proxy models/sample counts, and both pairs of
    byte-identical HTML files.
    Ranking schema 13 must include the seven-day tolerance filter and each record's
    `three_year_boundary_shortfall_days`; validate every boundary warning, including excluded candidates.
@@ -122,7 +125,7 @@ authorization to complete the full update and publication workflow:
    contains the ranking date, every fund
    code in both lists, all discovered premium-tab QDII codes and holding costs, and the corresponding direct and agency quotas. Share:
    `https://qdii-ranking-web-run-cool-d2gy0iw957219659c.webapps.tcloudbase.com/?v=<YYYY-MM-DD>` and
-   verify the valuation page contains all seven asset IDs, the default asset, source modes, proxy
+   verify the valuation page contains all eight asset IDs, the default asset, source modes, proxy
    models, values, and fresh/stale/unavailable states.
 
 Do not deploy a partial or warning-blind result. Explain material unresolved look-through intervals,

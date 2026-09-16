@@ -3167,6 +3167,12 @@ def parse_fund_investment_rows(text: str, code: str) -> list[dict[str, Any]]:
                 r"(.+?)\s+(?:债\s*券\s*型|股\s*票\s*型|混\s*合\s*型|商\s*品\s*型|权\s*益\s*类)\s+",
                 body,
             )
+        if not name_match:
+            name_match = re.match(
+                r"(.+?)\s+(?:债\s*券\s*型|股\s*票\s*型|混\s*合\s*型|商\s*品\s*型|权\s*益\s*类)"
+                r"(?:指\s*数)?基\s*金\s+",
+                body,
+            )
         # Periodic reports commonly render unused rows as dash-only placeholders.
         # A page footer may follow the dashes (and include the word "基金"), so
         # identify the placeholder before the generic "基金" fallback below.

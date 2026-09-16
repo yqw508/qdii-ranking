@@ -28,12 +28,14 @@
 产品概要日期和来源。综合费率已从基金资产中扣除，不包含券商收取的场内交易佣金。辅助数据失败不会
 阻止基金榜单发布；行情会按产品保留旧值，费率仅在公告索引不可访问时保留并标记上次成功值。
 
-第四个“估值代理”Tab 使用独立的 `/valuation/` 路由展示 7 个标的。无 `asset` 参数时只显示完整
+第四个“估值代理”Tab 使用独立的 `/valuation/` 路由展示 8 个标的。无 `asset` 参数时只显示完整
 估值总表；点击任一标的后通过 `?asset=<id>` 进入独立详情视图，详情顶部可以返回概览或直接切换标的。
 纳指 100、标普 500 和德国 DAX 直取雪球当前估值；标普 500 等权、标普 100 等权和富时 100
-使用 ETF/SPY 相对价格校准 DQYDJ S&P 500 月度 TTM PE；黄金转述中美双锚三因子模型的当前
-数值和因子新鲜度。研究代理使用最近连续 120 个已结束自然月计算中位秩百分位，不输出低估或
-高估判断。富时 100 固定标记为实验代理。估值 JSON、缓存、校验器和页面均与 QDII 榜单 schema 独立。
+使用 ETF/SPY 相对价格校准 DQYDJ S&P 500 月度 TTM PE；纳指科技 NDXTMC 使用官方指数月均点位
+与 SPY 月均价之比调整同一 PE 序列，只发布自身 10 年相对 PE 分位，不输出估算 PE 倍数；黄金转述
+中美双锚三因子模型的当前数值和因子新鲜度。研究代理使用最近连续 120 个已结束自然月计算中位秩
+百分位，不输出低估或高估判断。富时 100 固定标记为实验代理。估值 JSON、缓存、校验器和页面均与
+QDII 榜单 schema 独立。
 
 ## 本地更新
 
@@ -74,7 +76,7 @@ JSON schema 为 13：顶层 `records` 是美国主榜，`global_supplement.recor
 `three_year_boundary_shortfall_days` 记录实际短缺天数，完整区间为 0。
 
 估值页另写 `output/index-valuation/latest.json`、`latest.html`、`run-metrics.json` 和字节一致的
-`public/valuation/index.html`。schema v2 的 `assets` 固定包含 6 个指数和 1 个黄金标的，资产状态为
+`public/valuation/index.html`。schema v3 的 `assets` 固定包含 7 个指数和 1 个黄金标的，资产状态为
 `fresh`、`cached_stale` 或 `unavailable`。按来源拆分的规范化缓存位于
 `output/qdii-ranking/cache/index-valuation/`，因此沿用现有 Actions 缓存；公开产物只包含当前快照和
 派生代理序列，不镜像黄金页面的图片、回测或策略内容。
@@ -109,10 +111,11 @@ https://qdii-ranking-web-run-cool-d2gy0iw957219659c.webapps.tcloudbase.com/valua
 
 `.github/workflows/update-ranking.yml` 每天北京时间 07:07 执行，也支持手动触发。流程依次为
 刷新榜单、刷新估值页、两组质量校验、测试、提交生成页、CloudBase 部署、两条路由线上验证和
-QQ 邮件通知。估值热启动并发重验雪球、黄金、DQYDJ 以及 RSP、EQWL、EWU、SPY 四条行情；
-雪球和黄金使用条件请求，Nasdaq 只拉最近约三个月。每个新自然月首次完整成功运行改做十年行情
+QQ 邮件通知。估值热启动并发重验雪球、黄金、DQYDJ 以及 RSP、EQWL、EWU、SPY、NDXTMC 五条行情；
+雪球、黄金和 NDXTMC 官方工作簿使用条件请求，Nasdaq 行情只拉最近约三个月。NDXTMC 在线历史按日期
+分块请求并与工作簿合并。每个新自然月首次完整成功运行改做五条十年行情
 全量扫描。来源失败只有在对应缓存仍通过完整性和指纹校验时才允许回退；无缓存时受影响标的显示
-暂不可用，其他标的继续发布，全部 7 个标的不可用才阻止估值发布。
+暂不可用，其他标的继续发布，全部 8 个标的不可用才阻止估值发布。
 
 Repository Secrets：
 

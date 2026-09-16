@@ -69,6 +69,9 @@
 
   function detailKind(asset) {
     if (!asset || asset.status === "unavailable") return "unavailable";
+    if (asset.source_mode === "proxy" && asset.method && asset.method.value_kind === "relative_score") {
+      return "relative_proxy";
+    }
     return asset.source_mode;
   }
 
@@ -81,7 +84,9 @@
     if (!Array.isArray(history) || history.length < 2) {
       throw new Error("Valuation history must contain at least two points");
     }
-    const values = history.map((item) => finiteNumber(item.proxy_pe_ttm, "proxy PE"));
+    const values = history.map((item) => finiteNumber(
+      item.relative_score ?? item.proxy_pe_ttm, "proxy history value",
+    ));
     const references = ["p30", "p50", "p70"].map((key) => ({
       key,
       label: key.toUpperCase(),
@@ -313,6 +318,18 @@
       <div class="two-column"><div class="panel"><h3 id="method-heading">方法与锚点</h3><p><code>${escapeHtml(asset.method.id)}</code></p><p>${escapeHtml(asset.method.formula)}</p><p>锚点 ${escapeHtml(anchor.month)} · ${escapeHtml(anchor.publisher)} PE ${Number(anchor.pe_ttm).toFixed(2)} · <a href="${escapeHtml(anchor.source_url)}" target="_blank" rel="noopener noreferrer">锚点来源</a></p></div><div class="panel"><h3>限制</h3>${limitations(asset.method)}</div></div></div>`;
   }
 
+  function renderRelativeProxy(asset, payload) {
+    const current = asset.current;
+    const levels = current.reference_levels;
+    const recent = asset.history.slice(-12).reverse().map((item) => `<tr><td>${escapeHtml(item.month)}</td><td>${item.relative_score.toFixed(2)}</td></tr>`).join("");
+    return `${detailHeader(asset)}
+      <div class="metrics">${metric("10 年相对 PE 分位", `${current.relative_percentile_10y.toFixed(1)}%`, "中位秩算法，不附估值标签")}${metric("完整样本", `${current.sample_count} 个月`, "连续且已结束的自然月")}${metric("样本窗口", `${current.window_start} 至 ${current.window_end}`, "自然月月均值")}${metric("P30 / P50 / P70", `${levels.p30.toFixed(2)} / ${levels.p50.toFixed(2)} / ${levels.p70.toFixed(2)}`, "相对分数参考位置，不是 PE 倍数")}</div>
+      <div class="detail-grid"><div class="notice"><strong>研究代理，不是官方 PE</strong><br>该分位来自 NDXTMC、SPY 与 S&amp;P 500 PE 的相对分数，只用于 NDXTMC 自身历史比较；不可与雪球直取 PE 或代理 PE 倍数横向比较。</div>
+      <section aria-labelledby="history-heading"><div class="section-heading"><h3 id="history-heading">120 月相对估值序列</h3><span>${escapeHtml(asset.history[0].month)} 至 ${escapeHtml(asset.history.at(-1).month)}</span></div><div class="chart-shell" id="valuation-chart"></div><div class="chart-legend"><span><i class="legend-line"></i>相对分数（非 PE 倍数）</span><span><i class="legend-line reference"></i>P30 / P50 / P70</span></div></section>
+      <div class="two-column"><div class="panel"><h3>最近 12 个月</h3><div class="compact-table"><table><thead><tr><th>月份</th><th>相对分数</th></tr></thead><tbody>${recent}</tbody></table></div></div><div class="panel"><h3 id="sources-heading">来源状态</h3>${sourceList(asset, payload)}</div></div>
+      <div class="two-column"><div class="panel"><h3 id="method-heading">方法</h3><p><code>${escapeHtml(asset.method.id)}</code></p><p>${escapeHtml(asset.method.formula)}</p><p><a href="${escapeHtml(asset.method.definition_url)}" target="_blank" rel="noopener noreferrer">Nasdaq 指数定义页</a></p></div><div class="panel"><h3>限制</h3>${limitations(asset.method)}</div></div></div>`;
+  }
+
   function renderGold(asset, payload) {
     const current = asset.current;
     const labels = { "1y": "近 1 年", "3y": "近 3 年", "5y": "近 5 年", "10y": "近 10 年", all: "全部历史" };
@@ -332,6 +349,7 @@
     const kind = detailKind(asset);
     if (kind === "unavailable") return renderUnavailable(asset, payload);
     if (kind === "direct") return renderDirect(asset, payload);
+    if (kind === "relative_proxy") return renderRelativeProxy(asset, payload);
     if (kind === "proxy") return renderProxy(asset, payload);
     return renderGold(asset, payload);
   }

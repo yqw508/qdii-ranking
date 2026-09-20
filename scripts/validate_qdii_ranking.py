@@ -47,6 +47,12 @@ EXPECTED_GLOBAL_RANKING_METHOD = (
     "three_year_max_drawdown_pct desc, institution_holding_ratio_pct desc, "
     "scale_billion_cny desc, code asc"
 )
+EXPECTED_NASDAQ100_OTC_RANKING_METHOD = (
+    "two_year_return_pct desc, holding_cost.annualized_pct asc, "
+    "nasdaq100_fit_2y.tracking_error_pct asc, three_year_return_pct desc, "
+    "scale_billion_cny desc, code asc; missing values last"
+)
+NASDAQ100_OTC_NAME_RE = re.compile(r"(?:纳斯达克\s*100|纳指\s*100|NASDAQ\s*[-－]?\s*100)", re.I)
 NASDAQ100_MIN_OBSERVATIONS = 140
 NASDAQ100_MIN_SPAN_DAYS = 1000
 EXPECTED_PREMIUM_GROUP_ORDER = ("标普500", "纳指100", "美国50", "道琼斯", "行业主题")
@@ -241,7 +247,7 @@ def is_reportable_warning(warning: str) -> bool:
         return True
     if warning.startswith(("美国主榜仅 ", "全球补充榜仅 ")):
         return True
-    if warning.startswith(("场内溢价告警：", "场内费率告警 ")):
+    if warning.startswith(("场内溢价告警：", "场内费率告警 ", "场外纳指100告警 ")):
         return True
     if warning in {
         "美国主榜当前没有符合全部条件的基金。",
@@ -816,6 +822,54 @@ def validate_records(
     return records
 
 
+def validate_nasdaq100_otc_section(section: Any, run_date: date) -> list[dict[str, Any]]:
+    require(isinstance(section, dict), "nasdaq100_otc must be an object")
+    records = section.get("records")
+    require(isinstance(records, list), "nasdaq100_otc records must be a list")
+    require(section.get("ranking_method") == EXPECTED_NASDAQ100_OTC_RANKING_METHOD, "OTC Nasdaq-100 ranking method differs")
+    for expected_rank, record in enumerate(records, start=1):
+        require(isinstance(record, dict), "OTC Nasdaq-100 record must be an object")
+        code = record.get("code")
+        name = record.get("name")
+        require(isinstance(code, str) and re.fullmatch(r"\d{6}", code), f"{code} has an invalid fund code")
+        require(record.get("rank") == expected_rank, f"{code} has a non-contiguous OTC Nasdaq-100 rank")
+        require(record.get("ranking_list") == "nasdaq100_otc", f"{code} has an invalid OTC Nasdaq-100 list")
+        require(isinstance(name, str) and NASDAQ100_OTC_NAME_RE.search(name), f"{code} does not match the OTC Nasdaq-100 name rule")
+        require(
+            str(record.get("fund_type", "")).startswith("QDII")
+            or record.get("fund_type") == "指数型-海外股票",
+            f"{code} is outside the QDII candidate scope",
+        )
+        require(record.get("purchase_status") in {"open", "limited", "suspended", "unknown"}, f"{code} has an invalid purchase status")
+        if "ETF" in name.upper():
+            require("联接" in name or "LOF" in name.upper(), f"{code} is a standalone ETF")
+        for field in ("two_year_return_pct", "two_year_max_drawdown_pct", "three_year_return_pct", "scale_billion_cny"):
+            if record.get(field) is not None:
+                as_number(record[field], f"{code} {field}")
+        cost = record.get("holding_cost")
+        require(isinstance(cost, dict), f"{code} has no holding cost object")
+        if cost.get("annualized_pct") is not None:
+            as_number(cost["annualized_pct"], f"{code} holding cost")
+        if record.get("contract_name_match") is False:
+            require(bool(record.get("contract_name_match_warning")), f"{code} contract/name mismatch has no warning")
+        fit = record.get("nasdaq100_fit_2y")
+        if fit is not None:
+            require(isinstance(fit, dict), f"{code} has an invalid two-year Nasdaq fit")
+            as_number(fit.get("tracking_error_pct"), f"{code} two-year tracking error")
+    def key(item: dict[str, Any]) -> tuple[Any, ...]:
+        fit = item.get("nasdaq100_fit_2y") or {}
+        return (
+            math.inf if item.get("two_year_return_pct") is None else -float(item["two_year_return_pct"]),
+            math.inf if item["holding_cost"].get("annualized_pct") is None else float(item["holding_cost"]["annualized_pct"]),
+            math.inf if fit.get("tracking_error_pct") is None else float(fit["tracking_error_pct"]),
+            math.inf if item.get("three_year_return_pct") is None else -float(item["three_year_return_pct"]),
+            math.inf if item.get("scale_billion_cny") is None else -float(item["scale_billion_cny"]),
+            item["code"],
+        )
+    require(records == sorted(records, key=key), "OTC Nasdaq-100 records are not sorted")
+    return records
+
+
 def validate_csv(path: Path, records: list[dict[str, Any]]) -> None:
     require(path.is_file(), f"Missing artifact: {path}")
     try:
@@ -841,13 +895,19 @@ def validate_csv(path: Path, records: list[dict[str, Any]]) -> None:
             "three_year_return_pct",
             "three_year_max_drawdown_pct",
         ):
-            require(
-                math.isclose(float(row[field]), float(record[field]), abs_tol=1e-9),
-                f"CSV {field} differs for {code}",
-            )
+            expected = record.get(field)
+            if expected is None:
+                require(row[field] == "", f"CSV {field} differs for {code}")
+            else:
+                require(
+                    math.isclose(float(row[field]), float(expected), abs_tol=1e-9),
+                    f"CSV {field} differs for {code}",
+                )
         for field in (
             "nav_history_start_date",
             "nav_history_end_date",
+            "two_year_performance_start_date",
+            "two_year_performance_end_date",
             "three_year_performance_start_date",
             "three_year_performance_end_date",
             "five_year_performance_start_date",
@@ -857,6 +917,12 @@ def validate_csv(path: Path, records: list[dict[str, Any]]) -> None:
         ):
             require(row[field] == str(record.get(field) or ""), f"CSV {field} differs for {code}")
         for field in ("five_year_return_pct", "ten_year_return_pct"):
+            expected = "" if record.get(field) is None else str(record[field])
+            require(row[field] == expected, f"CSV {field} differs for {code}")
+        for field in (
+            "two_year_return_pct",
+            "two_year_max_drawdown_pct",
+        ):
             expected = "" if record.get(field) is None else str(record[field])
             require(row[field] == expected, f"CSV {field} differs for {code}")
         contract = record["contract_benchmark"]
@@ -923,16 +989,51 @@ def validate_csv(path: Path, records: list[dict[str, Any]]) -> None:
             and row["nasdaq100_end_date"] == str(fit.get("end_date") or ""),
             f"CSV Nasdaq-100 dates differ for {code}",
         )
-        exposure = record["us_equity_exposure"]
-        for field in ("confirmed_pct", "possible_pct"):
+        fit_2y = record.get("nasdaq100_fit_2y") or {}
+        for csv_field, fit_field in (
+            ("nasdaq100_2y_correlation", "correlation"),
+            ("nasdaq100_2y_beta", "beta"),
+            ("nasdaq100_2y_tracking_error_pct", "tracking_error_pct"),
+        ):
+            expected = fit_2y.get(fit_field)
             require(
-                math.isclose(
-                    float(row[f"us_equity_{field}"]),
-                    float(exposure[field]),
-                    abs_tol=1e-9,
-                ),
-                f"CSV US exposure {field} differs for {code}",
+                row[csv_field] == ("" if expected is None else str(expected)),
+                f"CSV {csv_field} differs for {code}",
             )
+        expected_contract_match = record.get("contract_name_match")
+        require(
+            row["nasdaq100_name_contract_match"]
+            == ("" if expected_contract_match is None else str(expected_contract_match)),
+            f"CSV contract/name match differs for {code}",
+        )
+        require(
+            row["nasdaq100_name_contract_warning"]
+            == str(record.get("contract_name_match_warning") or ""),
+            f"CSV contract/name warning differs for {code}",
+        )
+        for csv_field, fit_field in (
+            ("nasdaq100_2y_observations", "observations"),
+            ("nasdaq100_2y_start_date", "start_date"),
+            ("nasdaq100_2y_end_date", "end_date"),
+        ):
+            require(
+                row[csv_field] == str(fit_2y.get(fit_field) or ""),
+                f"CSV {csv_field} differs for {code}",
+            )
+        exposure = record.get("us_equity_exposure")
+        if exposure is not None:
+            for field in ("confirmed_pct", "possible_pct"):
+                require(
+                    math.isclose(
+                        float(row[f"us_equity_{field}"]),
+                        float(exposure[field]),
+                        abs_tol=1e-9,
+                    ),
+                    f"CSV US exposure {field} differs for {code}",
+                )
+        else:
+            require(row["us_equity_confirmed_pct"] == "", f"CSV US exposure differs for {code}")
+            require(row["us_equity_possible_pct"] == "", f"CSV US exposure differs for {code}")
         if record["ranking_list"] == "global_supplement":
             require(
                 row["three_year_annualized_return_pct"]
@@ -1270,9 +1371,20 @@ def validate_html_document(
         if warning.startswith("三年边界容差 "):
             require(warning in all_text, f"{label} boundary warning is missing")
     require(
-        "美国主榜" in all_text and "全球补充榜" in all_text and "场内溢价" in all_text,
+        "美国主榜" in all_text and "全球补充榜" in all_text and "场外纳指100" in all_text and "场内溢价" in all_text,
         f"{label} tabs are missing",
     )
+    nasdaq_records = (payload.get("nasdaq100_otc") or {}).get("records") or []
+    require(
+        document.count('id="tab-nasdaq100-otc"') == 1
+        and document.count('id="panel-nasdaq100-otc"') == 1,
+        f"{label} OTC Nasdaq-100 tab is missing or duplicated",
+    )
+    for record in nasdaq_records:
+        require(
+            record["code"] in all_text and record["name"] in all_text,
+            f"{label} OTC Nasdaq-100 record is missing for {record['code']}",
+        )
     premium_records = payload["exchange_premium"]["records"]
     require(
         parser.premium_codes == [record["code"] for record in premium_records],
@@ -1441,7 +1553,7 @@ def validate_local_artifacts(
     output_dir: Path, publish_dir: Path, expected_date: str
 ) -> tuple[dict[str, Any], list[str]]:
     payload = load_payload(output_dir / "latest.json")
-    require(payload.get("schema_version") == 13, "Unexpected JSON schema version")
+    require(payload.get("schema_version") == 14, "Unexpected JSON schema version")
     require(payload.get("run_date") == expected_date, "Ranking date is not today's Shanghai date")
     require(
         str(payload.get("generated_at", ""))[:10] == expected_date,
@@ -1461,6 +1573,9 @@ def validate_local_artifacts(
     global_records = validate_records(
         payload, global_section.get("records"), "global_supplement"
     )
+    nasdaq_records = validate_nasdaq100_otc_section(
+        payload.get("nasdaq100_otc"), parse_date(expected_date)
+    )
     require(us_records or global_records, "Both ranking lists are empty")
     records = [*us_records, *global_records]
     codes = [record["code"] for record in records]
@@ -1479,7 +1594,7 @@ def validate_local_artifacts(
                 and record["three_year_performance_end_date"] == match["end"],
                 f"{record['code']} boundary warning contradicts record",
             )
-    validate_csv(output_dir / "latest.csv", records)
+    validate_csv(output_dir / "latest.csv", [*records, *nasdaq_records])
     validate_markdown(output_dir / "latest.md", payload, records)
     validate_email_rendering(payload, records)
 

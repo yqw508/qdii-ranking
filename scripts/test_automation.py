@@ -260,7 +260,7 @@ def make_global_record(rank):
 
 def make_payload():
     return {
-        "schema_version": 13,
+        "schema_version": 14,
         "run_date": RUN_DATE,
         "generated_at": "2026-08-20T09:08:00+08:00",
         "holder_report_date": "2025-12-31",
@@ -341,6 +341,12 @@ def make_payload():
                 key=lambda item: -float(item["return_drawdown_ratio"]),
             ),
         },
+        "nasdaq100_otc": {
+            "ranking_method": validator.EXPECTED_NASDAQ100_OTC_RANKING_METHOD,
+            "candidate_count": 0,
+            "missing_fields": {"two_year_return": 0, "holding_cost": 0, "nasdaq100_fit_2y": 0},
+            "records": [],
+        },
         "exclusion_summary": [
             {
                 "reason": "direct_limit_below_threshold",
@@ -385,6 +391,36 @@ class RankingValidatorTests(unittest.TestCase):
         self.assertEqual(3, len(payload["global_supplement"]["records"]))
         self.assertEqual(25, len(payload["exchange_premium"]["records"]))
         self.assertEqual(3, len(warnings))
+
+    def test_accepts_and_renders_otc_nasdaq100_section(self):
+        payload = make_payload()
+        record = make_record(1, "us_main")
+        record.update(
+            {
+                "rank": 1,
+                "ranking_list": "nasdaq100_otc",
+                "routing_reason": "name_match",
+                "name": "纳斯达克100联接人民币A",
+                "two_year_return_pct": 48.2,
+                "two_year_max_drawdown_pct": -19.4,
+                "nasdaq100_fit_2y": {
+                    "correlation": 0.99,
+                    "beta": 0.95,
+                    "tracking_error_pct": 2.1,
+                    "observations": 103,
+                    "start_date": "2024-08-19",
+                    "end_date": RUN_DATE,
+                },
+            }
+        )
+        payload["nasdaq100_otc"] = {
+            "ranking_method": validator.EXPECTED_NASDAQ100_OTC_RANKING_METHOD,
+            "candidate_count": 1,
+            "missing_fields": {"two_year_return": 0, "holding_cost": 0, "nasdaq100_fit_2y": 0},
+            "records": [record],
+        }
+        validated, _ = self.validate(payload)
+        self.assertEqual("纳斯达克100联接人民币A", validated["nasdaq100_otc"]["records"][0]["name"])
 
     @staticmethod
     def boundary_payload():

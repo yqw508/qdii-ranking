@@ -97,6 +97,7 @@ class FundFilterTests(unittest.TestCase):
         self.assertEqual(["亚洲", "中国", "港"], args.us_main_exclude_keywords)
         self.assertEqual("public", args.publish_dir.name)
 
+
     def test_legacy_exclude_keywords_option_maps_to_us_main_only(self):
         args = ranking.parse_args(["--exclude-keywords", "亚洲", "港"])
         self.assertEqual(["亚洲", "港"], args.us_main_exclude_keywords)
@@ -132,6 +133,9 @@ class FundFilterTests(unittest.TestCase):
         for name in (
             "嘉实美国成长股票人民币C",
             "嘉实美国成长股票人民币D",
+            "易方达纳斯达克100ETF联接(QDII-LOF)C(人民币)",
+            "嘉实纳斯达克100ETF发起联接(QDII)I人民币",
+            "广发纳斯达克100ETF联接(QDII)人民币F",
             "嘉实美国成长股票美元现汇",
             "嘉实美国成长股票港币",
         ):
@@ -297,6 +301,58 @@ class FundFilterTests(unittest.TestCase):
             min_age_years=3,
         )
         self.assertEqual(["old"], [item["code"] for item in result])
+
+
+class Nasdaq100OTCTests(unittest.TestCase):
+    def test_name_match_accepts_supported_variants_only(self):
+        self.assertTrue(ranking.is_nasdaq100_otc_name("华夏纳斯达克100ETF联接人民币A"))
+        self.assertTrue(ranking.is_nasdaq100_otc_name("某纳指 100 联接(QDII)A"))
+        self.assertTrue(ranking.is_nasdaq100_otc_name("Nasdaq-100 feeder RMB A"))
+        self.assertFalse(ranking.is_nasdaq100_otc_name("纳斯达克生物科技人民币A"))
+        self.assertFalse(ranking.is_nasdaq100_otc_name("标普500指数人民币A"))
+
+    def test_candidates_use_full_metadata_and_keep_missing_holder_rows(self):
+        metadata = {
+            "000001": {"code": "000001", "name": "纳斯达克100联接人民币A", "fund_type": "指数型-海外股票"},
+            "000002": {"code": "000002", "name": "纳斯达克100ETF人民币A", "fund_type": "指数型-海外股票"},
+            "000003": {"code": "000003", "name": "Nasdaq 100人民币C", "fund_type": "指数型-海外股票"},
+            "000004": {"code": "000004", "name": "纳斯达克100联接人民币A", "fund_type": "QDII-纯债"},
+            "000005": {"code": "000005", "name": "Nasdaq-100人民币A", "fund_type": "QDII-股票"},
+        }
+        rows = [["000001", "", "12.5", "1", "", "2"]]
+        candidates = ranking.build_nasdaq100_otc_candidates(metadata, rows)
+        self.assertEqual(["000001", "000005"], [item["code"] for item in candidates])
+        self.assertEqual(12.5, candidates[0]["institution_holding_ratio_pct"])
+        self.assertIsNone(candidates[1]["institution_holding_ratio_pct"])
+
+    def test_two_year_window_does_not_apply_three_year_tolerance(self):
+        points = [
+            {"date": date(2024, 1, 3), "nav": 1.0, "equity_return_pct": None, "unit_money": "1"},
+            {"date": date(2026, 1, 2), "nav": 1.5, "equity_return_pct": None, "unit_money": "1"},
+        ]
+        self.assertIsNone(
+            ranking.calculate_trailing_performance(
+                points, "000001", date(2026, 1, 2), 2, inception_date="2024-01-03"
+            )
+        )
+
+    def test_sort_places_missing_values_last(self):
+        def item(code, ret, fee, te, three, scale):
+            return {
+                "code": code,
+                "two_year_return_pct": ret,
+                "three_year_return_pct": three,
+                "scale_billion_cny": scale,
+                "holding_cost": {"annualized_pct": fee},
+                "nasdaq100_fit_2y": None if te is None else {"tracking_error_pct": te},
+            }
+        records = [
+            item("000003", None, 0.4, 1.0, 50, 2),
+            item("000002", 50, None, 1.0, 50, 2),
+            item("000001", 50, 0.6, 0.8, 50, 2),
+        ]
+        records.sort(key=ranking.nasdaq100_otc_sort_key)
+        self.assertEqual(["000001", "000002", "000003"], [item["code"] for item in records])
 
 
 class ContractBenchmarkTests(unittest.TestCase):

@@ -163,12 +163,22 @@ the old value with unavailable; only an announcement-index outage may reuse the 
 is visibly marked stale. This expense is display-only, is already reflected in fund assets, and excludes
 investor-specific brokerage commissions.
 
-JSON schema 13 is the structured source of truth. `records` contains the US main list,
+JSON schema 14 is the structured source of truth. `records` contains the US main list,
 `global_supplement.records` contains the supplement, and `exclusion_summary` records reason counts and
 codes. `exchange_premium.records` contains the auxiliary snapshot of all discovered listed QDII products. Each ranking record has a
 `routing_reason`; filters expose `us_main_exclude_keywords` and an empty
 `global_exclude_keywords`. CSV and Markdown combine both lists with explicit list and routing fields. `latest.html` and
 `public/index.html` are generated from the same payload and must be byte-identical.
+
+The standalone `nasdaq100_otc.records` section is a name-based display ranking. It discovers all
+OTC RMB A shares whose names match `纳斯达克100`, `纳指100`, or `NASDAQ 100`, while excluding standalone
+ETF shares. Contract benchmark identity is displayed but never gates inclusion. It does not apply the
+main ranking's age, return, quota, or purchase-status thresholds, so suspended products and records with
+missing two-year NAV or fee data remain visible. The order is two-year adjusted return descending,
+annualized comprehensive operating expense ascending, two-year CNY Nasdaq-100 tracking error ascending,
+three-year adjusted return descending, scale descending, and fund code ascending; unavailable values sort
+after available values. The two-year NAV window is complete-only and does not use the three-year boundary
+tolerance. The public ranking schema is version 14 when this section is present.
 
 Filters expose `three_year_boundary_tolerance_days: 7`. Each ranking record and CSV row includes
 `three_year_boundary_shortfall_days` (zero for a complete window). Markdown, HTML, and email disclose

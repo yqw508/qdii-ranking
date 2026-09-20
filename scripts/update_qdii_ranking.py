@@ -79,6 +79,9 @@ BENCHMARK_HISTORY_BUFFER_DAYS = 14
 BENCHMARK_MAX_STALENESS_DAYS = 7
 NASDAQ100_MIN_OBSERVATIONS = 140
 NASDAQ100_MIN_SPAN_DAYS = 1000
+NASDAQ100_TWO_YEAR_WINDOW_YEARS = 2
+NASDAQ100_TWO_YEAR_MIN_OBSERVATIONS = 90
+NASDAQ100_TWO_YEAR_MIN_SPAN_DAYS = 600
 FUND_EXPOSURE_CACHE_SCHEMA_VERSION = 1
 US_EQUITY_METHOD_VERSION = 1
 ETF_PREMIUM_CACHE_SCHEMA_VERSION = 1
@@ -101,6 +104,9 @@ ROUTING_REASON_LABELS = {
     ROUTING_REASON_GEOGRAPHY_OVERRIDE: "地域名称分流",
 }
 EXCLUDED_FUND_TYPES = {"QDII-纯债", "QDII-混合债", "QDII-商品"}
+NASDAQ100_OTC_NAME_RE = re.compile(
+    r"(?:纳斯达克\s*100|纳指\s*100|NASDAQ\s*[-－]?\s*100)", re.I
+)
 NOTICE_TITLE_RE = re.compile(
     r"大额申购|申购.{0,20}(?:限额|业务上限)|(?:限额|业务上限).{0,20}申购|恢复.{0,12}申购"
 )
@@ -750,6 +756,17 @@ def is_rmb_a_share(meta: dict[str, str]) -> bool:
         name,
     ):
         return False
+    # Fund metadata often places non-primary share markers before the currency,
+    # for example ``...LOF)C(人民币)`` or ``...人民币I``. Keep only the
+    # unmarked primary RMB share (or an explicit A share).
+    if re.search(
+        r"(?:人民币|RMB)\s*[CDEFI](?:类|份额)?(?:$|[)）])"
+        r"|\)[\s]*[CDEFI](?:类|份额)?\s*\(?(?:人民币|RMB)?"
+        r"|[（(][CDEFI](?:类|份额)?[)）]",
+        name,
+        re.IGNORECASE,
+    ):
+        return False
     if re.search(r"人民币A|A(?:类|份额)?人民币|A类|A1(?:\(|$)|A(?:\(|$)", name):
         return True
     return "人民币" in name
@@ -760,6 +777,60 @@ def is_otc_share(meta: dict[str, str]) -> bool:
     if not is_rmb_a_share(meta):
         return False
     return not ("ETF" in name.upper() and "联接" not in name and "LOF" not in name.upper())
+
+
+def is_nasdaq100_otc_name(name: str) -> bool:
+    """Match the display universe by name, independent of contract metadata."""
+    return bool(NASDAQ100_OTC_NAME_RE.search(str(name or "")))
+
+
+def contract_mentions_nasdaq100(profile: dict[str, Any]) -> bool:
+    searchable = json.dumps(profile, ensure_ascii=False)
+    return bool(NASDAQ100_OTC_NAME_RE.search(searchable))
+
+
+def build_nasdaq100_otc_candidates(
+    metadata: dict[str, dict[str, str]],
+    holder_rows: list[list[str]],
+) -> list[dict[str, Any]]:
+    """Discover every name-matched OTC RMB A candidate from the full fund list."""
+    holder_by_code: dict[str, dict[str, Any]] = {}
+    for row in holder_rows:
+        if len(row) < 6 or row[0] not in metadata:
+            continue
+        try:
+            institution = float(row[2]) if row[2] else None
+            personal = float(row[3]) if row[3] else None
+            total = float(row[5].replace(",", "")) if row[5] else None
+        except (TypeError, ValueError):
+            continue
+        holder_by_code[row[0]] = {
+            "institution_holding_ratio_pct": institution,
+            "personal_holding_ratio_pct": personal,
+            "holder_total_shares_100m": total,
+        }
+    candidates: list[dict[str, Any]] = []
+    for meta in metadata.values():
+        if (
+            not is_otc_share(meta)
+            or meta["fund_type"] in EXCLUDED_FUND_TYPES
+            or not is_nasdaq100_otc_name(meta["name"])
+        ):
+            continue
+        candidates.append(
+            {
+                **meta,
+                **holder_by_code.get(
+                    meta["code"],
+                    {
+                        "institution_holding_ratio_pct": None,
+                        "personal_holding_ratio_pct": None,
+                        "holder_total_shares_100m": None,
+                    },
+                ),
+            }
+        )
+    return sorted(candidates, key=lambda item: item["code"])
 
 
 def build_holder_candidates(
@@ -1201,10 +1272,14 @@ def calculate_nasdaq100_fit(
     code: str,
     as_of: date,
     benchmark: Nasdaq100Benchmark,
+    *,
+    window_years: int = BENCHMARK_WINDOW_YEARS,
+    min_observations: int = NASDAQ100_MIN_OBSERVATIONS,
+    min_span_days: int = NASDAQ100_MIN_SPAN_DAYS,
 ) -> dict[str, Any]:
     wealth_series = build_adjusted_wealth_series(points, code, as_of)
     end_date = wealth_series[-1][0]
-    target_start = years_ago(end_date, BENCHMARK_WINDOW_YEARS)
+    target_start = years_ago(end_date, window_years)
     weekly: dict[date, tuple[date, float]] = {}
     for observed, wealth in wealth_series:
         if observed < target_start:
@@ -1241,18 +1316,18 @@ def calculate_nasdaq100_fit(
         interval_dates.append((previous[1], current[1]))
 
     observations = len(fund_returns)
-    if observations < NASDAQ100_MIN_OBSERVATIONS:
+    if observations < min_observations:
         raise DataError(
             f"Fund {code} has only {observations} valid Nasdaq-100 weekly observations; "
-            f"requires {NASDAQ100_MIN_OBSERVATIONS}"
+            f"requires {min_observations}"
         )
     start_date = interval_dates[0][0]
     fit_end_date = interval_dates[-1][1]
     span_days = (fit_end_date - start_date).days
-    if span_days < NASDAQ100_MIN_SPAN_DAYS:
+    if span_days < min_span_days:
         raise DataError(
             f"Fund {code} Nasdaq-100 fit spans only {span_days} days; "
-            f"requires {NASDAQ100_MIN_SPAN_DAYS}"
+            f"requires {min_span_days}"
         )
 
     fund_mean = statistics.mean(fund_returns)
@@ -1347,6 +1422,7 @@ def calculate_performance_from_points(
     ).isoformat()
     for years, prefix, label in (
         (1, "one_year", "近一年"),
+        (2, "two_year", "近两年"),
         (3, "three_year", "近三年"),
         (5, "five_year", "近五年"),
         (10, "ten_year", "近十年"),
@@ -1363,7 +1439,7 @@ def calculate_performance_from_points(
                     f"{prefix}_performance_end_date": None,
                 }
             )
-            if years <= 3:
+            if years == 3:
                 warnings.append(
                     f"{code} 的净值历史不足 {years} 年，{label}涨幅和最大回撤无法计算。"
                 )
@@ -1392,6 +1468,20 @@ def calculate_performance_from_points(
         except DataError as exc:
             output["nasdaq100_fit"] = None
             output["nasdaq100_fit_error"] = str(exc)
+        try:
+            output["nasdaq100_fit_2y"] = calculate_nasdaq100_fit(
+                points,
+                code,
+                as_of,
+                benchmark,
+                window_years=NASDAQ100_TWO_YEAR_WINDOW_YEARS,
+                min_observations=NASDAQ100_TWO_YEAR_MIN_OBSERVATIONS,
+                min_span_days=NASDAQ100_TWO_YEAR_MIN_SPAN_DAYS,
+            )
+            output["nasdaq100_fit_2y_error"] = None
+        except DataError as exc:
+            output["nasdaq100_fit_2y"] = None
+            output["nasdaq100_fit_2y_error"] = str(exc)
     return output, warnings
 
 
@@ -1875,6 +1965,22 @@ def global_supplement_sort_key(item: dict[str, Any]) -> tuple[Any, ...]:
         -float(item["three_year_max_drawdown_pct"]),
         -float(item.get("institution_holding_ratio_pct", 0)),
         -float(item["scale_billion_cny"]),
+        item["code"],
+    )
+
+
+def nasdaq100_otc_sort_key(item: dict[str, Any]) -> tuple[Any, ...]:
+    """Sort complete name-matched display records, placing unavailable values last."""
+    return (
+        float("inf") if item.get("two_year_return_pct") is None else -float(item["two_year_return_pct"]),
+        float("inf")
+        if item.get("holding_cost", {}).get("annualized_pct") is None
+        else float(item["holding_cost"]["annualized_pct"]),
+        float("inf")
+        if not isinstance(item.get("nasdaq100_fit_2y"), dict)
+        else float(item["nasdaq100_fit_2y"].get("tracking_error_pct", float("inf"))),
+        float("inf") if item.get("three_year_return_pct") is None else -float(item["three_year_return_pct"]),
+        float("inf") if item.get("scale_billion_cny") is None else -float(item["scale_billion_cny"]),
         item["code"],
     )
 
@@ -4716,6 +4822,7 @@ def all_ranking_records(payload: dict[str, Any]) -> list[dict[str, Any]]:
     return [
         *payload.get("records", []),
         *((payload.get("global_supplement") or {}).get("records") or []),
+        *((payload.get("nasdaq100_otc") or {}).get("records") or []),
     ]
 
 
@@ -4740,6 +4847,8 @@ def write_csv(path: Path, payload: dict[str, Any]) -> None:
         "contract_asset_class",
         "contract_style_label",
         "contract_structure",
+        "nasdaq100_name_contract_match",
+        "nasdaq100_name_contract_warning",
         "contract_prospectus_published_date",
         "contract_source_url",
         "product_summary_status",
@@ -4759,6 +4868,10 @@ def write_csv(path: Path, payload: dict[str, Any]) -> None:
         "one_year_max_drawdown_pct",
         "one_year_performance_start_date",
         "one_year_performance_end_date",
+        "two_year_return_pct",
+        "two_year_max_drawdown_pct",
+        "two_year_performance_start_date",
+        "two_year_performance_end_date",
         "three_year_return_pct",
         "three_year_max_drawdown_pct",
         "three_year_performance_start_date",
@@ -4776,6 +4889,12 @@ def write_csv(path: Path, payload: dict[str, Any]) -> None:
         "nasdaq100_observations",
         "nasdaq100_start_date",
         "nasdaq100_end_date",
+        "nasdaq100_2y_correlation",
+        "nasdaq100_2y_beta",
+        "nasdaq100_2y_tracking_error_pct",
+        "nasdaq100_2y_observations",
+        "nasdaq100_2y_start_date",
+        "nasdaq100_2y_end_date",
         "three_year_annualized_return_pct",
         "return_drawdown_ratio",
         "us_equity_confirmed_pct",
@@ -4799,6 +4918,7 @@ def write_csv(path: Path, payload: dict[str, Any]) -> None:
         writer.writeheader()
         for item in all_ranking_records(payload):
             fit = item.get("nasdaq100_fit") or {}
+            fit_2y = item.get("nasdaq100_fit_2y") or {}
             exposure = item.get("us_equity_exposure") or {}
             contract = item["contract_benchmark"]
             holding_cost = item["holding_cost"]
@@ -4818,6 +4938,8 @@ def write_csv(path: Path, payload: dict[str, Any]) -> None:
                     "contract_asset_class": contract["asset_class"],
                     "contract_style_label": contract["style_label"],
                     "contract_structure": contract["structure"],
+                    "nasdaq100_name_contract_match": item.get("contract_name_match"),
+                    "nasdaq100_name_contract_warning": item.get("contract_name_match_warning"),
                     "contract_prospectus_published_date": contract[
                         "prospectus_published_date"
                     ],
@@ -4836,6 +4958,12 @@ def write_csv(path: Path, payload: dict[str, Any]) -> None:
                     "nasdaq100_observations": fit.get("observations"),
                     "nasdaq100_start_date": fit.get("start_date"),
                     "nasdaq100_end_date": fit.get("end_date"),
+                    "nasdaq100_2y_correlation": fit_2y.get("correlation"),
+                    "nasdaq100_2y_beta": fit_2y.get("beta"),
+                    "nasdaq100_2y_tracking_error_pct": fit_2y.get("tracking_error_pct"),
+                    "nasdaq100_2y_observations": fit_2y.get("observations"),
+                    "nasdaq100_2y_start_date": fit_2y.get("start_date"),
+                    "nasdaq100_2y_end_date": fit_2y.get("end_date"),
                     "us_equity_confirmed_pct": exposure.get("confirmed_pct"),
                     "us_equity_possible_pct": exposure.get("possible_pct"),
                     "us_equity_status": exposure.get("status"),
@@ -4958,6 +5086,44 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
             lines.append(f"  - {format_three_year_boundary(item)}")
     if not global_records:
         lines.append("| - | 暂无符合全部条件的基金 | - | - | - | - | - | - | - | - | - | - |")
+    nasdaq_records = (payload.get("nasdaq100_otc") or {}).get("records") or []
+    lines.extend(
+        [
+            "",
+            "## 场外纳指100",
+            "",
+            "按名称匹配纳斯达克100、纳指100或 NASDAQ 100 的场外人民币 A 类份额；不以合同基准、成立年限、收益门槛、额度或当前申购状态筛除产品。",
+            "",
+            "排序：近两年收益降序、年化综合费率升序、两年纳指跟踪误差升序、近三年收益降序、规模降序、代码升序；缺失值排在有数据记录之后。",
+            "",
+            "| 排名 | 基金 | 申购状态 | 近两年 | 两年回撤 | 综合费率 | 两年跟踪误差 | 近三年 | 规模 | 合同基准 |",
+            "|---:|---|---|---:|---:|---:|---:|---:|---:|---|",
+        ]
+    )
+    for item in nasdaq_records:
+        fit_2y = item.get("nasdaq100_fit_2y") or {}
+        contract = item["contract_benchmark"]
+        contract_source = contract.get("source_url") or item["fund_page_url"]
+        scale_text = (
+            "--"
+            if item.get("scale_billion_cny") is None
+            else f"{float(item['scale_billion_cny']):.2f} 亿元"
+        )
+        lines.append(
+            f"| {item['rank']} | {item['name']} {item['code']} | "
+            f"{item.get('purchase_status_text') or item.get('purchase_status') or '待核实'} | "
+            f"{format_optional_percentage(item.get('two_year_return_pct'), show_sign=True)} | "
+            f"{format_optional_percentage(item.get('two_year_max_drawdown_pct'))} | "
+            f"{format_holding_cost(item['holding_cost'])} | "
+            f"{format_optional_percentage(fit_2y.get('tracking_error_pct'))} | "
+            f"{format_optional_percentage(item.get('three_year_return_pct'), show_sign=True)} | "
+            f"{scale_text} | "
+            f"[{benchmark_display(contract)}]({contract_source}) |"
+        )
+        if item.get("contract_name_match_warning"):
+            lines.append(f"  - {item['contract_name_match_warning']}")
+    if not nasdaq_records:
+        lines.append("| - | 暂无名称匹配的场外纳指100产品 | - | - | - | - | - | - | - | - |")
     if payload["warnings"]:
         lines.extend(["", "## 警告", ""])
         lines.extend(f"- {warning}" for warning in payload["warnings"])
@@ -4986,6 +5152,7 @@ def html_source_link(label: str, source_url: str | None) -> str:
 def write_html(path: Path, payload: dict[str, Any]) -> None:
     us_records = payload["records"]
     global_records = payload["global_supplement"]["records"]
+    nasdaq_records = (payload.get("nasdaq100_otc") or {}).get("records") or []
     premium = payload["exchange_premium"]
     premium_records = premium["records"]
     dynamic_premium_catalog = (
@@ -5129,7 +5296,36 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
             {extra_sources}
           </div>
         </div>
-      </details>"""
+        </details>"""
+
+    def render_nasdaq100_table(records: list[dict[str, Any]]) -> str:
+        rows: list[str] = []
+        for item in records:
+            fit = item.get("nasdaq100_fit_2y") or {}
+            contract = item["contract_benchmark"]
+            contract_label = benchmark_display(contract)
+            if item.get("contract_name_match_warning"):
+                contract_label += "（名称与合同基准需核对）"
+            scale = (
+                "--"
+                if item.get("scale_billion_cny") is None
+                else f"{float(item['scale_billion_cny']):.2f} 亿元"
+            )
+            rows.append(
+                "<tr>"
+                f"<td data-label=\"排名\"><strong>{item['rank']}</strong></td>"
+                f"<td data-label=\"基金\"><a class=\"source-link\" href=\"{html.escape(item['fund_page_url'], quote=True)}\" target=\"_blank\" rel=\"noopener noreferrer\">{html.escape(item['name'])}</a><small>{html.escape(item['code'])} · {html.escape(item.get('fund_type') or '')}</small></td>"
+                f"<td data-label=\"申购状态\">{html.escape(item.get('purchase_status_text') or item.get('purchase_status') or '待核实')}</td>"
+                f"<td data-label=\"近两年\" class=\"{'positive-text' if item.get('two_year_return_pct') is not None and float(item['two_year_return_pct']) >= 0 else ''}\">{html.escape(format_optional_percentage(item.get('two_year_return_pct'), show_sign=True))}</td>"
+                f"<td data-label=\"两年回撤\" class=\"negative-text\">{html.escape(format_optional_percentage(item.get('two_year_max_drawdown_pct')))}</td>"
+                f"<td data-label=\"综合费率\">{html.escape(format_holding_cost(item['holding_cost']))}</td>"
+                f"<td data-label=\"两年跟踪误差\">{html.escape(format_optional_percentage(fit.get('tracking_error_pct')))}</td>"
+                f"<td data-label=\"近三年\">{html.escape(format_optional_percentage(item.get('three_year_return_pct'), show_sign=True))}</td>"
+                f"<td data-label=\"规模\">{html.escape(scale)}</td>"
+                f"<td data-label=\"合同基准\"><span class=\"benchmark-compact\">{html.escape(contract_label)}</span></td>"
+                "</tr>"
+            )
+        return "".join(rows) or '<tr><td colspan="10" class="empty-state">暂无名称匹配的场外纳指100产品</td></tr>'
 
     def render_list(records: list[dict[str, Any]]) -> str:
         if not records:
@@ -5317,7 +5513,7 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
     .meta-grid {{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 14px; margin:14px 0 0; }}
     .meta-grid div, .detail-grid div, .rule-grid div {{ min-width:0; }}
     dd {{ margin:2px 0 0; font-weight:650; }}
-    .tabs {{ display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:4px; margin:0 0 12px; padding:4px; border:1px solid var(--border); border-radius:6px; background:#e9edf1; }}
+    .tabs {{ display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:4px; margin:0 0 12px; padding:4px; border:1px solid var(--border); border-radius:6px; background:#e9edf1; }}
     .tab {{ display:grid; min-height:42px; place-content:center; border:0; border-radius:4px; color:#42505d; background:transparent; cursor:pointer; font-weight:700; text-align:center; text-decoration:none; }}
     .tab[aria-selected="true"] {{ color:var(--text); background:var(--surface); box-shadow:0 1px 2px rgba(20,32,44,.12); }}
     .tab-link {{ color:#284c69; }}
@@ -5407,6 +5603,18 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
     .premium-value.band-high {{ color:var(--negative); }}
     .stale-label {{ margin-left:5px; color:#755015; background:#fff4da; }}
     .premium-item.is-unavailable {{ color:var(--muted); }}
+    .nasdaq-panel {{ display:grid; gap:14px; }}
+    .nasdaq-toolbar {{ padding:4px 2px 0; }}
+    .nasdaq-toolbar h2 {{ margin:0; font-size:17px; }}
+    .nasdaq-toolbar p {{ margin:4px 0 0; color:var(--muted); font-size:12px; line-height:1.6; }}
+    .nasdaq-table-wrap {{ overflow-x:auto; border:1px solid var(--border); border-radius:6px; background:var(--surface); }}
+    .nasdaq-table {{ width:100%; min-width:980px; border-collapse:collapse; font-variant-numeric:tabular-nums; }}
+    .nasdaq-table th,.nasdaq-table td {{ padding:9px 10px; border-bottom:1px solid #e5e9ed; text-align:right; vertical-align:top; white-space:nowrap; }}
+    .nasdaq-table th {{ color:#52606d; background:#f7f8fa; font-size:12px; font-weight:700; }}
+    .nasdaq-table th:first-child,.nasdaq-table td:first-child,.nasdaq-table th:nth-child(2),.nasdaq-table td:nth-child(2) {{ text-align:left; }}
+    .nasdaq-table td:nth-child(2) {{ white-space:normal; min-width:240px; }}
+    .nasdaq-table small {{ display:block; margin-top:2px; color:var(--muted); font-size:11px; }}
+    .nasdaq-warning {{ margin:0; padding:9px 10px; border-left:3px solid var(--warning); color:#705015; background:#fff8e8; font-size:12px; line-height:1.55; }}
     .warnings {{ margin-top:18px; border-top:1px solid var(--border); }}
     .warnings summary {{ display:flex; min-height:48px; align-items:center; justify-content:space-between; color:var(--warning); cursor:pointer; font-weight:700; }}
     .warnings ul {{ margin:0; padding:0 0 0 22px; color:#4c5661; }} .warnings li {{ margin:0 0 9px; }}
@@ -5418,6 +5626,12 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
       .tab {{ min-height:52px; padding:5px 1px; font-size:12px; }} .tab-count {{ display:block; margin-left:0; font-size:11px; }}
       .reference-item {{ align-items:stretch; flex-direction:column; gap:10px; }} .reference-item-link {{ align-self:flex-start; }}
       .premium-toolbar {{ align-items:stretch; flex-direction:column; gap:9px; }} .refresh-button {{ align-self:flex-start; }}
+      .nasdaq-table-wrap {{ overflow:visible; border:0; background:transparent; }} .nasdaq-table {{ min-width:0; }}
+      .nasdaq-table thead {{ display:none; }} .nasdaq-table,.nasdaq-table tbody,.nasdaq-table tr,.nasdaq-table td {{ display:block; }}
+      .nasdaq-table tr {{ margin-bottom:7px; padding:10px 11px; border:1px solid var(--border); border-radius:6px; background:var(--surface); }}
+      .nasdaq-table td,.nasdaq-table td:first-child,.nasdaq-table td:nth-child(2) {{ display:grid; grid-template-columns:8.5em minmax(0,1fr); width:auto; min-width:0; padding:4px 0; border:0; text-align:left; white-space:normal; }}
+      .nasdaq-table td::before {{ content:attr(data-label); color:var(--muted); font-size:11px; }}
+      .nasdaq-table td:first-child::before {{ content:'排名'; }} .nasdaq-table td:nth-child(2)::before {{ content:'基金'; }}
       .premium-table-wrap {{ overflow:visible; border:0; background:transparent; }} .premium-table {{ min-width:0; table-layout:auto; }}
       .premium-table thead {{ display:none; }} .premium-table,.premium-item {{ display:block; }}
       .premium-item {{ margin-bottom:7px; border:1px solid var(--border); border-radius:6px; background:var(--surface); overflow:hidden; }}
@@ -5457,12 +5671,18 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
       <div class="tabs" role="tablist" aria-label="榜单切换">
         <button class="tab" id="tab-us" type="button" role="tab" aria-selected="true" aria-controls="panel-us" data-panel="panel-us">美国主榜<span class="tab-count">{len(us_records)}</span></button>
         <button class="tab" id="tab-global" type="button" role="tab" aria-selected="false" aria-controls="panel-global" data-panel="panel-global">全球补充榜<span class="tab-count">{len(global_records)}</span></button>
+        <button class="tab" id="tab-nasdaq100-otc" type="button" role="tab" aria-selected="false" aria-controls="panel-nasdaq100-otc" data-panel="panel-nasdaq100-otc">场外纳指100<span class="tab-count">{len(nasdaq_records)}</span></button>
         <button class="tab" id="tab-premium" type="button" role="tab" aria-selected="false" aria-controls="panel-premium" data-panel="panel-premium">场内溢价<span class="tab-count">{len(premium_records)}</span></button>
         <a class="tab tab-link" id="tab-valuation" href="valuation/" role="tab" aria-selected="false">估值代理<span class="tab-count">研究版</span></a>
         <button class="tab" id="tab-reference" type="button" role="tab" aria-selected="false" aria-controls="panel-reference" data-panel="panel-reference">平台参考<span class="tab-count">外部</span></button>
       </div>
       <section id="panel-us" class="ranking-list" role="tabpanel" aria-labelledby="tab-us">{render_list(us_records)}</section>
       <section id="panel-global" class="ranking-list" role="tabpanel" aria-labelledby="tab-global" hidden>{render_list(global_records)}</section>
+      <section id="panel-nasdaq100-otc" class="nasdaq-panel" role="tabpanel" aria-labelledby="tab-nasdaq100-otc" hidden>
+        <div class="nasdaq-toolbar"><h2>场外纳指100</h2><p>按名称匹配纳斯达克100、纳指100或 NASDAQ 100；完整展示场外人民币 A 类候选。排序依次为近两年收益、综合费率、两年跟踪误差、近三年收益、规模和代码，缺失数据排在后面。</p></div>
+        <p class="nasdaq-warning">本榜按名称识别，合同基准仅作展示。名称命中不等于基金严格跟踪纳斯达克100；请展开合同基准和来源核对。</p>
+        <div class="nasdaq-table-wrap"><table class="nasdaq-table"><thead><tr><th>排名</th><th>基金</th><th>申购状态</th><th>近两年</th><th>两年回撤</th><th>综合费率</th><th>两年跟踪误差</th><th>近三年</th><th>规模</th><th>合同基准</th></tr></thead><tbody>{render_nasdaq100_table(nasdaq_records)}</tbody></table></div>
+      </section>
       <section id="panel-premium" class="premium-panel" role="tabpanel" aria-labelledby="tab-premium" hidden>
         <div class="premium-toolbar">
           <div><h2>场内 QDII</h2><p>按溢价从高到低排列；点击产品展开行情、综合费率和来源详情。</p></div>
@@ -5568,6 +5788,10 @@ def build_output_record(
         "one_year_max_drawdown_pct": fund["one_year_max_drawdown_pct"],
         "one_year_performance_start_date": fund["one_year_performance_start_date"],
         "one_year_performance_end_date": fund["one_year_performance_end_date"],
+        "two_year_return_pct": fund.get("two_year_return_pct"),
+        "two_year_max_drawdown_pct": fund.get("two_year_max_drawdown_pct"),
+        "two_year_performance_start_date": fund.get("two_year_performance_start_date"),
+        "two_year_performance_end_date": fund.get("two_year_performance_end_date"),
         "three_year_return_pct": fund["three_year_return_pct"],
         "three_year_max_drawdown_pct": fund["three_year_max_drawdown_pct"],
         "three_year_performance_start_date": fund["three_year_performance_start_date"],
@@ -5580,6 +5804,7 @@ def build_output_record(
         "ten_year_performance_start_date": fund["ten_year_performance_start_date"],
         "ten_year_performance_end_date": fund["ten_year_performance_end_date"],
         "nasdaq100_fit": fund["nasdaq100_fit"],
+        "nasdaq100_fit_2y": fund.get("nasdaq100_fit_2y"),
         "us_equity_exposure": fund["us_equity_exposure"],
         **{key: fund[key] for key in (
             "quota_status",
@@ -5598,6 +5823,207 @@ def build_output_record(
         score = fund.get("_return_drawdown_ratio")
         record["return_drawdown_ratio"] = None if score is None else round(float(score), 4)
     return record
+
+
+def build_nasdaq100_otc_output_record(
+    fund: dict[str, Any], rank: int, holder_report_date: str
+) -> dict[str, Any]:
+    """Build the independent name-based display ranking record."""
+    unknown_limit = {
+        "status": "unknown",
+        "amount_cny": None,
+        "effective_date": None,
+        "source_url": None,
+        "confidence": "not_evaluated",
+    }
+    contract_match_warning = None
+    if not contract_mentions_nasdaq100(fund["contract_benchmark"]):
+        contract_match_warning = "名称命中但合同基准未明确识别为纳斯达克100，本榜按名称口径保留。"
+    return {
+        "rank": rank,
+        "ranking_list": "nasdaq100_otc",
+        "routing_reason": "name_match",
+        "name_match_rule": "纳斯达克100 / 纳指100 / NASDAQ 100 名称匹配",
+        "code": fund["code"],
+        "name": fund["name"],
+        "fund_type": fund["fund_type"],
+        "management_style": fund["contract_benchmark"]["management_style"],
+        "product_structure_tags": product_structure_tags(
+            fund["contract_benchmark"], fund["fund_type"]
+        ),
+        "contract_benchmark": fund["contract_benchmark"],
+        "contract_name_match": contract_match_warning is None,
+        "contract_name_match_warning": contract_match_warning,
+        "holding_cost": fund["holding_cost"],
+        "institution_holding_ratio_pct": fund.get("institution_holding_ratio_pct"),
+        "holder_report_date": holder_report_date,
+        "inception_date": fund.get("inception_date"),
+        "scale_billion_cny": fund.get("scale_billion_cny"),
+        "scale_report_date": fund.get("scale_report_date"),
+        "purchase_status": fund.get("purchase_status", "unknown"),
+        "purchase_status_text": fund.get("purchase_status_text", ""),
+        "fund_page_url": fund["fund_page_url"],
+        "performance_source_url": fund.get("performance_source_url"),
+        "nav_history_start_date": fund.get("nav_history_start_date"),
+        "nav_history_end_date": fund.get("nav_history_end_date"),
+        "one_year_return_pct": fund.get("one_year_return_pct"),
+        "one_year_max_drawdown_pct": fund.get("one_year_max_drawdown_pct"),
+        "one_year_performance_start_date": fund.get("one_year_performance_start_date"),
+        "one_year_performance_end_date": fund.get("one_year_performance_end_date"),
+        "two_year_return_pct": fund.get("two_year_return_pct"),
+        "two_year_max_drawdown_pct": fund.get("two_year_max_drawdown_pct"),
+        "two_year_performance_start_date": fund.get("two_year_performance_start_date"),
+        "two_year_performance_end_date": fund.get("two_year_performance_end_date"),
+        "three_year_return_pct": fund.get("three_year_return_pct"),
+        "three_year_max_drawdown_pct": fund.get("three_year_max_drawdown_pct"),
+        "three_year_performance_start_date": fund.get("three_year_performance_start_date"),
+        "three_year_performance_end_date": fund.get("three_year_performance_end_date"),
+        "three_year_boundary_shortfall_days": fund.get("three_year_boundary_shortfall_days", 0),
+        "five_year_return_pct": fund.get("five_year_return_pct"),
+        "five_year_performance_start_date": fund.get("five_year_performance_start_date"),
+        "five_year_performance_end_date": fund.get("five_year_performance_end_date"),
+        "ten_year_return_pct": fund.get("ten_year_return_pct"),
+        "ten_year_performance_start_date": fund.get("ten_year_performance_start_date"),
+        "ten_year_performance_end_date": fund.get("ten_year_performance_end_date"),
+        "nasdaq100_fit": fund.get("nasdaq100_fit"),
+        "nasdaq100_fit_2y": fund.get("nasdaq100_fit_2y"),
+        "nasdaq100_fit_2y_error": fund.get("nasdaq100_fit_2y_error"),
+        "us_equity_exposure": None,
+        "quota_status": "not_evaluated",
+        "quota_confidence": "not_evaluated",
+        "direct_limit": unknown_limit,
+        "agency_limit": unknown_limit.copy(),
+        "share_class_rule": "not evaluated",
+        "channel_rule": "not evaluated",
+        "quota_source_urls": [],
+    }
+
+
+def build_nasdaq100_otc_records(
+    client: HttpClient,
+    metadata: dict[str, dict[str, str]],
+    holder_rows: list[list[str]],
+    enriched_candidates: list[dict[str, Any]],
+    as_of: date,
+    holder_report_date: str,
+    benchmark: Nasdaq100Benchmark,
+    performance_cache: PerformanceResultCache,
+    announcement_cache: AnnouncementIndexCache,
+    contract_result_cache: ContractProfileResultCache,
+    document_cache: PeriodicReportCache,
+    contract_catalog: ContractBenchmarkCatalog,
+) -> tuple[list[dict[str, Any]], list[str], dict[str, int]]:
+    candidates = build_nasdaq100_otc_candidates(metadata, holder_rows)
+    known = {item["code"]: item for item in enriched_candidates}
+    missing = [item for item in candidates if item["code"] not in known]
+    warnings: list[str] = []
+    if missing:
+        for candidate in missing:
+            try:
+                known[candidate["code"]] = {
+                    **candidate,
+                    **parse_fund_page(
+                        client.get_text(
+                            FUND_PAGE_URL.format(code=candidate["code"]),
+                            referer=FUND_PAGE_URL.format(code=candidate["code"]),
+                        ),
+                        candidate["code"],
+                    ),
+                }
+            except (DataError, OSError, ValueError) as exc:
+                warnings.append(f"场外纳指100告警 {candidate['code']}：基金主页无法完整读取：{exc}")
+                known[candidate["code"]] = {
+                    **candidate,
+                    "inception_date": None,
+                    "scale_billion_cny": None,
+                    "scale_report_date": None,
+                    "purchase_status": "unknown",
+                    "purchase_status_text": "数据不可用",
+                    "fund_page_url": FUND_PAGE_URL.format(code=candidate["code"]),
+                    "latest_nav_date": None,
+                    "latest_nav_value": None,
+                }
+
+    performance_records: list[dict[str, Any]] = []
+    for candidate in candidates:
+        fund = known[candidate["code"]]
+        try:
+            performance, performance_warnings = performance_cache.get(
+                client, fund, as_of, benchmark
+            )
+            warnings.extend(
+                f"场外纳指100告警 {fund['code']}：{warning}"
+                for warning in performance_warnings
+            )
+        except (DataError, OSError, ValueError) as exc:
+            warnings.append(f"场外纳指100告警 {fund['code']}：净值历史无法读取：{exc}")
+            performance = {
+                "performance_source_url": PERFORMANCE_DATA_URL.format(
+                    code=fund["code"], cache_buster=as_of.strftime("%Y%m%d")
+                ),
+                "nav_history_start_date": None,
+                "nav_history_end_date": None,
+                **{
+                    f"{prefix}_{field}": None
+                    for prefix in ("one_year", "two_year", "three_year", "five_year", "ten_year")
+                    for field in (
+                        "return_pct",
+                        "max_drawdown_pct",
+                        "performance_start_date",
+                        "performance_end_date",
+                    )
+                },
+                "three_year_boundary_shortfall_days": 0,
+                "nasdaq100_fit": None,
+                "nasdaq100_fit_2y": None,
+                "nasdaq100_fit_2y_error": str(exc),
+            }
+        try:
+            snapshot = announcement_cache.get(client, fund["code"], as_of)
+            profile, holding_cost, profile_warnings = contract_result_cache.get(
+                client, fund, as_of, document_cache, contract_catalog, snapshot
+            )
+        except (DataError, OSError, ValueError) as exc:
+            profile = unreadable_contract_benchmark(fund)
+            profile["management_style"] = (
+                "passive"
+                if fund["fund_type"] == "指数型-海外股票" and "增强" not in fund["name"]
+                else "active"
+            )
+            profile.update(
+                {
+                    "prospectus_title": None,
+                    "prospectus_published_date": None,
+                    "source_url": None,
+                    "product_summary_status": "unreadable",
+                    "product_summary_published_date": None,
+                    "product_summary_source_url": None,
+                    "catalog_fingerprint": contract_catalog.fingerprint,
+                }
+            )
+            holding_cost = unavailable_holding_cost(None)
+            profile_warnings = [f"场外纳指100告警 {fund['code']}：合同/费率无法读取：{exc}"]
+        warnings.extend(profile_warnings)
+        performance_records.append(
+            {
+                **fund,
+                **performance,
+                "contract_benchmark": profile,
+                "holding_cost": holding_cost,
+            }
+        )
+
+    performance_records.sort(key=nasdaq100_otc_sort_key)
+    records = [
+        build_nasdaq100_otc_output_record(fund, rank, holder_report_date)
+        for rank, fund in enumerate(performance_records, start=1)
+    ]
+    missing_counts = {
+        "two_year_return": sum(item.get("two_year_return_pct") is None for item in records),
+        "holding_cost": sum(item["holding_cost"].get("annualized_pct") is None for item in records),
+        "nasdaq100_fit_2y": sum(not isinstance(item.get("nasdaq100_fit_2y"), dict) for item in records),
+    }
+    return records, list(dict.fromkeys(warnings)), missing_counts
 
 
 def build_payload(
@@ -5862,6 +6288,25 @@ def build_payload(
     if not records and not global_records:
         raise DataError("Both QDII ranking lists are empty after applying all filters")
 
+    with metrics.phase("nasdaq100_otc"):
+        nasdaq100_otc_records, nasdaq100_otc_warnings, nasdaq100_otc_missing = (
+            build_nasdaq100_otc_records(
+                client,
+                metadata,
+                holder_rows,
+                enriched,
+                as_of,
+                selected.report_date,
+                benchmark,
+                performance_cache,
+                announcement_cache,
+                contract_result_cache,
+                document_cache,
+                contract_catalog,
+            )
+        )
+    warnings.extend(nasdaq100_otc_warnings)
+
     with metrics.phase("exchange_premium"):
         configured_catalog = getattr(args, "us_equity_etf_catalog", None)
         premium_quote_rows: dict[str, dict[str, Any]] | None = None
@@ -5921,7 +6366,7 @@ def build_payload(
         "scale_billion_cny desc, code asc"
     )
     return {
-        "schema_version": 13,
+        "schema_version": 14,
         "run_date": as_of.isoformat(),
         "generated_at": datetime.now(SHANGHAI_TZ).isoformat(timespec="seconds"),
         "holder_report_date": selected.report_date,
@@ -5967,6 +6412,25 @@ def build_payload(
             "exclude_asset_classes": ["bond", "commodity"],
             "share_class": "OTC RMB A or explicit RMB primary share without C/D marker",
             "purchasable_only": True,
+            "nasdaq100_otc": {
+                "selection_method": (
+                    "从完整基金元数据按名称发现候选；不设置成立年限、收益、额度或申购状态硬门槛，"
+                    "仅保留场外人民币 A/未标记主份额并排除独立 ETF"
+                ),
+                "name_match_rule": "纳斯达克100 / 纳指100 / NASDAQ 100 名称匹配",
+                "name_match_pattern": NASDAQ100_OTC_NAME_RE.pattern,
+                "share_class": "OTC RMB A or explicit RMB primary share without C/D/E/F/I marker",
+                "exclude_standalone_etf": True,
+                "purchasable_only": False,
+                "top": None,
+                "ranking_method": (
+                    "two_year_return_pct desc, holding_cost.annualized_pct asc, "
+                    "nasdaq100_fit_2y.tracking_error_pct asc, three_year_return_pct desc, "
+                    "scale_billion_cny desc, code asc; missing values last"
+                ),
+                "candidate_count": len(nasdaq100_otc_records),
+                "missing_fields": nasdaq100_otc_missing,
+            },
         },
         "cache": {
             "nasdaq100_benchmark": benchmark_cache.stats(),
@@ -5991,6 +6455,24 @@ def build_payload(
             "ranking_method": global_ranking_method,
             "qualified_count": len(global_quota_qualified),
             "records": global_records,
+        },
+        "nasdaq100_otc": {
+            "selection_method": (
+                "从完整基金元数据按名称发现候选；不设置成立年限、收益、额度或申购状态硬门槛，"
+                "仅保留场外人民币 A/未标记主份额并排除独立 ETF"
+            ),
+            "name_match_rule": "纳斯达克100 / 纳指100 / NASDAQ 100 名称匹配",
+            "share_class_rule": "OTC RMB A or explicit RMB primary share without C/D/E/F/I marker",
+            "exclude_standalone_etf": True,
+            "purchasable_only": False,
+            "ranking_method": (
+                "two_year_return_pct desc, holding_cost.annualized_pct asc, "
+                "nasdaq100_fit_2y.tracking_error_pct asc, three_year_return_pct desc, "
+                "scale_billion_cny desc, code asc; missing values last"
+            ),
+            "candidate_count": len(nasdaq100_otc_records),
+            "missing_fields": nasdaq100_otc_missing,
+            "records": nasdaq100_otc_records,
         },
         "exclusion_summary": [
             {**item, "count": len(item["codes"])} for item in exclusions.values()
@@ -6195,11 +6677,15 @@ def main(argv: Iterable[str] | None = None) -> int:
                 "global_quota_candidates_scanned",
             )
         },
+        "nasdaq100_otc_candidate_count": len(
+            payload.get("nasdaq100_otc", {}).get("records", [])
+        ),
     }
     write_json(output_dir / "run-metrics.json", run_metrics)
     print(
         f"Wrote {len(payload['records'])} US records and "
-        f"{len(payload['global_supplement']['records'])} global records to {output_dir} "
+        f"{len(payload['global_supplement']['records'])} global records and "
+        f"{len(payload.get('nasdaq100_otc', {}).get('records', []))} OTC Nasdaq-100 records to {output_dir} "
         f"and static site to {publish_dir} in {refresh_seconds:.1f}s"
     )
     for warning in payload["warnings"]:

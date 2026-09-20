@@ -28,6 +28,11 @@
 产品概要日期和来源。综合费率已从基金资产中扣除，不包含券商收取的场内交易佣金。辅助数据失败不会
 阻止基金榜单发布；行情会按产品保留旧值，费率仅在公告索引不可访问时保留并标记上次成功值。
 
+新增“场外纳指100”页签按名称匹配 `纳斯达克100`、`纳指100` 和 `NASDAQ 100`，保留场外人民币 A 类
+份额并排除独立 ETF。该页签是独立展示榜，不沿用主榜的成立年限、收益、额度或可申购门槛；暂停申购、
+两年净值不足或费率缺失的产品仍会显示并标注。排序依次为近两年收益、年化综合费率、两年纳指跟踪误差、
+近三年收益、规模和基金代码，缺失值排在后面。合同基准只作资料展示，名称命中不等于严格跟踪纳指100。
+
 第四个“估值代理”Tab 使用独立的 `/valuation/` 路由展示 8 个标的。无 `asset` 参数时只显示完整
 估值总表；点击任一标的后通过 `?asset=<id>` 进入独立详情视图，详情顶部可以返回概览或直接切换标的。
 纳指 100、标普 500 和德国 DAX 直取雪球当前估值；标普 500 等权、标普 100 等权和富时 100
@@ -67,7 +72,8 @@ node --test scripts/test_premium_refresh.mjs
 node --test scripts/test_valuation_page.mjs
 ```
 
-JSON schema 为 13：顶层 `records` 是美国主榜，`global_supplement.records` 是全球补充榜，
+JSON schema 为 14：顶层 `records` 是美国主榜，`global_supplement.records` 是全球补充榜，
+`nasdaq100_otc.records` 是独立的场外纳指100名称匹配榜，
 `exchange_premium.records` 是全部场内 QDII 产品的溢价快照，
 每条记录的 `routing_reason` 说明按美股确认占比分流或按地域名称覆盖分流；
 `exclusion_summary` 汇总候选剔除原因。CSV、Markdown、`latest.html` 和 `public/index.html` 均由

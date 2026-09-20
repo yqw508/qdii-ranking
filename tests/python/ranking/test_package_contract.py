@@ -25,7 +25,6 @@ from qdii_ranking.sources.candidates import is_rmb_a_share
 from qdii_ranking.sources.holder import extract_page_count
 from qdii_ranking.transport import HttpTransport, TransportError
 
-
 class PackageContractTests(unittest.TestCase):
     def test_legacy_facade_exports_stable_surface(self):
         required = {
@@ -49,11 +48,11 @@ class PackageContractTests(unittest.TestCase):
         self.assertTrue(all(hasattr(legacy, name) for name in required))
 
     def test_legacy_facade_stays_below_line_budget(self):
-        facade = Path(__file__).with_name("update_qdii_ranking.py")
+        facade = Path(__file__).resolve().parents[3] / "scripts" / "update_qdii_ranking.py"
         self.assertLessEqual(len(facade.read_text(encoding="utf-8").splitlines()), 700)
 
     def test_package_never_imports_legacy_facade(self):
-        package = Path(__file__).with_name("qdii_ranking")
+        package = Path(__file__).resolve().parents[3] / "scripts" / "qdii_ranking"
         offenders = []
         for path in package.rglob("*.py"):
             tree = ast.parse(path.read_text(encoding="utf-8"))
@@ -247,7 +246,3 @@ class PackageContractTests(unittest.TestCase):
             transport.post_form_json("https://example.invalid", {"page": "1"}),
         )
         self.assertEqual(2, transport.metrics_snapshot()["other"]["attempts"])
-
-
-if __name__ == "__main__":
-    unittest.main()

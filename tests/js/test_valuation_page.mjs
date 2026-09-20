@@ -3,7 +3,7 @@ import test from "node:test";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const page = require("./valuation_page.js");
+const page = require("../../scripts/valuation_page.js");
 
 function history(count = 120) {
   return Array.from({ length: count }, (_, index) => ({

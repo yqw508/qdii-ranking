@@ -3,7 +3,10 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import vm from "node:vm";
 
-const source = readFileSync(new URL("./premium_refresh.js", import.meta.url), "utf8");
+const source = readFileSync(
+  new URL("../../scripts/premium_refresh.js", import.meta.url),
+  "utf8",
+);
 
 function loadApi(extra = {}) {
   const context = {

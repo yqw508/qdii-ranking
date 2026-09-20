@@ -135,9 +135,9 @@ jobs:
       - name: Run unit tests
         id: tests
         run: |
-          python -m unittest discover -s scripts -p "test_*.py"
-          node --test scripts/test_premium_refresh.mjs
-          node --test scripts/test_valuation_page.mjs
+          python tests/run_python.py
+          node --test tests/js/test_premium_refresh.mjs
+          node --test tests/js/test_valuation_page.mjs
 
       - name: Commit generated page
         id: git_publish

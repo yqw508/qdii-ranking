@@ -67,9 +67,9 @@ python scripts/validate_index_valuation.py `
   --output-dir .\output\index-valuation `
   --publish-dir .\public `
   --expected-date <北京时间当天日期>
-python -m unittest discover -s scripts -p "test_*.py"
-node --test scripts/test_premium_refresh.mjs
-node --test scripts/test_valuation_page.mjs
+python tests/run_python.py
+node --test tests/js/test_premium_refresh.mjs
+node --test tests/js/test_valuation_page.mjs
 ```
 
 JSON schema 为 14：顶层 `records` 是美国主榜，`global_supplement.records` 是全球补充榜，

@@ -97,9 +97,9 @@ authorization to complete the full update and publication workflow:
 4. Read the ranking `latest.json` and `latest.md` and the valuation `latest.json`; inspect every warning.
    Stop without publishing if ranking-critical
    source data fails, a required candidate cannot be evaluated, or generated formats disagree.
-5. Run `python -m unittest discover -s scripts -p "test_*.py"` with the bundled Python runtime.
-6. Run `node --test scripts/test_premium_refresh.mjs` and
-   `node --test scripts/test_valuation_page.mjs`, then both `scripts/validate_qdii_ranking.py` and
+5. Run `python tests/run_python.py` with the bundled Python runtime.
+6. Run `node --test tests/js/test_premium_refresh.mjs` and
+   `node --test tests/js/test_valuation_page.mjs`, then both `scripts/validate_qdii_ranking.py` and
    `scripts/validate_index_valuation.py`. Verify
    full-scan counters, both final orderings, the complete discovered listed-QDII premium snapshot and holding costs, benchmark and quota sources,
    the ranking date, all eight valuation asset IDs, proxy models/sample counts, and both pairs of

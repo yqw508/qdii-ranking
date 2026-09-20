@@ -37,6 +37,16 @@ class PerformanceResultCache:
         self.not_modified = 0
         self.updates = 0
         self._stats_lock = Lock()
+        self._loaded_points: dict[str, list[dict[str, Any]]] = {}
+
+    def loaded_points(self, code: str) -> list[dict[str, Any]] | None:
+        """Return NAV points already revalidated during this run."""
+        with self._stats_lock:
+            return self._loaded_points.get(code)
+
+    def _remember_points(self, code: str, points: list[dict[str, Any]]) -> None:
+        with self._stats_lock:
+            self._loaded_points[code] = points
 
     @staticmethod
     def _decode_points(payload: dict[str, Any], code: str) -> tuple[list[dict[str, Any]], str | None]:
@@ -200,6 +210,7 @@ class PerformanceResultCache:
                 with self._stats_lock:
                     self.hits += 1
                     self.not_modified += 1
+                self._remember_points(code, points)
                 return _calculate_performance_from_points(
                     points, code, as_of, url, benchmark,
                     inception_date=fund.get("inception_date"),
@@ -215,6 +226,7 @@ class PerformanceResultCache:
             self.misses += 1
             self.updates += 1
         self._save(path, code, response_last_modified, points)
+        self._remember_points(code, points)
         performance, warnings = _calculate_performance_from_points(
             points, code, as_of, url, benchmark,
             inception_date=fund.get("inception_date"),

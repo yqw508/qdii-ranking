@@ -104,7 +104,7 @@ authorization to complete the full update and publication workflow:
    full-scan counters, both final orderings, the complete discovered listed-QDII premium snapshot and holding costs, benchmark and quota sources,
    the ranking date, all eight valuation asset IDs, proxy models/sample counts, and both pairs of
    byte-identical HTML files.
-   Ranking schema 14 must include the seven-day tolerance filter and each record's
+   Ranking schema 15 must include the seven-day tolerance filter and each record's
    `three_year_boundary_shortfall_days`; validate every boundary warning, including excluded candidates.
 7. Stage only intended repository changes, including both generated public pages, commit them, and push
    `main` to `origin`.

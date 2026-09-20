@@ -30,8 +30,10 @@
 
 新增“场外纳指100”页签按名称匹配 `纳斯达克100`、`纳指100` 和 `NASDAQ 100`，保留场外人民币 A 类
 份额并排除独立 ETF。该页签是独立展示榜，不沿用主榜的成立年限、收益、额度或可申购门槛；暂停申购、
-两年净值不足或费率缺失的产品仍会显示并标注。排序依次为近两年收益、年化综合费率、两年纳指跟踪误差、
-近三年收益、规模和基金代码，缺失值排在后面。合同基准只作资料展示，名称命中不等于严格跟踪纳指100。
+公共区间净值不足或费率缺失的产品仍会显示并标注。公共区间起点由成立满一个自然年的候选中成立日最晚者
+决定，结束日随所有可比较基金的最新共同净值滚动。排序依次为公共区间累计收益、年化综合费率、公共区间
+纳指跟踪误差、较小最大回撤、规模和基金代码，缺失值排在后面。合同基准只作资料展示，名称命中不等于
+严格跟踪纳指100。
 
 第四个“估值代理”Tab 使用独立的 `/valuation/` 路由展示 8 个标的。无 `asset` 参数时只显示完整
 估值总表；点击任一标的后通过 `?asset=<id>` 进入独立详情视图，详情顶部可以返回概览或直接切换标的。
@@ -49,6 +51,15 @@ QDII 榜单 schema 独立。
 `update_qdii_ranking.py`、`update_index_valuation.py` 和 `validate_qdii_ranking.py` 仅保留 CLI 与历史导入兼容。
 Python 测试集中在 `tests/python/`，Node 页面测试集中在 `tests/js/`；结构测试会阻止源码文件超过
 1000 行、类超过 500 行、函数超过 200 行，并检查核心包的依赖方向。
+
+根目录按用途分为以下几类：
+
+- `.github/`、`scripts/`、`tests/`、`references/` 是受版本管理的工作流、源码、测试和规则资料。
+- `public/` 是受版本管理的静态发布目录，必须与对应的 `output/**/latest.html` 保持字节一致。
+- `output/qdii-ranking/` 和 `output/index-valuation/` 保存本地生成结果；其中 `cache/` 与 `history/`
+  支持条件请求、失败回退和历史核对，不应作为普通临时目录清理。
+- `.idea/` 和 `.codegraph/` 仅保存本地 IDE 与代码索引状态，不参与测试、刷新或部署。
+- `tmp/`、`.omo/`、`agents/` 和 `__pycache__/` 属于可安全删除的本地临时数据，并由 `.gitignore` 排除。
 
 ## 本地更新
 
@@ -80,7 +91,7 @@ node --test tests/js/test_premium_refresh.mjs
 node --test tests/js/test_valuation_page.mjs
 ```
 
-JSON schema 为 14：顶层 `records` 是美国主榜，`global_supplement.records` 是全球补充榜，
+JSON schema 为 15：顶层 `records` 是美国主榜，`global_supplement.records` 是全球补充榜，
 `nasdaq100_otc.records` 是独立的场外纳指100名称匹配榜，
 `exchange_premium.records` 是全部场内 QDII 产品的溢价快照，
 每条记录的 `routing_reason` 说明按美股确认占比分流或按地域名称覆盖分流；

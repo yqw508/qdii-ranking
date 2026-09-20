@@ -361,15 +361,20 @@ def global_supplement_sort_key(item: dict[str, Any]) -> tuple[Any, ...]:
 
 def nasdaq100_otc_sort_key(item: dict[str, Any]) -> tuple[Any, ...]:
     """Sort complete name-matched display records, placing unavailable values last."""
+    fit = item.get("nasdaq100_fit_common_period") or {}
     return (
-        float("inf") if item.get("two_year_return_pct") is None else -float(item["two_year_return_pct"]),
+        float("inf")
+        if item.get("common_period_return_pct") is None
+        else -float(item["common_period_return_pct"]),
         float("inf")
         if item.get("holding_cost", {}).get("annualized_pct") is None
         else float(item["holding_cost"]["annualized_pct"]),
         float("inf")
-        if not isinstance(item.get("nasdaq100_fit_2y"), dict)
-        else float(item["nasdaq100_fit_2y"].get("tracking_error_pct", float("inf"))),
-        float("inf") if item.get("three_year_return_pct") is None else -float(item["three_year_return_pct"]),
+        if fit.get("tracking_error_pct") is None
+        else float(fit["tracking_error_pct"]),
+        float("inf")
+        if item.get("common_period_max_drawdown_pct") is None
+        else -float(item["common_period_max_drawdown_pct"]),
         float("inf") if item.get("scale_billion_cny") is None else -float(item["scale_billion_cny"]),
         item["code"],
     )

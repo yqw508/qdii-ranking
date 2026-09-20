@@ -519,6 +519,24 @@ def validate_nasdaq100_otc_section(section: Any, run_date: date) -> list[dict[st
     records = section.get("records")
     require(isinstance(records, list), "nasdaq100_otc records must be a list")
     require(section.get("ranking_method") == EXPECTED_NASDAQ100_OTC_RANKING_METHOD, "OTC Nasdaq-100 ranking method differs")
+    window = section.get("comparison_window")
+    require(isinstance(window, dict), "OTC Nasdaq-100 comparison window is missing")
+    require(window.get("status") in {"available", "unavailable"}, "OTC Nasdaq-100 comparison window status is invalid")
+    require(window.get("minimum_anchor_age_years") == 1, "OTC Nasdaq-100 anchor age differs")
+    require(window.get("max_boundary_delay_days") == 7, "OTC Nasdaq-100 boundary delay differs")
+    require(isinstance(window.get("anchor_funds"), list), "OTC Nasdaq-100 anchor funds are invalid")
+    window_start = window_end = None
+    if window.get("status") == "available":
+        window_start = parse_date(window.get("start_date"))
+        window_end = parse_date(window.get("end_date"))
+        require(window_start < window_end <= run_date, "OTC Nasdaq-100 comparison dates are invalid")
+        require((run_date - window_end).days <= 7, "OTC Nasdaq-100 comparison end is stale")
+        anchor_inception = parse_date(window.get("anchor_inception_date"))
+        require(
+            anchor_inception <= window_start
+            and (window_start - anchor_inception).days <= 7,
+            "OTC Nasdaq-100 comparison start differs from its anchor",
+        )
     for expected_rank, record in enumerate(records, start=1):
         require(isinstance(record, dict), "OTC Nasdaq-100 record must be an object")
         code = record.get("code")
@@ -535,7 +553,17 @@ def validate_nasdaq100_otc_section(section: Any, run_date: date) -> list[dict[st
         require(record.get("purchase_status") in {"open", "limited", "suspended", "unknown"}, f"{code} has an invalid purchase status")
         if "ETF" in name.upper():
             require("联接" in name or "LOF" in name.upper(), f"{code} is a standalone ETF")
-        for field in ("two_year_return_pct", "two_year_max_drawdown_pct", "three_year_return_pct", "scale_billion_cny"):
+        inception = record.get("inception_date")
+        if inception is not None:
+            require(parse_date(inception) <= run_date, f"{code} has a future inception date")
+        for field in (
+            "two_year_return_pct",
+            "two_year_max_drawdown_pct",
+            "three_year_return_pct",
+            "common_period_return_pct",
+            "common_period_max_drawdown_pct",
+            "scale_billion_cny",
+        ):
             if record.get(field) is not None:
                 as_number(record[field], f"{code} {field}")
         cost = record.get("holding_cost")
@@ -548,15 +576,49 @@ def validate_nasdaq100_otc_section(section: Any, run_date: date) -> list[dict[st
         if fit is not None:
             require(isinstance(fit, dict), f"{code} has an invalid two-year Nasdaq fit")
             as_number(fit.get("tracking_error_pct"), f"{code} two-year tracking error")
+        common_fit = record.get("nasdaq100_fit_common_period")
+        if record.get("common_period_return_pct") is None:
+            require(bool(record.get("common_period_error")), f"{code} has no common-period error")
+            require(common_fit is None, f"{code} has a fit without common-period return")
+        else:
+            require(window_start is not None and window_end is not None, f"{code} has metrics without a window")
+            require(record.get("common_period_error") is None, f"{code} has contradictory common-period status")
+            require(
+                record.get("common_period_performance_start_date") == window["start_date"]
+                and record.get("common_period_performance_end_date") == window["end_date"],
+                f"{code} common-period dates differ from the section window",
+            )
+            require(isinstance(common_fit, dict), f"{code} has no common-period Nasdaq fit")
+            for field in ("correlation", "beta", "tracking_error_pct", "observations"):
+                as_number(common_fit.get(field), f"{code} common-period {field}")
+            require(
+                common_fit.get("start_date") >= window["start_date"]
+                and common_fit.get("end_date") <= window["end_date"],
+                f"{code} common-period fit dates exceed the window",
+            )
     def key(item: dict[str, Any]) -> tuple[Any, ...]:
-        fit = item.get("nasdaq100_fit_2y") or {}
+        fit = item.get("nasdaq100_fit_common_period") or {}
         return (
-            math.inf if item.get("two_year_return_pct") is None else -float(item["two_year_return_pct"]),
+            math.inf if item.get("common_period_return_pct") is None else -float(item["common_period_return_pct"]),
             math.inf if item["holding_cost"].get("annualized_pct") is None else float(item["holding_cost"]["annualized_pct"]),
             math.inf if fit.get("tracking_error_pct") is None else float(fit["tracking_error_pct"]),
-            math.inf if item.get("three_year_return_pct") is None else -float(item["three_year_return_pct"]),
+            math.inf if item.get("common_period_max_drawdown_pct") is None else -float(item["common_period_max_drawdown_pct"]),
             math.inf if item.get("scale_billion_cny") is None else -float(item["scale_billion_cny"]),
             item["code"],
         )
     require(records == sorted(records, key=key), "OTC Nasdaq-100 records are not sorted")
+    missing = section.get("missing_fields")
+    require(isinstance(missing, dict), "OTC Nasdaq-100 missing field counts are absent")
+    expected_missing = {
+        "common_period_return": sum(item.get("common_period_return_pct") is None for item in records),
+        "common_period_max_drawdown": sum(item.get("common_period_max_drawdown_pct") is None for item in records),
+        "nasdaq100_fit_common_period": sum(item.get("nasdaq100_fit_common_period") is None for item in records),
+        "inception_date": sum(item.get("inception_date") is None for item in records),
+    }
+    for field, count in expected_missing.items():
+        require(missing.get(field) == count, f"OTC Nasdaq-100 missing count differs for {field}")
+    require(
+        window.get("comparable_count") == len(records) - expected_missing["common_period_return"],
+        "OTC Nasdaq-100 comparable count differs",
+    )
     return records

@@ -21,6 +21,82 @@ from tests.python.support.automation import (
     write_artifacts,
 )
 
+def make_otc_payload():
+    payload = make_payload()
+    record = make_record(1, "us_main")
+    record.update(
+        {
+            "rank": 1,
+            "ranking_list": "nasdaq100_otc",
+            "routing_reason": "name_match",
+            "name": "纳斯达克100联接人民币A",
+            "two_year_return_pct": 48.2,
+            "two_year_max_drawdown_pct": -19.4,
+            "common_period_return_pct": 51.2,
+            "common_period_max_drawdown_pct": -20.4,
+            "common_period_performance_start_date": "2024-03-22",
+            "common_period_performance_end_date": "2026-08-18",
+            "common_period_error": None,
+            "nasdaq100_fit_2y": {
+                "correlation": 0.99,
+                "beta": 0.95,
+                "tracking_error_pct": 2.1,
+                "observations": 103,
+                "start_date": "2024-08-19",
+                "end_date": RUN_DATE,
+            },
+            "nasdaq100_fit_common_period": {
+                "correlation": 0.99,
+                "beta": 0.95,
+                "tracking_error_pct": 2.0,
+                "observations": 120,
+                "start_date": "2024-03-22",
+                "end_date": "2026-08-18",
+            },
+        }
+    )
+    payload["nasdaq100_otc"] = {
+        "ranking_method": validator.EXPECTED_NASDAQ100_OTC_RANKING_METHOD,
+        "candidate_count": 1,
+        "missing_fields": {
+            "two_year_return": 0,
+            "holding_cost": 0,
+            "nasdaq100_fit_2y": 0,
+            "common_period_return": 0,
+            "common_period_max_drawdown": 0,
+            "nasdaq100_fit_common_period": 0,
+            "inception_date": 0,
+        },
+        "comparison_window": {
+            "status": "available",
+            "minimum_anchor_age_years": 1,
+            "max_boundary_delay_days": 7,
+            "anchor_inception_date": "2024-03-22",
+            "anchor_funds": [{"code": record["code"], "name": record["name"]}],
+            "start_date": "2024-03-22",
+            "end_date": "2026-08-18",
+            "comparable_count": 1,
+            "error": None,
+        },
+        "records": [record],
+    }
+    return payload
+
+
+class NasdaqValidatorTests(unittest.TestCase):
+    def test_accepts_and_renders_otc_nasdaq100_section(self):
+        payload = make_otc_payload()
+        with TemporaryDirectory() as directory:
+            output_dir, publish_dir = write_artifacts(Path(directory), payload)
+            validated, _ = validator.validate_local_artifacts(
+                output_dir, publish_dir, RUN_DATE
+            )
+        self.assertEqual(
+            "纳斯达克100联接人民币A",
+            validated["nasdaq100_otc"]["records"][0]["name"],
+        )
+
+
 class RankingValidatorTests(unittest.TestCase):
     def validate(self, payload=None, expected_date=RUN_DATE):
         with TemporaryDirectory() as directory:
@@ -37,36 +113,6 @@ class RankingValidatorTests(unittest.TestCase):
         self.assertEqual(3, len(payload["global_supplement"]["records"]))
         self.assertEqual(25, len(payload["exchange_premium"]["records"]))
         self.assertEqual(3, len(warnings))
-
-    def test_accepts_and_renders_otc_nasdaq100_section(self):
-        payload = make_payload()
-        record = make_record(1, "us_main")
-        record.update(
-            {
-                "rank": 1,
-                "ranking_list": "nasdaq100_otc",
-                "routing_reason": "name_match",
-                "name": "纳斯达克100联接人民币A",
-                "two_year_return_pct": 48.2,
-                "two_year_max_drawdown_pct": -19.4,
-                "nasdaq100_fit_2y": {
-                    "correlation": 0.99,
-                    "beta": 0.95,
-                    "tracking_error_pct": 2.1,
-                    "observations": 103,
-                    "start_date": "2024-08-19",
-                    "end_date": RUN_DATE,
-                },
-            }
-        )
-        payload["nasdaq100_otc"] = {
-            "ranking_method": validator.EXPECTED_NASDAQ100_OTC_RANKING_METHOD,
-            "candidate_count": 1,
-            "missing_fields": {"two_year_return": 0, "holding_cost": 0, "nasdaq100_fit_2y": 0},
-            "records": [record],
-        }
-        validated, _ = self.validate(payload)
-        self.assertEqual("纳斯达克100联接人民币A", validated["nasdaq100_otc"]["records"][0]["name"])
 
     @staticmethod
     def boundary_payload():

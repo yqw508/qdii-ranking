@@ -1,6 +1,9 @@
 output/
 tmp/
 agents/
+.idea/
+.codegraph/
+.omo/
 __pycache__/
 *.py[cod]
 *.tmp

@@ -49,8 +49,9 @@ EXPECTED_GLOBAL_RANKING_METHOD = (
     "scale_billion_cny desc, code asc"
 )
 EXPECTED_NASDAQ100_OTC_RANKING_METHOD = (
-    "two_year_return_pct desc, holding_cost.annualized_pct asc, "
-    "nasdaq100_fit_2y.tracking_error_pct asc, three_year_return_pct desc, "
+    "common_period_return_pct desc, holding_cost.annualized_pct asc, "
+    "nasdaq100_fit_common_period.tracking_error_pct asc, "
+    "common_period_max_drawdown_pct desc, "
     "scale_billion_cny desc, code asc; missing values last"
 )
 NASDAQ100_OTC_NAME_RE = re.compile(r"(?:纳斯达克\s*100|纳指\s*100|NASDAQ\s*[-－]?\s*100)", re.I)
@@ -93,6 +94,7 @@ class RankingHtmlParser(HTMLParser):
         self.premium_tab_count = 0
         self.premium_table_count = 0
         self.premium_toggle_count = 0
+        self.nasdaq_item_count = 0
         self.valuation_link_count = 0
         self.reference_tab_count = 0
         self.fund_hot_reference_count = 0
@@ -120,6 +122,10 @@ class RankingHtmlParser(HTMLParser):
             self.premium_table_count += 1
         if tag == "button" and "premium-row-toggle" in classes:
             self.premium_toggle_count += 1
+        if tag == "details" and "nasdaq-item" in classes:
+            self.nasdaq_item_count += 1
+            if "open" in attributes:
+                raise ValidationError("OTC Nasdaq-100 details must be closed by default")
         if tag == "a" and attributes.get("href") in {"valuation/", "/valuation/"}:
             self.valuation_link_count += 1
         if tag == "section" and attributes.get("id") == "panel-reference":

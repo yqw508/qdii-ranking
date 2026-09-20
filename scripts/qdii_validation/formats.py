@@ -17,6 +17,27 @@ from .common import (
     require,
 )
 
+
+def _validate_common_fit_csv(
+    row: dict[str, str], record: dict[str, Any], code: str
+) -> None:
+    fit = record.get("nasdaq100_fit_common_period") or {}
+    fields = {
+        "nasdaq100_common_correlation": "correlation",
+        "nasdaq100_common_beta": "beta",
+        "nasdaq100_common_tracking_error_pct": "tracking_error_pct",
+        "nasdaq100_common_observations": "observations",
+        "nasdaq100_common_start_date": "start_date",
+        "nasdaq100_common_end_date": "end_date",
+    }
+    for csv_field, fit_field in fields.items():
+        expected = fit.get(fit_field)
+        require(
+            row[csv_field] == ("" if expected is None else str(expected)),
+            f"CSV {csv_field} differs for {code}",
+        )
+
+
 def validate_csv(path: Path, records: list[dict[str, Any]]) -> None:
     require(path.is_file(), f"Missing artifact: {path}")
     try:
@@ -69,9 +90,20 @@ def validate_csv(path: Path, records: list[dict[str, Any]]) -> None:
         for field in (
             "two_year_return_pct",
             "two_year_max_drawdown_pct",
+            "common_period_return_pct",
+            "common_period_max_drawdown_pct",
         ):
             expected = "" if record.get(field) is None else str(record[field])
             require(row[field] == expected, f"CSV {field} differs for {code}")
+        for field in (
+            "common_period_performance_start_date",
+            "common_period_performance_end_date",
+            "common_period_error",
+        ):
+            require(
+                row[field] == str(record.get(field) or ""),
+                f"CSV {field} differs for {code}",
+            )
         contract = record["contract_benchmark"]
         contract_fields = {
             "contract_benchmark_status": "status",
@@ -147,6 +179,7 @@ def validate_csv(path: Path, records: list[dict[str, Any]]) -> None:
                 row[csv_field] == ("" if expected is None else str(expected)),
                 f"CSV {csv_field} differs for {code}",
             )
+        _validate_common_fit_csv(row, record, code)
         expected_contract_match = record.get("contract_name_match")
         require(
             row["nasdaq100_name_contract_match"]

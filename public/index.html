@@ -35,7 +35,7 @@
     .tab[aria-selected="true"] { color:var(--text); background:var(--surface); box-shadow:0 1px 2px rgba(20,32,44,.12); }
     .tab-link { color:#284c69; }
     .tab-count { margin-left:6px; color:var(--muted); font-variant-numeric:tabular-nums; }
-    .tab:focus-visible,.overview-toggle:focus-visible,.reference-item-link:focus-visible,.fund-item summary:focus-visible,.refresh-button:focus-visible { outline:3px solid #86b7e8; outline-offset:2px; }
+    .tab:focus-visible,.overview-toggle:focus-visible,.reference-item-link:focus-visible,.fund-item summary:focus-visible,.nasdaq-item summary:focus-visible,.refresh-button:focus-visible { outline:3px solid #86b7e8; outline-offset:2px; }
     .reference-panel { display:grid; gap:12px; }
     .reference-heading h2 { margin:0; font-size:17px; }
     .reference-heading p { margin:3px 0 0; color:var(--muted); font-size:12px; }
@@ -124,13 +124,20 @@
     .nasdaq-toolbar { padding:4px 2px 0; }
     .nasdaq-toolbar h2 { margin:0; font-size:17px; }
     .nasdaq-toolbar p { margin:4px 0 0; color:var(--muted); font-size:12px; line-height:1.6; }
-    .nasdaq-table-wrap { overflow-x:auto; border:1px solid var(--border); border-radius:6px; background:var(--surface); }
-    .nasdaq-table { width:100%; min-width:980px; border-collapse:collapse; font-variant-numeric:tabular-nums; }
-    .nasdaq-table th,.nasdaq-table td { padding:9px 10px; border-bottom:1px solid #e5e9ed; text-align:right; vertical-align:top; white-space:nowrap; }
-    .nasdaq-table th { color:#52606d; background:#f7f8fa; font-size:12px; font-weight:700; }
-    .nasdaq-table th:first-child,.nasdaq-table td:first-child,.nasdaq-table th:nth-child(2),.nasdaq-table td:nth-child(2) { text-align:left; }
-    .nasdaq-table td:nth-child(2) { white-space:normal; min-width:240px; }
-    .nasdaq-table small { display:block; margin-top:2px; color:var(--muted); font-size:11px; }
+    .nasdaq-list { display:grid; border:1px solid var(--border); border-radius:6px; background:var(--surface); overflow:clip; }
+    .nasdaq-item:not(:last-child) { border-bottom:1px solid var(--border); }
+    .nasdaq-item summary { display:grid; grid-template-columns:34px minmax(0,1fr) 18px; align-items:center; gap:0 10px; min-height:72px; padding:12px; cursor:pointer; list-style:none; -webkit-tap-highlight-color:transparent; }
+    .nasdaq-item summary::-webkit-details-marker { display:none; }
+    .nasdaq-item[open] .chevron { transform:rotate(225deg) translate(-1px,-1px); }
+    .nasdaq-summary-metrics { grid-column:2/-1; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; margin-top:10px; }
+    .nasdaq-summary-metric { display:flex; min-width:0; min-height:43px; flex-direction:column; justify-content:center; padding:5px 8px; border-left:3px solid #c7cfd7; background:#f7f8fa; }
+    .nasdaq-summary-metric.accent { border-color:var(--accent); background:var(--accent-soft); }
+    .nasdaq-detail { padding:14px 12px 16px; border-top:1px solid var(--border); background:#fbfcfd; }
+    .nasdaq-detail-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px 16px; margin:0; }
+    .nasdaq-detail-grid div { min-width:0; }
+    .nasdaq-detail .benchmark-detail { margin-top:14px; }
+    .nasdaq-detail .source-row { margin-top:12px; }
+    .nasdaq-detail .metric-warning { color:var(--warning); }
     .nasdaq-warning { margin:0; padding:9px 10px; border-left:3px solid var(--warning); color:#705015; background:#fff8e8; font-size:12px; line-height:1.55; }
     .warnings { margin-top:18px; border-top:1px solid var(--border); }
     .warnings summary { display:flex; min-height:48px; align-items:center; justify-content:space-between; color:var(--warning); cursor:pointer; font-weight:700; }
@@ -143,12 +150,12 @@
       .tab { min-height:52px; padding:5px 1px; font-size:12px; } .tab-count { display:block; margin-left:0; font-size:11px; }
       .reference-item { align-items:stretch; flex-direction:column; gap:10px; } .reference-item-link { align-self:flex-start; }
       .premium-toolbar { align-items:stretch; flex-direction:column; gap:9px; } .refresh-button { align-self:flex-start; }
-      .nasdaq-table-wrap { overflow:visible; border:0; background:transparent; } .nasdaq-table { min-width:0; }
-      .nasdaq-table thead { display:none; } .nasdaq-table,.nasdaq-table tbody,.nasdaq-table tr,.nasdaq-table td { display:block; }
-      .nasdaq-table tr { margin-bottom:7px; padding:10px 11px; border:1px solid var(--border); border-radius:6px; background:var(--surface); }
-      .nasdaq-table td,.nasdaq-table td:first-child,.nasdaq-table td:nth-child(2) { display:grid; grid-template-columns:8.5em minmax(0,1fr); width:auto; min-width:0; padding:4px 0; border:0; text-align:left; white-space:normal; }
-      .nasdaq-table td::before { content:attr(data-label); color:var(--muted); font-size:11px; }
-      .nasdaq-table td:first-child::before { content:'排名'; } .nasdaq-table td:nth-child(2)::before { content:'基金'; }
+      .nasdaq-list { border:0; gap:7px; background:transparent; overflow:visible; }
+      .nasdaq-item { border:1px solid var(--border); border-radius:6px; background:var(--surface); overflow:clip; }
+      .nasdaq-item:not(:last-child) { border-bottom:1px solid var(--border); }
+      .nasdaq-summary-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .nasdaq-summary-metric:first-child { grid-column:1/-1; }
+      .nasdaq-detail-grid { gap:10px 14px; }
       .premium-table-wrap { overflow:visible; border:0; background:transparent; } .premium-table { min-width:0; table-layout:auto; }
       .premium-table thead { display:none; } .premium-table,.premium-item { display:block; }
       .premium-item { margin-bottom:7px; border:1px solid var(--border); border-radius:6px; background:var(--surface); overflow:hidden; }
@@ -159,7 +166,7 @@
       .premium-detail-row { display:table-row; } .premium-detail-row[hidden] { display:none; } .premium-detail-row td { display:block; padding:0; border:0; }
       .premium-detail-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 16px; padding:11px 12px 8px; border-top:1px solid #e5e9ed; } .premium-source-row { margin:0 12px 11px; }
     }
-    @media (min-width:820px) { .page { padding-top:28px; } .meta-grid { grid-template-columns:repeat(4,minmax(0,1fr)); } .fund-item summary { grid-template-columns:38px minmax(210px,1fr) minmax(520px,560px) 18px; gap:12px; padding:14px 16px; } .summary-metrics { grid-column:3; grid-row:1; grid-template-columns:repeat(5,minmax(0,1fr)); margin-top:0; } .chevron { grid-column:4; } .fund-detail { padding:18px 66px 20px; } .detail-grid { grid-template-columns:repeat(4,minmax(0,1fr)); } .rule-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+    @media (min-width:820px) { .page { padding-top:28px; } .meta-grid { grid-template-columns:repeat(4,minmax(0,1fr)); } .fund-item summary { grid-template-columns:38px minmax(210px,1fr) minmax(520px,560px) 18px; } .nasdaq-item summary { grid-template-columns:38px minmax(210px,1fr) minmax(410px,440px) 18px; } .fund-item summary,.nasdaq-item summary { gap:12px; padding:14px 16px; } .summary-metrics,.nasdaq-summary-metrics { grid-column:3; grid-row:1; margin-top:0; } .summary-metrics { grid-template-columns:repeat(5,minmax(0,1fr)); } .chevron { grid-column:4; } .fund-detail,.nasdaq-detail { padding:18px 66px 20px; } .detail-grid,.nasdaq-detail-grid { grid-template-columns:repeat(4,minmax(0,1fr)); } .nasdaq-period { grid-column:span 2; } .rule-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
     @media (prefers-reduced-motion:reduce) { .overview-chevron,.chevron { transition:none; } .refresh-button[aria-busy="true"] .refresh-icon { animation:none; } }
   </style>
 </head>
@@ -1416,16 +1423,608 @@
     </div>
     </details></section>
       <section id="panel-nasdaq100-otc" class="nasdaq-panel" role="tabpanel" aria-labelledby="tab-nasdaq100-otc" hidden>
-        <div class="nasdaq-toolbar"><h2>场外纳指100</h2><p>按名称匹配纳斯达克100、纳指100或 NASDAQ 100；完整展示场外人民币 A 类候选。排序依次为近两年收益、综合费率、两年跟踪误差、近三年收益、规模和代码，缺失数据排在后面。</p></div>
+        <div class="nasdaq-toolbar"><h2>场外纳指100</h2><p>共同区间 2024-03-22 至 2026-09-17；起点由成立满一年的最新产品 019736 宝盈纳斯达克100指数发起(QDII)A人民币 决定，结束日随共同净值滚动。排序依次为区间收益、综合费率、区间跟踪误差、较小回撤、规模和代码。</p></div>
         <p class="nasdaq-warning">本榜按名称识别，合同基准仅作展示。名称命中不等于基金严格跟踪纳斯达克100；请展开合同基准和来源核对。</p>
-        <div class="nasdaq-table-wrap"><table class="nasdaq-table"><thead><tr><th>排名</th><th>基金</th><th>申购状态</th><th>近两年</th><th>两年回撤</th><th>综合费率</th><th>两年跟踪误差</th><th>近三年</th><th>规模</th><th>合同基准</th></tr></thead><tbody><tr><td data-label="排名"><strong>1</strong></td><td data-label="基金"><a class="source-link" href="https://fund.eastmoney.com/016055.html" target="_blank" rel="noopener noreferrer">博时纳斯达克100ETF发起式联接(QDII)A人民币</a><small>016055 · 指数型-海外股票</small></td><td data-label="申购状态">暂停申购 开放赎回</td><td data-label="近两年" class="positive-text">+41.73%</td><td data-label="两年回撤" class="negative-text">-21.35%</td><td data-label="综合费率">0.81%/年</td><td data-label="两年跟踪误差">0.98%</td><td data-label="近三年">+72.03%</td><td data-label="规模">15.04 亿元</td><td data-label="合同基准"><span class="benchmark-compact">纳斯达克100指数 · 95%</span></td></tr><tr><td data-label="排名"><strong>2</strong></td><td data-label="基金"><a class="source-link" href="https://fund.eastmoney.com/018043.html" target="_blank" rel="noopener noreferrer">天弘纳斯达克100指数发起(QDII)A</a><small>018043 · 指数型-海外股票</small></td><td data-label="申购状态">暂停申购 ( 单日累计购买上限100.00元 ) 开放赎回</td><td data-label="近两年" class="positive-text">+41.37%</td><td data-label="两年回撤" class="negative-text">-21.36%</td><td data-label="综合费率">0.60%/年</td><td data-label="两年跟踪误差">0.96%</td><td data-label="近三年">+68.85%</td><td data-label="规模">30.75 亿元</td><td data-label="合同基准"><span class="benchmark-compact">纳斯达克100指数 · 95%</span></td></tr><tr><td data-label="排名"><strong>3</strong></td><td data-label="基金"><a class="source-link" href="https://fund.eastmoney.com/019172.html" target="_blank" rel="noopener noreferrer">摩根纳斯达克100指数(QDII)人民币A</a><small>019172 · 指数型-海外股票</small></td><td data-label="申购状态">限大额 ( 单日累计购买上限10.00元 ) 开放赎回</td><td data-label="近两年" class="positive-text">+41.21%</td><td data-label="两年回撤" class="negative-text">-21.44%</td><td data-label="综合费率">0.62%/年</td><td data-label="两年跟踪误差">1.61%</td><td data-label="近三年">--</td><td data-label="规模">29.69 亿元</td><td data-label="合同基准"><span class="benchmark-compact">纳斯达克100指数 · 95%</span></td></tr><tr><td data-label="排名"><strong>4</strong></td><td data-label="基金"><a class="source-link" href="https://fund.eastmoney.com/019736.html" target="_blank" rel="noopener noreferrer">宝盈纳斯达克100指数发起(QDII)A人民币</a><small>019736 · 指数型-海外股票</small></td><td data-label="申购状态">限大额 ( 单日累计购买上限200.00元 ) 开放赎回</td><td data-label="近两年" class="positive-text">+40.53%</td><td data-label="两年回撤" class="negative-text">-21.37%</td><td data-label="综合费率">--</td><td data-label="两年跟踪误差">1.15%</td><td data-label="近三年">--</td><td data-label="规模">10.63 亿元</td><td data-label="合同基准"><span class="benchmark-compact">纳斯达克100指数 · 95%</span></td></tr><tr><td data-label="排名"><strong>5</strong></td><td data-label="基金"><a class="source-link" href="https://fund.eastmoney.com/019441.html" target="_blank" rel="noopener noreferrer">万家纳斯达克100指数发起式(QDII)A</a><small>019441 · 指数型-海外股票</small></td><td data-label="申购状态">限大额 ( 单日累计购买上限100.00元 ) 开放赎回</td><td data-label="近两年" class="positive-text">+40.01%</td><td data-label="两年回撤" class="negative-text">-21.00%</td><td data-label="综合费率">--</td><td data-label="两年跟踪误差">1.31%</td><td data-label="近三年">--</td><td data-label="规模">9.68 亿元</td><td data-label="合同基准"><span class="benchmark-compact">纳斯达克100指数 · 95%</span></td></tr><tr><td data-label="排名"><strong>6</strong></td><td data-label="基金"><a class="source-link" href="https://fund.eastmoney.com/161130.html" target="_blank" rel="noopener noreferrer">易方达纳斯达克100ETF联接(QDII-LOF)A(人民币)</a><small>161130 · 指数型-海外股票</small></td><td data-label="申购状态">暂停申购 ( 单日累计购买上限10.00元 ) 开放赎回</td><td data-label="近两年" class="positive-text">+39.46%</td><td data-label="两年回撤" class="negative-text">-21.76%</td><td data-label="综合费率">0.61%/年</td><td data-label="两年跟踪误差">0.99%</td><td data-label="近三年">+75.03%</td><td data-label="规模">17.83 亿元</td><td data-label="合同基准"><span class="benchmark-compact">纳斯达克100指数 · 95%</span></td></tr><tr><td data-label="排名"><strong>7</strong></td><td data-label="基金"><a class="source-link" href="https://fund.eastmoney.com/016452.html" target="_blank" rel="noopener noreferrer">南方纳斯达克100指数发起(QDII)A</a><small>016452 · 指数型-海外股票</small></td><td data-label="申购状态">限大额 ( 单日累计购买上限10.00元 ) 开放赎回</td><td data-label="近两年" class="positive-text">+39.08%</td><td data-label="两年回撤" class="negative-text">-21.68%</td><td data-label="综合费率">0.67%/年</td><td data-label="两年跟踪误差">1.02%</td><td data-label="近三年">+69.72%</td><td data-label="规模">62.10 亿元</td><td data-label="合同基准"><span class="benchmark-compact">纳斯达克100指数 · 95%</span></td></tr><tr><td data-label="排名"><strong>8</strong></td><td data-label="基金"><a class="source-link" href="https://fund.eastmoney.com/016532.html" target="_blank" rel="noopener noreferrer">嘉实纳斯达克100ETF发起联接(QDII)A人民币</a><small>016532 · 指数型-海外股票</small></td><td data-label="申购状态">暂停申购 ( 单日累计购买上限100.00元 ) 开放赎回</td><td data-label="近两年" class="positive-text">+38.94%</td><td data-label="两年回撤" class="negative-text">-21.94%</td><td data-label="综合费率">0.61%/年</td><td data-label="两年跟踪误差">1.15%</td><td data-label="近三年">+68.14%</td><td data-label="规模">20.77 亿元</td><td data-label="合同基准"><span class="benchmark-compact">纳斯达克100指数 · 95%</span></td></tr><tr><td data-label="排名"><strong>9</strong></td><td data-label="基金"><a class="source-link" href="https://fund.eastmoney.com/270042.html" target="_blank" rel="noopener noreferrer">广发纳斯达克100ETF联接人民币(QDII)A</a><small>270042 · 指数型-海外股票</small></td><td data-label="申购状态">暂停申购 ( 单日累计购买上限2.00元 ) 开放赎回</td><td data-label="近两年" class="positive-text">+38.50%</td><td data-label="两年回撤" class="negative-text">-22.50%</td><td data-label="综合费率">1.00%/年</td><td data-label="两年跟踪误差">0.58%</td><td data-label="近三年">+73.04%</td><td data-label="规模">122.23 亿元</td><td data-label="合同基准"><span class="benchmark-compact">纳斯达克100指数 · 100%</span></td></tr><tr><td data-label="排名"><strong>10</strong></td><td data-label="基金"><a class="source-link" href="https://fund.eastmoney.com/539001.html" target="_blank" rel="noopener noreferrer">建信纳斯达克100指数(QDII)A人民币</a><small>539001 · 指数型-海外股票</small></td><td data-label="申购状态">限大额 ( 单日累计购买上限10.00元 ) 开放赎回</td><td data-label="近两年" class="positive-text">+38.20%</td><td data-label="两年回撤" class="negative-text">-21.97%</td><td data-label="综合费率">1.01%/年</td><td data-label="两年跟踪误差">1.66%</td><td data-label="近三年">+77.15%</td><td data-label="规模">21.76 亿元</td><td data-label="合同基准"><span class="benchmark-compact">纳斯达克100指数 · 95%</span></td></tr><tr><td data-label="排名"><strong>11</strong></td><td data-label="基金"><a class="source-link" href="https://fund.eastmoney.com/015299.html" target="_blank" rel="noopener noreferrer">华夏纳斯达克100ETF发起式联接(QDII)A</a><small>015299 · 指数型-海外股票</small></td><td data-label="申购状态">暂停申购 ( 单日累计购买上限100.00元 ) 开放赎回</td><td data-label="近两年" class="positive-text">+38.14%</td><td data-label="两年回撤" class="negative-text">-21.88%</td><td data-label="综合费率">0.84%/年</td><td data-label="两年跟踪误差">2.13%</td><td data-label="近三年">+69.92%</td><td data-label="规模">3.23 亿元</td><td data-label="合同基准"><span class="benchmark-compact">纳斯达克100指数 · 95%</span></td></tr><tr><td data-label="排名"><strong>12</strong></td><td data-label="基金"><a class="source-link" href="https://fund.eastmoney.com/019547.html" target="_blank" rel="noopener noreferrer">招商纳斯达克100ETF发起式联接(QDII)A</a><small>019547 · 指数型-海外股票</small></td><td data-label="申购状态">限大额 ( 单日累计购买上限10.00元 ) 开放赎回</td><td data-label="近两年" class="positive-text">+37.67%</td><td data-label="两年回撤" class="negative-text">-21.76%</td><td data-label="综合费率">0.68%/年</td><td data-label="两年跟踪误差">1.53%</td><td data-label="近三年">--</td><td data-label="规模">21.78 亿元</td><td data-label="合同基准"><span class="benchmark-compact">纳斯达克100指数 · 95%</span></td></tr><tr><td data-label="排名"><strong>13</strong></td><td data-label="基金"><a class="source-link" href="https://fund.eastmoney.com/040046.html" target="_blank" rel="noopener noreferrer">华安纳斯达克100ETF联接(QDII)A</a><small>040046 · 指数型-海外股票</small></td><td data-label="申购状态">限大额 ( 单日累计购买上限10.00元 ) 开放赎回</td><td data-label="近两年" class="positive-text">+36.93%</td><td data-label="两年回撤" class="negative-text">-23.03%</td><td data-label="综合费率">0.80%/年</td><td data-label="两年跟踪误差">1.07%</td><td data-label="近三年">+70.85%</td><td data-label="规模">58.10 亿元</td><td data-label="合同基准"><span class="benchmark-compact">纳斯达克100指数 · 95%</span></td></tr><tr><td data-label="排名"><strong>14</strong></td><td data-label="基金"><a class="source-link" href="https://fund.eastmoney.com/000834.html" target="_blank" rel="noopener noreferrer">大成纳斯达克100ETF联接(QDII)A</a><small>000834 · 指数型-海外股票</small></td><td data-label="申购状态">限大额 ( 单日累计购买上限10.00元 ) 开放赎回</td><td data-label="近两年" class="positive-text">+36.61%</td><td data-label="两年回撤" class="negative-text">-23.31%</td><td data-label="综合费率">1.00%/年</td><td data-label="两年跟踪误差">0.82%</td><td data-label="近三年">+69.61%</td><td data-label="规模">48.87 亿元</td><td data-label="合同基准"><span class="benchmark-compact">纳斯达克100指数 · 100%</span></td></tr><tr><td data-label="排名"><strong>15</strong></td><td data-label="基金"><a class="source-link" href="https://fund.eastmoney.com/019524.html" target="_blank" rel="noopener noreferrer">华泰柏瑞纳斯达克100ETF发起式联接(QDII)A</a><small>019524 · 指数型-海外股票</small></td><td data-label="申购状态">限大额 ( 单日累计购买上限10.00元 ) 开放赎回</td><td data-label="近两年" class="positive-text">+35.62%</td><td data-label="两年回撤" class="negative-text">-23.29%</td><td data-label="综合费率">0.70%/年</td><td data-label="两年跟踪误差">1.42%</td><td data-label="近三年">--</td><td data-label="规模">8.16 亿元</td><td data-label="合同基准"><span class="benchmark-compact">纳斯达克100指数 · 95%</span></td></tr><tr><td data-label="排名"><strong>16</strong></td><td data-label="基金"><a class="source-link" href="https://fund.eastmoney.com/018966.html" target="_blank" rel="noopener noreferrer">汇添富纳斯达克100ETF发起式联接(QDII)人民币A</a><small>018966 · 指数型-海外股票</small></td><td data-label="申购状态">限大额 ( 单日累计购买上限10.00元 ) 开放赎回</td><td data-label="近两年" class="positive-text">+33.26%</td><td data-label="两年回撤" class="negative-text">-21.80%</td><td data-label="综合费率">0.66%/年</td><td data-label="两年跟踪误差">1.59%</td><td data-label="近三年">+62.34%</td><td data-label="规模">16.33 亿元</td><td data-label="合同基准"><span class="benchmark-compact">纳斯达克100指数 · 95%</span></td></tr></tbody></table></div>
+        <div class="nasdaq-list"><details class="nasdaq-item" data-code="019736">
+      <summary>
+        <span class="rank">1</span>
+        <span class="fund-identity"><span class="fund-name-row"><strong>宝盈纳斯达克100指数发起(QDII)A人民币</strong></span><span class="fund-code">019736 · 指数型-海外股票</span></span>
+        <span class="nasdaq-summary-metrics">
+          <span class="nasdaq-summary-metric"><span class="metric-label">申购状态</span><span class="metric-value small">限额申购</span></span>
+          <span class="nasdaq-summary-metric accent"><span class="metric-label">区间收益</span><span class="metric-value positive-text">+48.48%</span></span>
+          <span class="nasdaq-summary-metric"><span class="metric-label">综合费率</span><span class="metric-value small">--</span></span>
+        </span>
+        <span class="chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="nasdaq-detail">
+        <dl class="nasdaq-detail-grid">
+          <div><dt>成立日</dt><dd>2024-03-22</dd></div>
+          <div><dt>申购状态</dt><dd>限大额 ( 单日累计购买上限200.00元 ) 开放赎回</dd></div>
+          <div><dt>区间回撤</dt><dd class="negative-text">-21.37%</dd></div>
+          <div><dt>区间跟踪误差</dt><dd>2.07%</dd></div>
+          <div><dt>基金规模</dt><dd>10.63 亿元</dd></div>
+          <div><dt>纳指相关性</dt><dd>99.7%</dd></div>
+          <div><dt>Beta</dt><dd>0.92</dd></div>
+          <div><dt>跟踪周样本</dt><dd>128 周</dd></div>
+          <div><dt>数据状态</dt><dd class="">公共区间数据完整</dd></div>
+          <div class="nasdaq-period"><dt>收益与回撤区间</dt><dd>2024-03-22 至 2026-09-17</dd></div>
+          <div class="nasdaq-period"><dt>跟踪拟合区间</dt><dd>2024-03-22 至 2026-09-17</dd></div>
+        </dl>
+        <section class="benchmark-detail">
+          <span>合同基准</span>
+          <strong>纳斯达克100指数 · 95%</strong>
+          <small>解析状态：recognized；仅作资料展示，不参与入选。</small>
+        </section>
+        <div class="source-row">
+          <a class="source-link" href="https://fund.eastmoney.com/019736.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202603211820681593_1.pdf" target="_blank" rel="noopener noreferrer">招募说明书<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202603211820681573_1.pdf" target="_blank" rel="noopener noreferrer">人民币产品概要<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202603211820681573_1.pdf" target="_blank" rel="noopener noreferrer">费率来源<span class="external" aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+    </details><details class="nasdaq-item" data-code="016055">
+      <summary>
+        <span class="rank">2</span>
+        <span class="fund-identity"><span class="fund-name-row"><strong>博时纳斯达克100ETF发起式联接(QDII)A人民币</strong></span><span class="fund-code">016055 · 指数型-海外股票</span></span>
+        <span class="nasdaq-summary-metrics">
+          <span class="nasdaq-summary-metric"><span class="metric-label">申购状态</span><span class="metric-value small">暂停申购</span></span>
+          <span class="nasdaq-summary-metric accent"><span class="metric-label">区间收益</span><span class="metric-value positive-text">+48.41%</span></span>
+          <span class="nasdaq-summary-metric"><span class="metric-label">综合费率</span><span class="metric-value small">0.81%/年</span></span>
+        </span>
+        <span class="chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="nasdaq-detail">
+        <dl class="nasdaq-detail-grid">
+          <div><dt>成立日</dt><dd>2022-07-26</dd></div>
+          <div><dt>申购状态</dt><dd>暂停申购 开放赎回</dd></div>
+          <div><dt>区间回撤</dt><dd class="negative-text">-21.35%</dd></div>
+          <div><dt>区间跟踪误差</dt><dd>1.08%</dd></div>
+          <div><dt>基金规模</dt><dd>15.04 亿元</dd></div>
+          <div><dt>纳指相关性</dt><dd>100.0%</dd></div>
+          <div><dt>Beta</dt><dd>0.95</dd></div>
+          <div><dt>跟踪周样本</dt><dd>128 周</dd></div>
+          <div><dt>数据状态</dt><dd class="">公共区间数据完整</dd></div>
+          <div class="nasdaq-period"><dt>收益与回撤区间</dt><dd>2024-03-22 至 2026-09-17</dd></div>
+          <div class="nasdaq-period"><dt>跟踪拟合区间</dt><dd>2024-03-22 至 2026-09-17</dd></div>
+        </dl>
+        <section class="benchmark-detail">
+          <span>合同基准</span>
+          <strong>纳斯达克100指数 · 95%</strong>
+          <small>解析状态：recognized；仅作资料展示，不参与入选。</small>
+        </section>
+        <div class="source-row">
+          <a class="source-link" href="https://fund.eastmoney.com/016055.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202509301753246302_1.pdf" target="_blank" rel="noopener noreferrer">招募说明书<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606261823875244_1.pdf" target="_blank" rel="noopener noreferrer">人民币产品概要<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606261823875244_1.pdf" target="_blank" rel="noopener noreferrer">费率来源<span class="external" aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+    </details><details class="nasdaq-item" data-code="019172">
+      <summary>
+        <span class="rank">3</span>
+        <span class="fund-identity"><span class="fund-name-row"><strong>摩根纳斯达克100指数(QDII)人民币A</strong></span><span class="fund-code">019172 · 指数型-海外股票</span></span>
+        <span class="nasdaq-summary-metrics">
+          <span class="nasdaq-summary-metric"><span class="metric-label">申购状态</span><span class="metric-value small">限额申购</span></span>
+          <span class="nasdaq-summary-metric accent"><span class="metric-label">区间收益</span><span class="metric-value positive-text">+48.39%</span></span>
+          <span class="nasdaq-summary-metric"><span class="metric-label">综合费率</span><span class="metric-value small">0.62%/年</span></span>
+        </span>
+        <span class="chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="nasdaq-detail">
+        <dl class="nasdaq-detail-grid">
+          <div><dt>成立日</dt><dd>2023-09-25</dd></div>
+          <div><dt>申购状态</dt><dd>限大额 ( 单日累计购买上限10.00元 ) 开放赎回</dd></div>
+          <div><dt>区间回撤</dt><dd class="negative-text">-21.44%</dd></div>
+          <div><dt>区间跟踪误差</dt><dd>1.55%</dd></div>
+          <div><dt>基金规模</dt><dd>29.69 亿元</dd></div>
+          <div><dt>纳指相关性</dt><dd>99.9%</dd></div>
+          <div><dt>Beta</dt><dd>0.93</dd></div>
+          <div><dt>跟踪周样本</dt><dd>128 周</dd></div>
+          <div><dt>数据状态</dt><dd class="">公共区间数据完整</dd></div>
+          <div class="nasdaq-period"><dt>收益与回撤区间</dt><dd>2024-03-22 至 2026-09-17</dd></div>
+          <div class="nasdaq-period"><dt>跟踪拟合区间</dt><dd>2024-03-22 至 2026-09-17</dd></div>
+        </dl>
+        <section class="benchmark-detail">
+          <span>合同基准</span>
+          <strong>纳斯达克100指数 · 95%</strong>
+          <small>解析状态：recognized；仅作资料展示，不参与入选。</small>
+        </section>
+        <div class="source-row">
+          <a class="source-link" href="https://fund.eastmoney.com/019172.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608261828448540_1.pdf" target="_blank" rel="noopener noreferrer">招募说明书<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608261828449830_1.pdf" target="_blank" rel="noopener noreferrer">人民币产品概要<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608261828449830_1.pdf" target="_blank" rel="noopener noreferrer">费率来源<span class="external" aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+    </details><details class="nasdaq-item" data-code="539001">
+      <summary>
+        <span class="rank">4</span>
+        <span class="fund-identity"><span class="fund-name-row"><strong>建信纳斯达克100指数(QDII)A人民币</strong></span><span class="fund-code">539001 · 指数型-海外股票</span></span>
+        <span class="nasdaq-summary-metrics">
+          <span class="nasdaq-summary-metric"><span class="metric-label">申购状态</span><span class="metric-value small">限额申购</span></span>
+          <span class="nasdaq-summary-metric accent"><span class="metric-label">区间收益</span><span class="metric-value positive-text">+47.96%</span></span>
+          <span class="nasdaq-summary-metric"><span class="metric-label">综合费率</span><span class="metric-value small">1.01%/年</span></span>
+        </span>
+        <span class="chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="nasdaq-detail">
+        <dl class="nasdaq-detail-grid">
+          <div><dt>成立日</dt><dd>2010-09-14</dd></div>
+          <div><dt>申购状态</dt><dd>限大额 ( 单日累计购买上限10.00元 ) 开放赎回</dd></div>
+          <div><dt>区间回撤</dt><dd class="negative-text">-21.97%</dd></div>
+          <div><dt>区间跟踪误差</dt><dd>1.54%</dd></div>
+          <div><dt>基金规模</dt><dd>21.76 亿元</dd></div>
+          <div><dt>纳指相关性</dt><dd>99.8%</dd></div>
+          <div><dt>Beta</dt><dd>0.95</dd></div>
+          <div><dt>跟踪周样本</dt><dd>128 周</dd></div>
+          <div><dt>数据状态</dt><dd class="">公共区间数据完整</dd></div>
+          <div class="nasdaq-period"><dt>收益与回撤区间</dt><dd>2024-03-22 至 2026-09-17</dd></div>
+          <div class="nasdaq-period"><dt>跟踪拟合区间</dt><dd>2024-03-22 至 2026-09-17</dd></div>
+        </dl>
+        <section class="benchmark-detail">
+          <span>合同基准</span>
+          <strong>纳斯达克100指数 · 95%</strong>
+          <small>解析状态：recognized；仅作资料展示，不参与入选。</small>
+        </section>
+        <div class="source-row">
+          <a class="source-link" href="https://fund.eastmoney.com/539001.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608041827607799_1.pdf" target="_blank" rel="noopener noreferrer">招募说明书<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608041827607417_1.pdf" target="_blank" rel="noopener noreferrer">人民币产品概要<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608041827607417_1.pdf" target="_blank" rel="noopener noreferrer">费率来源<span class="external" aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+    </details><details class="nasdaq-item" data-code="161130">
+      <summary>
+        <span class="rank">5</span>
+        <span class="fund-identity"><span class="fund-name-row"><strong>易方达纳斯达克100ETF联接(QDII-LOF)A(人民币)</strong></span><span class="fund-code">161130 · 指数型-海外股票</span></span>
+        <span class="nasdaq-summary-metrics">
+          <span class="nasdaq-summary-metric"><span class="metric-label">申购状态</span><span class="metric-value small">暂停申购</span></span>
+          <span class="nasdaq-summary-metric accent"><span class="metric-label">区间收益</span><span class="metric-value positive-text">+47.82%</span></span>
+          <span class="nasdaq-summary-metric"><span class="metric-label">综合费率</span><span class="metric-value small">0.61%/年</span></span>
+        </span>
+        <span class="chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="nasdaq-detail">
+        <dl class="nasdaq-detail-grid">
+          <div><dt>成立日</dt><dd>2017-06-23</dd></div>
+          <div><dt>申购状态</dt><dd>暂停申购 ( 单日累计购买上限10.00元 ) 开放赎回</dd></div>
+          <div><dt>区间回撤</dt><dd class="negative-text">-21.76%</dd></div>
+          <div><dt>区间跟踪误差</dt><dd>1.05%</dd></div>
+          <div><dt>基金规模</dt><dd>17.83 亿元</dd></div>
+          <div><dt>纳指相关性</dt><dd>100.0%</dd></div>
+          <div><dt>Beta</dt><dd>0.95</dd></div>
+          <div><dt>跟踪周样本</dt><dd>128 周</dd></div>
+          <div><dt>数据状态</dt><dd class="">公共区间数据完整</dd></div>
+          <div class="nasdaq-period"><dt>收益与回撤区间</dt><dd>2024-03-22 至 2026-09-17</dd></div>
+          <div class="nasdaq-period"><dt>跟踪拟合区间</dt><dd>2024-03-22 至 2026-09-17</dd></div>
+        </dl>
+        <section class="benchmark-detail">
+          <span>合同基准</span>
+          <strong>纳斯达克100指数 · 95%</strong>
+          <small>解析状态：recognized；仅作资料展示，不参与入选。</small>
+        </section>
+        <div class="source-row">
+          <a class="source-link" href="https://fund.eastmoney.com/161130.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202511271789458182_1.pdf" target="_blank" rel="noopener noreferrer">招募说明书<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608101827818475_1.pdf" target="_blank" rel="noopener noreferrer">人民币产品概要<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608101827818475_1.pdf" target="_blank" rel="noopener noreferrer">费率来源<span class="external" aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+    </details><details class="nasdaq-item" data-code="270042">
+      <summary>
+        <span class="rank">6</span>
+        <span class="fund-identity"><span class="fund-name-row"><strong>广发纳斯达克100ETF联接人民币(QDII)A</strong></span><span class="fund-code">270042 · 指数型-海外股票</span></span>
+        <span class="nasdaq-summary-metrics">
+          <span class="nasdaq-summary-metric"><span class="metric-label">申购状态</span><span class="metric-value small">暂停申购</span></span>
+          <span class="nasdaq-summary-metric accent"><span class="metric-label">区间收益</span><span class="metric-value positive-text">+46.68%</span></span>
+          <span class="nasdaq-summary-metric"><span class="metric-label">综合费率</span><span class="metric-value small">1.00%/年</span></span>
+        </span>
+        <span class="chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="nasdaq-detail">
+        <dl class="nasdaq-detail-grid">
+          <div><dt>成立日</dt><dd>2012-08-15</dd></div>
+          <div><dt>申购状态</dt><dd>暂停申购 ( 单日累计购买上限2.00元 ) 开放赎回</dd></div>
+          <div><dt>区间回撤</dt><dd class="negative-text">-22.50%</dd></div>
+          <div><dt>区间跟踪误差</dt><dd>0.58%</dd></div>
+          <div><dt>基金规模</dt><dd>122.23 亿元</dd></div>
+          <div><dt>纳指相关性</dt><dd>100.0%</dd></div>
+          <div><dt>Beta</dt><dd>0.99</dd></div>
+          <div><dt>跟踪周样本</dt><dd>128 周</dd></div>
+          <div><dt>数据状态</dt><dd class="">公共区间数据完整</dd></div>
+          <div class="nasdaq-period"><dt>收益与回撤区间</dt><dd>2024-03-22 至 2026-09-17</dd></div>
+          <div class="nasdaq-period"><dt>跟踪拟合区间</dt><dd>2024-03-22 至 2026-09-17</dd></div>
+        </dl>
+        <section class="benchmark-detail">
+          <span>合同基准</span>
+          <strong>纳斯达克100指数 · 100%</strong>
+          <small>解析状态：recognized；仅作资料展示，不参与入选。</small>
+        </section>
+        <div class="source-row">
+          <a class="source-link" href="https://fund.eastmoney.com/270042.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606051823274925_1.pdf" target="_blank" rel="noopener noreferrer">招募说明书<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606051823275073_1.pdf" target="_blank" rel="noopener noreferrer">人民币产品概要<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606051823275073_1.pdf" target="_blank" rel="noopener noreferrer">费率来源<span class="external" aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+    </details><details class="nasdaq-item" data-code="016452">
+      <summary>
+        <span class="rank">7</span>
+        <span class="fund-identity"><span class="fund-name-row"><strong>南方纳斯达克100指数发起(QDII)A</strong></span><span class="fund-code">016452 · 指数型-海外股票</span></span>
+        <span class="nasdaq-summary-metrics">
+          <span class="nasdaq-summary-metric"><span class="metric-label">申购状态</span><span class="metric-value small">限额申购</span></span>
+          <span class="nasdaq-summary-metric accent"><span class="metric-label">区间收益</span><span class="metric-value positive-text">+45.88%</span></span>
+          <span class="nasdaq-summary-metric"><span class="metric-label">综合费率</span><span class="metric-value small">0.67%/年</span></span>
+        </span>
+        <span class="chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="nasdaq-detail">
+        <dl class="nasdaq-detail-grid">
+          <div><dt>成立日</dt><dd>2022-11-29</dd></div>
+          <div><dt>申购状态</dt><dd>限大额 ( 单日累计购买上限10.00元 ) 开放赎回</dd></div>
+          <div><dt>区间回撤</dt><dd class="negative-text">-21.68%</dd></div>
+          <div><dt>区间跟踪误差</dt><dd>1.11%</dd></div>
+          <div><dt>基金规模</dt><dd>62.10 亿元</dd></div>
+          <div><dt>纳指相关性</dt><dd>100.0%</dd></div>
+          <div><dt>Beta</dt><dd>0.95</dd></div>
+          <div><dt>跟踪周样本</dt><dd>128 周</dd></div>
+          <div><dt>数据状态</dt><dd class="">公共区间数据完整</dd></div>
+          <div class="nasdaq-period"><dt>收益与回撤区间</dt><dd>2024-03-22 至 2026-09-17</dd></div>
+          <div class="nasdaq-period"><dt>跟踪拟合区间</dt><dd>2024-03-22 至 2026-09-17</dd></div>
+        </dl>
+        <section class="benchmark-detail">
+          <span>合同基准</span>
+          <strong>纳斯达克100指数 · 95%</strong>
+          <small>解析状态：recognized；仅作资料展示，不参与入选。</small>
+        </section>
+        <div class="source-row">
+          <a class="source-link" href="https://fund.eastmoney.com/016452.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202510221766703982_1.pdf" target="_blank" rel="noopener noreferrer">招募说明书<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202510221766699937_1.pdf" target="_blank" rel="noopener noreferrer">人民币产品概要<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202510221766699937_1.pdf" target="_blank" rel="noopener noreferrer">费率来源<span class="external" aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+    </details><details class="nasdaq-item" data-code="018043">
+      <summary>
+        <span class="rank">8</span>
+        <span class="fund-identity"><span class="fund-name-row"><strong>天弘纳斯达克100指数发起(QDII)A</strong></span><span class="fund-code">018043 · 指数型-海外股票</span></span>
+        <span class="nasdaq-summary-metrics">
+          <span class="nasdaq-summary-metric"><span class="metric-label">申购状态</span><span class="metric-value small">暂停申购</span></span>
+          <span class="nasdaq-summary-metric accent"><span class="metric-label">区间收益</span><span class="metric-value positive-text">+45.25%</span></span>
+          <span class="nasdaq-summary-metric"><span class="metric-label">综合费率</span><span class="metric-value small">0.60%/年</span></span>
+        </span>
+        <span class="chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="nasdaq-detail">
+        <dl class="nasdaq-detail-grid">
+          <div><dt>成立日</dt><dd>2023-04-11</dd></div>
+          <div><dt>申购状态</dt><dd>暂停申购 ( 单日累计购买上限100.00元 ) 开放赎回</dd></div>
+          <div><dt>区间回撤</dt><dd class="negative-text">-21.36%</dd></div>
+          <div><dt>区间跟踪误差</dt><dd>1.23%</dd></div>
+          <div><dt>基金规模</dt><dd>30.75 亿元</dd></div>
+          <div><dt>纳指相关性</dt><dd>99.9%</dd></div>
+          <div><dt>Beta</dt><dd>0.95</dd></div>
+          <div><dt>跟踪周样本</dt><dd>128 周</dd></div>
+          <div><dt>数据状态</dt><dd class="">公共区间数据完整</dd></div>
+          <div class="nasdaq-period"><dt>收益与回撤区间</dt><dd>2024-03-22 至 2026-09-17</dd></div>
+          <div class="nasdaq-period"><dt>跟踪拟合区间</dt><dd>2024-03-22 至 2026-09-17</dd></div>
+        </dl>
+        <section class="benchmark-detail">
+          <span>合同基准</span>
+          <strong>纳斯达克100指数 · 95%</strong>
+          <small>解析状态：recognized；仅作资料展示，不参与入选。</small>
+        </section>
+        <div class="source-row">
+          <a class="source-link" href="https://fund.eastmoney.com/018043.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202603071820363849_1.pdf" target="_blank" rel="noopener noreferrer">招募说明书<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606261823874113_1.pdf" target="_blank" rel="noopener noreferrer">人民币产品概要<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606261823874113_1.pdf" target="_blank" rel="noopener noreferrer">费率来源<span class="external" aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+    </details><details class="nasdaq-item" data-code="016532">
+      <summary>
+        <span class="rank">9</span>
+        <span class="fund-identity"><span class="fund-name-row"><strong>嘉实纳斯达克100ETF发起联接(QDII)A人民币</strong></span><span class="fund-code">016532 · 指数型-海外股票</span></span>
+        <span class="nasdaq-summary-metrics">
+          <span class="nasdaq-summary-metric"><span class="metric-label">申购状态</span><span class="metric-value small">暂停申购</span></span>
+          <span class="nasdaq-summary-metric accent"><span class="metric-label">区间收益</span><span class="metric-value positive-text">+45.05%</span></span>
+          <span class="nasdaq-summary-metric"><span class="metric-label">综合费率</span><span class="metric-value small">0.61%/年</span></span>
+        </span>
+        <span class="chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="nasdaq-detail">
+        <dl class="nasdaq-detail-grid">
+          <div><dt>成立日</dt><dd>2022-09-15</dd></div>
+          <div><dt>申购状态</dt><dd>暂停申购 ( 单日累计购买上限100.00元 ) 开放赎回</dd></div>
+          <div><dt>区间回撤</dt><dd class="negative-text">-21.94%</dd></div>
+          <div><dt>区间跟踪误差</dt><dd>1.22%</dd></div>
+          <div><dt>基金规模</dt><dd>20.77 亿元</dd></div>
+          <div><dt>纳指相关性</dt><dd>99.9%</dd></div>
+          <div><dt>Beta</dt><dd>0.94</dd></div>
+          <div><dt>跟踪周样本</dt><dd>128 周</dd></div>
+          <div><dt>数据状态</dt><dd class="">公共区间数据完整</dd></div>
+          <div class="nasdaq-period"><dt>收益与回撤区间</dt><dd>2024-03-22 至 2026-09-17</dd></div>
+          <div class="nasdaq-period"><dt>跟踪拟合区间</dt><dd>2024-03-22 至 2026-09-17</dd></div>
+        </dl>
+        <section class="benchmark-detail">
+          <span>合同基准</span>
+          <strong>纳斯达克100指数 · 95%</strong>
+          <small>解析状态：recognized；仅作资料展示，不参与入选。</small>
+        </section>
+        <div class="source-row">
+          <a class="source-link" href="https://fund.eastmoney.com/016532.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608111827835955_1.pdf" target="_blank" rel="noopener noreferrer">招募说明书<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606101823410116_1.pdf" target="_blank" rel="noopener noreferrer">人民币产品概要<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606101823410116_1.pdf" target="_blank" rel="noopener noreferrer">费率来源<span class="external" aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+    </details><details class="nasdaq-item" data-code="019441">
+      <summary>
+        <span class="rank">10</span>
+        <span class="fund-identity"><span class="fund-name-row"><strong>万家纳斯达克100指数发起式(QDII)A</strong></span><span class="fund-code">019441 · 指数型-海外股票</span></span>
+        <span class="nasdaq-summary-metrics">
+          <span class="nasdaq-summary-metric"><span class="metric-label">申购状态</span><span class="metric-value small">限额申购</span></span>
+          <span class="nasdaq-summary-metric accent"><span class="metric-label">区间收益</span><span class="metric-value positive-text">+43.96%</span></span>
+          <span class="nasdaq-summary-metric"><span class="metric-label">综合费率</span><span class="metric-value small">--</span></span>
+        </span>
+        <span class="chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="nasdaq-detail">
+        <dl class="nasdaq-detail-grid">
+          <div><dt>成立日</dt><dd>2023-09-27</dd></div>
+          <div><dt>申购状态</dt><dd>限大额 ( 单日累计购买上限100.00元 ) 开放赎回</dd></div>
+          <div><dt>区间回撤</dt><dd class="negative-text">-21.00%</dd></div>
+          <div><dt>区间跟踪误差</dt><dd>1.54%</dd></div>
+          <div><dt>基金规模</dt><dd>9.68 亿元</dd></div>
+          <div><dt>纳指相关性</dt><dd>99.9%</dd></div>
+          <div><dt>Beta</dt><dd>0.93</dd></div>
+          <div><dt>跟踪周样本</dt><dd>128 周</dd></div>
+          <div><dt>数据状态</dt><dd class="">公共区间数据完整</dd></div>
+          <div class="nasdaq-period"><dt>收益与回撤区间</dt><dd>2024-03-22 至 2026-09-17</dd></div>
+          <div class="nasdaq-period"><dt>跟踪拟合区间</dt><dd>2024-03-22 至 2026-09-17</dd></div>
+        </dl>
+        <section class="benchmark-detail">
+          <span>合同基准</span>
+          <strong>纳斯达克100指数 · 95%</strong>
+          <small>解析状态：recognized；仅作资料展示，不参与入选。</small>
+        </section>
+        <div class="source-row">
+          <a class="source-link" href="https://fund.eastmoney.com/019441.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607081826790866_1.pdf" target="_blank" rel="noopener noreferrer">招募说明书<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607081826790821_1.pdf" target="_blank" rel="noopener noreferrer">人民币产品概要<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202607081826790821_1.pdf" target="_blank" rel="noopener noreferrer">费率来源<span class="external" aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+    </details><details class="nasdaq-item" data-code="040046">
+      <summary>
+        <span class="rank">11</span>
+        <span class="fund-identity"><span class="fund-name-row"><strong>华安纳斯达克100ETF联接(QDII)A</strong></span><span class="fund-code">040046 · 指数型-海外股票</span></span>
+        <span class="nasdaq-summary-metrics">
+          <span class="nasdaq-summary-metric"><span class="metric-label">申购状态</span><span class="metric-value small">限额申购</span></span>
+          <span class="nasdaq-summary-metric accent"><span class="metric-label">区间收益</span><span class="metric-value positive-text">+43.95%</span></span>
+          <span class="nasdaq-summary-metric"><span class="metric-label">综合费率</span><span class="metric-value small">0.80%/年</span></span>
+        </span>
+        <span class="chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="nasdaq-detail">
+        <dl class="nasdaq-detail-grid">
+          <div><dt>成立日</dt><dd>2013-08-02</dd></div>
+          <div><dt>申购状态</dt><dd>限大额 ( 单日累计购买上限10.00元 ) 开放赎回</dd></div>
+          <div><dt>区间回撤</dt><dd class="negative-text">-23.03%</dd></div>
+          <div><dt>区间跟踪误差</dt><dd>0.99%</dd></div>
+          <div><dt>基金规模</dt><dd>58.10 亿元</dd></div>
+          <div><dt>纳指相关性</dt><dd>99.9%</dd></div>
+          <div><dt>Beta</dt><dd>0.98</dd></div>
+          <div><dt>跟踪周样本</dt><dd>128 周</dd></div>
+          <div><dt>数据状态</dt><dd class="">公共区间数据完整</dd></div>
+          <div class="nasdaq-period"><dt>收益与回撤区间</dt><dd>2024-03-22 至 2026-09-17</dd></div>
+          <div class="nasdaq-period"><dt>跟踪拟合区间</dt><dd>2024-03-22 至 2026-09-17</dd></div>
+        </dl>
+        <section class="benchmark-detail">
+          <span>合同基准</span>
+          <strong>纳斯达克100指数 · 95%</strong>
+          <small>解析状态：recognized；仅作资料展示，不参与入选。</small>
+        </section>
+        <div class="source-row">
+          <a class="source-link" href="https://fund.eastmoney.com/040046.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202609181829589868_1.pdf" target="_blank" rel="noopener noreferrer">招募说明书<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202609181829590010_1.pdf" target="_blank" rel="noopener noreferrer">人民币产品概要<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202609181829590010_1.pdf" target="_blank" rel="noopener noreferrer">费率来源<span class="external" aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+    </details><details class="nasdaq-item" data-code="000834">
+      <summary>
+        <span class="rank">12</span>
+        <span class="fund-identity"><span class="fund-name-row"><strong>大成纳斯达克100ETF联接(QDII)A</strong></span><span class="fund-code">000834 · 指数型-海外股票</span></span>
+        <span class="nasdaq-summary-metrics">
+          <span class="nasdaq-summary-metric"><span class="metric-label">申购状态</span><span class="metric-value small">限额申购</span></span>
+          <span class="nasdaq-summary-metric accent"><span class="metric-label">区间收益</span><span class="metric-value positive-text">+43.75%</span></span>
+          <span class="nasdaq-summary-metric"><span class="metric-label">综合费率</span><span class="metric-value small">1.00%/年</span></span>
+        </span>
+        <span class="chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="nasdaq-detail">
+        <dl class="nasdaq-detail-grid">
+          <div><dt>成立日</dt><dd>2014-11-13</dd></div>
+          <div><dt>申购状态</dt><dd>限大额 ( 单日累计购买上限10.00元 ) 开放赎回</dd></div>
+          <div><dt>区间回撤</dt><dd class="negative-text">-23.31%</dd></div>
+          <div><dt>区间跟踪误差</dt><dd>0.80%</dd></div>
+          <div><dt>基金规模</dt><dd>48.87 亿元</dd></div>
+          <div><dt>纳指相关性</dt><dd>99.9%</dd></div>
+          <div><dt>Beta</dt><dd>0.98</dd></div>
+          <div><dt>跟踪周样本</dt><dd>128 周</dd></div>
+          <div><dt>数据状态</dt><dd class="">公共区间数据完整</dd></div>
+          <div class="nasdaq-period"><dt>收益与回撤区间</dt><dd>2024-03-22 至 2026-09-17</dd></div>
+          <div class="nasdaq-period"><dt>跟踪拟合区间</dt><dd>2024-03-22 至 2026-09-17</dd></div>
+        </dl>
+        <section class="benchmark-detail">
+          <span>合同基准</span>
+          <strong>纳斯达克100指数 · 100%</strong>
+          <small>解析状态：recognized；仅作资料展示，不参与入选。</small>
+        </section>
+        <div class="source-row">
+          <a class="source-link" href="https://fund.eastmoney.com/000834.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202510011753863690_1.pdf" target="_blank" rel="noopener noreferrer">招募说明书<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606301826565419_1.pdf" target="_blank" rel="noopener noreferrer">人民币产品概要<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202606301826565419_1.pdf" target="_blank" rel="noopener noreferrer">费率来源<span class="external" aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+    </details><details class="nasdaq-item" data-code="015299">
+      <summary>
+        <span class="rank">13</span>
+        <span class="fund-identity"><span class="fund-name-row"><strong>华夏纳斯达克100ETF发起式联接(QDII)A</strong></span><span class="fund-code">015299 · 指数型-海外股票</span></span>
+        <span class="nasdaq-summary-metrics">
+          <span class="nasdaq-summary-metric"><span class="metric-label">申购状态</span><span class="metric-value small">暂停申购</span></span>
+          <span class="nasdaq-summary-metric accent"><span class="metric-label">区间收益</span><span class="metric-value positive-text">+43.22%</span></span>
+          <span class="nasdaq-summary-metric"><span class="metric-label">综合费率</span><span class="metric-value small">0.84%/年</span></span>
+        </span>
+        <span class="chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="nasdaq-detail">
+        <dl class="nasdaq-detail-grid">
+          <div><dt>成立日</dt><dd>2022-04-14</dd></div>
+          <div><dt>申购状态</dt><dd>暂停申购 ( 单日累计购买上限100.00元 ) 开放赎回</dd></div>
+          <div><dt>区间回撤</dt><dd class="negative-text">-21.88%</dd></div>
+          <div><dt>区间跟踪误差</dt><dd>2.07%</dd></div>
+          <div><dt>基金规模</dt><dd>3.23 亿元</dd></div>
+          <div><dt>纳指相关性</dt><dd>99.6%</dd></div>
+          <div><dt>Beta</dt><dd>0.93</dd></div>
+          <div><dt>跟踪周样本</dt><dd>128 周</dd></div>
+          <div><dt>数据状态</dt><dd class="">公共区间数据完整</dd></div>
+          <div class="nasdaq-period"><dt>收益与回撤区间</dt><dd>2024-03-22 至 2026-09-17</dd></div>
+          <div class="nasdaq-period"><dt>跟踪拟合区间</dt><dd>2024-03-22 至 2026-09-17</dd></div>
+        </dl>
+        <section class="benchmark-detail">
+          <span>合同基准</span>
+          <strong>纳斯达克100指数 · 95%</strong>
+          <small>解析状态：recognized；仅作资料展示，不参与入选。</small>
+        </section>
+        <div class="source-row">
+          <a class="source-link" href="https://fund.eastmoney.com/015299.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202605291822992316_1.pdf" target="_blank" rel="noopener noreferrer">招募说明书<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202605291822989035_1.pdf" target="_blank" rel="noopener noreferrer">人民币产品概要<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202605291822989035_1.pdf" target="_blank" rel="noopener noreferrer">费率来源<span class="external" aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+    </details><details class="nasdaq-item" data-code="019547">
+      <summary>
+        <span class="rank">14</span>
+        <span class="fund-identity"><span class="fund-name-row"><strong>招商纳斯达克100ETF发起式联接(QDII)A</strong></span><span class="fund-code">019547 · 指数型-海外股票</span></span>
+        <span class="nasdaq-summary-metrics">
+          <span class="nasdaq-summary-metric"><span class="metric-label">申购状态</span><span class="metric-value small">限额申购</span></span>
+          <span class="nasdaq-summary-metric accent"><span class="metric-label">区间收益</span><span class="metric-value positive-text">+42.35%</span></span>
+          <span class="nasdaq-summary-metric"><span class="metric-label">综合费率</span><span class="metric-value small">0.68%/年</span></span>
+        </span>
+        <span class="chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="nasdaq-detail">
+        <dl class="nasdaq-detail-grid">
+          <div><dt>成立日</dt><dd>2023-11-29</dd></div>
+          <div><dt>申购状态</dt><dd>限大额 ( 单日累计购买上限10.00元 ) 开放赎回</dd></div>
+          <div><dt>区间回撤</dt><dd class="negative-text">-21.76%</dd></div>
+          <div><dt>区间跟踪误差</dt><dd>1.73%</dd></div>
+          <div><dt>基金规模</dt><dd>21.78 亿元</dd></div>
+          <div><dt>纳指相关性</dt><dd>99.8%</dd></div>
+          <div><dt>Beta</dt><dd>0.93</dd></div>
+          <div><dt>跟踪周样本</dt><dd>128 周</dd></div>
+          <div><dt>数据状态</dt><dd class="">公共区间数据完整</dd></div>
+          <div class="nasdaq-period"><dt>收益与回撤区间</dt><dd>2024-03-22 至 2026-09-17</dd></div>
+          <div class="nasdaq-period"><dt>跟踪拟合区间</dt><dd>2024-03-22 至 2026-09-17</dd></div>
+        </dl>
+        <section class="benchmark-detail">
+          <span>合同基准</span>
+          <strong>纳斯达克100指数 · 95%</strong>
+          <small>解析状态：recognized；仅作资料展示，不参与入选。</small>
+        </section>
+        <div class="source-row">
+          <a class="source-link" href="https://fund.eastmoney.com/019547.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202511281789785307_1.pdf" target="_blank" rel="noopener noreferrer">招募说明书<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202511281789785298_1.pdf" target="_blank" rel="noopener noreferrer">人民币产品概要<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202511281789785298_1.pdf" target="_blank" rel="noopener noreferrer">费率来源<span class="external" aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+    </details><details class="nasdaq-item" data-code="018966">
+      <summary>
+        <span class="rank">15</span>
+        <span class="fund-identity"><span class="fund-name-row"><strong>汇添富纳斯达克100ETF发起式联接(QDII)人民币A</strong></span><span class="fund-code">018966 · 指数型-海外股票</span></span>
+        <span class="nasdaq-summary-metrics">
+          <span class="nasdaq-summary-metric"><span class="metric-label">申购状态</span><span class="metric-value small">限额申购</span></span>
+          <span class="nasdaq-summary-metric accent"><span class="metric-label">区间收益</span><span class="metric-value positive-text">+38.88%</span></span>
+          <span class="nasdaq-summary-metric"><span class="metric-label">综合费率</span><span class="metric-value small">0.66%/年</span></span>
+        </span>
+        <span class="chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="nasdaq-detail">
+        <dl class="nasdaq-detail-grid">
+          <div><dt>成立日</dt><dd>2023-08-02</dd></div>
+          <div><dt>申购状态</dt><dd>限大额 ( 单日累计购买上限10.00元 ) 开放赎回</dd></div>
+          <div><dt>区间回撤</dt><dd class="negative-text">-21.80%</dd></div>
+          <div><dt>区间跟踪误差</dt><dd>1.69%</dd></div>
+          <div><dt>基金规模</dt><dd>16.33 亿元</dd></div>
+          <div><dt>纳指相关性</dt><dd>99.8%</dd></div>
+          <div><dt>Beta</dt><dd>0.93</dd></div>
+          <div><dt>跟踪周样本</dt><dd>128 周</dd></div>
+          <div><dt>数据状态</dt><dd class="">公共区间数据完整</dd></div>
+          <div class="nasdaq-period"><dt>收益与回撤区间</dt><dd>2024-03-22 至 2026-09-17</dd></div>
+          <div class="nasdaq-period"><dt>跟踪拟合区间</dt><dd>2024-03-22 至 2026-09-17</dd></div>
+        </dl>
+        <section class="benchmark-detail">
+          <span>合同基准</span>
+          <strong>纳斯达克100指数 · 95%</strong>
+          <small>解析状态：recognized；仅作资料展示，不参与入选。</small>
+        </section>
+        <div class="source-row">
+          <a class="source-link" href="https://fund.eastmoney.com/018966.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608141827963362_1.pdf" target="_blank" rel="noopener noreferrer">招募说明书<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608141827963210_1.pdf" target="_blank" rel="noopener noreferrer">人民币产品概要<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202608141827963210_1.pdf" target="_blank" rel="noopener noreferrer">费率来源<span class="external" aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+    </details><details class="nasdaq-item" data-code="019524">
+      <summary>
+        <span class="rank">16</span>
+        <span class="fund-identity"><span class="fund-name-row"><strong>华泰柏瑞纳斯达克100ETF发起式联接(QDII)A</strong></span><span class="fund-code">019524 · 指数型-海外股票</span></span>
+        <span class="nasdaq-summary-metrics">
+          <span class="nasdaq-summary-metric"><span class="metric-label">申购状态</span><span class="metric-value small">限额申购</span></span>
+          <span class="nasdaq-summary-metric accent"><span class="metric-label">区间收益</span><span class="metric-value positive-text">+38.72%</span></span>
+          <span class="nasdaq-summary-metric"><span class="metric-label">综合费率</span><span class="metric-value small">0.70%/年</span></span>
+        </span>
+        <span class="chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="nasdaq-detail">
+        <dl class="nasdaq-detail-grid">
+          <div><dt>成立日</dt><dd>2023-10-19</dd></div>
+          <div><dt>申购状态</dt><dd>限大额 ( 单日累计购买上限10.00元 ) 开放赎回</dd></div>
+          <div><dt>区间回撤</dt><dd class="negative-text">-23.29%</dd></div>
+          <div><dt>区间跟踪误差</dt><dd>1.62%</dd></div>
+          <div><dt>基金规模</dt><dd>8.16 亿元</dd></div>
+          <div><dt>纳指相关性</dt><dd>99.8%</dd></div>
+          <div><dt>Beta</dt><dd>0.94</dd></div>
+          <div><dt>跟踪周样本</dt><dd>128 周</dd></div>
+          <div><dt>数据状态</dt><dd class="">公共区间数据完整</dd></div>
+          <div class="nasdaq-period"><dt>收益与回撤区间</dt><dd>2024-03-22 至 2026-09-17</dd></div>
+          <div class="nasdaq-period"><dt>跟踪拟合区间</dt><dd>2024-03-22 至 2026-09-17</dd></div>
+        </dl>
+        <section class="benchmark-detail">
+          <span>合同基准</span>
+          <strong>纳斯达克100指数 · 95%</strong>
+          <small>解析状态：recognized；仅作资料展示，不参与入选。</small>
+        </section>
+        <div class="source-row">
+          <a class="source-link" href="https://fund.eastmoney.com/019524.html" target="_blank" rel="noopener noreferrer">基金主页<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202510111759736238_1.pdf" target="_blank" rel="noopener noreferrer">招募说明书<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202511271789150911_1.pdf" target="_blank" rel="noopener noreferrer">人民币产品概要<span class="external" aria-hidden="true">↗</span></a>
+          <a class="source-link" href="https://pdf.dfcfw.com/pdf/H2_AN202511271789150911_1.pdf" target="_blank" rel="noopener noreferrer">费率来源<span class="external" aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+    </details></div>
       </section>
       <section id="panel-premium" class="premium-panel" role="tabpanel" aria-labelledby="tab-premium" hidden>
         <div class="premium-toolbar">
           <div><h2>场内 QDII</h2><p>按溢价从高到低排列；点击产品展开行情、综合费率和来源详情。</p></div>
           <button class="refresh-button" id="premium-refresh" type="button" aria-busy="false"><span class="refresh-icon" aria-hidden="true">↻</span><span>刷新行情</span></button>
         </div>
-        <p class="premium-status" id="premium-refresh-status" role="status" aria-live="polite">日报快照完整；日报请求于 2026-09-20 15:17，行情约延迟 15 分钟。</p>
+        <p class="premium-status" id="premium-refresh-status" role="status" aria-live="polite">日报快照完整；日报请求于 2026-09-20 16:03，行情约延迟 15 分钟。</p>
         <div class="premium-table-wrap">
           <table class="premium-table">
             <thead><tr><th>产品</th><th>类型</th><th>溢价</th><th>综合费率</th><th>涨跌</th></tr></thead>
@@ -4777,7 +5376,7 @@
 
       <details class="warnings">
         <summary>数据警告 <span>65</span></summary>
-        <ul><li>持有费率告警 519981：Could not locate annualized comprehensive operating expense</li><li>持有费率告警 006555：Could not locate annualized comprehensive operating expense</li><li>持有费率告警 501312：Could not locate annualized comprehensive operating expense</li><li>产品概要告警 017091：招募说明书与人民币产品概要的合同基准不一致。</li><li>持有费率告警 017144：Could not locate annualized comprehensive operating expense</li><li>持有费率告警 017436：Could not locate annualized comprehensive operating expense</li><li>合同基准告警 012535：Could not locate the current performance benchmark statement</li><li>持有费率告警 012535：Could not locate annualized comprehensive operating expense</li><li>产品概要告警 012535：Could not locate the current performance benchmark statement</li><li>539003 SCOTTISH MORTGAGE 无法按 2026-06-30 的可用数据穿透，其 0.69% 仓位仅计入可能上限。</li><li>013328 SPDR Gold Shares 无法按 2026-06-30 的可用数据穿透，其 0.23% 仓位仅计入可能上限。</li><li>013328 iShares MSCI India ETF 无法按 2026-06-30 的可用数据穿透，其 0.08% 仓位仅计入可能上限。</li><li>018078 南方恒生 生物科技 ETF(QDII) 无法按 2026-06-30 的可用数据穿透，其 94.93% 仓位仅计入可能上限。</li><li>018078 美股占比区间 0.00%-94.93% 跨越 50% 阈值，按确认下限进入全球补充榜。</li><li>017730 Harvest G2 Tech 50 ETF 无法按 2026-06-30 的可用数据穿透，其 0.09% 仓位仅计入可能上限。</li><li>501312 ARK Innovatio n ETF 无法按 2026-06-30 的可用数据穿透，其 18.48% 仓位仅计入可能上限。</li><li>501312 ARK Genomic 无法按 2026-06-30 的可用数据穿透，其 16.93% 仓位仅计入可能上限。</li><li>501312 ARK Autonomou s Technolog y &amp; Robotics ETF 无法按 2026-06-30 的可用数据穿透，其 10.15% 仓位仅计入可能上限。</li><li>501312 Global X Artificia l Intellige nce &amp; Technolog y ETF 无法按 2026-06-30 的可用数据穿透，其 6.32% 仓位仅计入可能上限。</li><li>501312 Global X Robotics &amp; Artificia l Intellige nce ETF 无法按 2026-06-30 的可用数据穿透，其 5.05% 仓位仅计入可能上限。</li><li>501312 ARK Space &amp; Defense Innovatio n ETF 无法按 2026-06-30 的可用数据穿透，其 5.00% 仓位仅计入可能上限。</li><li>501312 State Street Technolog y Select Sector SPDR ETF 无法按 2026-06-30 的可用数据穿透，其 4.67% 仓位仅计入可能上限。</li><li>501312 iShares Semicondu ctor ETF 无法按 2026-06-30 的可用数据穿透，其 3.33% 仓位仅计入可能上限。</li><li>501312 前十大基金之外尚有 7.13% 基金仓位未披露，仅计入可能上限。</li><li>501312 美股占比区间 7.66%-84.72% 跨越 50% 阈值，按确认下限进入全球补充榜。</li><li>100055 南方港韩科 技 无法按 2026-06-30 的可用数据穿透，其 0.77% 仓位仅计入可能上限。</li><li>270023 KraneShare s Public-Priv ate AI &amp; Technology ETF 无法按 2026-06-30 的可用数据穿透，其 0.11% 仓位仅计入可能上限。</li><li>000043 SPDR Gold Shares 无法按 2026-06-30 的可用数据穿透，其 0.11% 仓位仅计入可能上限。</li><li>000043 VanEck Gold Miners ETF/USA 无法按 2026-06-30 的可用数据穿透，其 0.08% 仓位仅计入可能上限。</li><li>000043 GraniteSha res 2x Long NVDA Daily ETF 无法按 2026-06-30 的可用数据穿透，其 0.03% 仓位仅计入可能上限。</li><li>000043 Invesco Golden Dragon China ETF 无法按 2026-06-30 的可用数据穿透，其 0.01% 仓位仅计入可能上限。</li><li>000043 Global X Robotics &amp; Artificial Intelligen ce ETF 无法按 2026-06-30 的可用数据穿透，其 7.11% 仓位仅计入可能上限。</li><li>016970 华夏恒生 生物科技 ETF （QDII） 无法按 2026-06-30 的可用数据穿透，其 93.53% 仓位仅计入可能上限。</li><li>016970 美股占比区间 0.00%-93.53% 跨越 50% 阈值，按确认下限进入全球补充榜。</li><li>017091 景顺长城 纳斯达克 科技市值 加权交易 型开放式 指数证券 投资基金 （QDII） 无法按 2026-06-30 的可用数据穿透，其 94.15% 仓位仅计入可能上限。</li><li>017091 美股占比区间 0.00%-94.15% 跨越 50% 阈值，按确认下限进入全球补充榜。</li><li>005698 Direxion Daily Semiconducto r Bull 3X ETF 无法按 2026-06-30 的可用数据穿透，其 8.57% 仓位仅计入可能上限。</li><li>005698 CSOP SK Hynix Daily 2x Leveraged Product 无法按 2026-06-30 的可用数据穿透，其 1.01% 仓位仅计入可能上限。</li><li>016664 CSOP SK H ynix Daily 2 x Leveraged Product 无法按 2026-06-30 的可用数据穿透，其 7.44% 仓位仅计入可能上限。</li><li>016664 CSOP Sams ung Electro nics Daily 2 x Leveraged Product 无法按 2026-06-30 的可用数据穿透，其 1.50% 仓位仅计入可能上限。</li><li>164212 CSOP SK H ynix Daily 2 x Leveraged Product 无法按 2026-06-30 的可用数据穿透，其 4.87% 仓位仅计入可能上限。</li><li>164212 CSOP Sams ung Electro nics Daily 2 x Leveraged Product 无法按 2026-06-30 的可用数据穿透，其 1.90% 仓位仅计入可能上限。</li><li>164212 美股占比区间 44.19%-50.96% 跨越 50% 阈值，按确认下限进入全球补充榜。</li><li>013328 的申购额度无法确定；引用前请核对关联公告。</li><li>额度剔除 013328：直销额度无法可靠解析。</li><li>016452 的申购额度无法确定；引用前请核对关联公告。</li><li>额度剔除 016452：直销额度无法可靠解析。</li><li>场外纳指100告警 019172：019172 的净值历史不足 3 年，近三年涨幅和最大回撤无法计算。</li><li>场外纳指100告警 019441：019441 的净值历史不足 3 年，近三年涨幅和最大回撤无法计算。</li><li>持有费率告警 019441：Could not locate annualized comprehensive operating expense</li><li>场外纳指100告警 019524：019524 的净值历史不足 3 年，近三年涨幅和最大回撤无法计算。</li><li>场外纳指100告警 019547：019547 的净值历史不足 3 年，近三年涨幅和最大回撤无法计算。</li><li>场外纳指100告警 019736：019736 的净值历史不足 3 年，近三年涨幅和最大回撤无法计算。</li><li>持有费率告警 019736：Could not locate annualized comprehensive operating expense</li><li>场内费率告警 162415：最新产品概要无法解析：Could not locate annualized comprehensive operating expense</li><li>场内费率告警 520870：最新产品概要无法解析：Could not locate annualized comprehensive operating expense</li><li>场内费率告警 159100：最新产品概要无法解析：Could not locate annualized comprehensive operating expense</li><li>场内费率告警 520570：最新产品概要无法解析：Could not locate annualized comprehensive operating expense</li><li>场内费率告警 159202：最新产品概要无法解析：Could not locate annualized comprehensive operating expense</li><li>场内费率告警 520500：最新产品概要无法解析：Could not locate annualized comprehensive operating expense</li><li>场内费率告警 501312：最新产品概要无法解析：Could not locate annualized comprehensive operating expense</li><li>场内费率告警 501300：截至 2026-09-20 没有可用的产品概要。</li><li>场内费率告警 520580：最新产品概要无法解析：Could not locate annualized comprehensive operating expense</li><li>场内费率告警 163208：最新产品概要无法解析：Could not locate annualized comprehensive operating expense</li><li>场内费率告警 162411：最新产品概要无法解析：Could not locate annualized comprehensive operating expense</li></ul>
+        <ul><li>持有费率告警 519981：Could not locate annualized comprehensive operating expense</li><li>持有费率告警 006555：Could not locate annualized comprehensive operating expense</li><li>持有费率告警 501312：Could not locate annualized comprehensive operating expense</li><li>产品概要告警 017091：招募说明书与人民币产品概要的合同基准不一致。</li><li>持有费率告警 017144：Could not locate annualized comprehensive operating expense</li><li>持有费率告警 017436：Could not locate annualized comprehensive operating expense</li><li>合同基准告警 012535：Could not locate the current performance benchmark statement</li><li>持有费率告警 012535：Could not locate annualized comprehensive operating expense</li><li>产品概要告警 012535：Could not locate the current performance benchmark statement</li><li>539003 SCOTTISH MORTGAGE 无法按 2026-06-30 的可用数据穿透，其 0.69% 仓位仅计入可能上限。</li><li>013328 SPDR Gold Shares 无法按 2026-06-30 的可用数据穿透，其 0.23% 仓位仅计入可能上限。</li><li>013328 iShares MSCI India ETF 无法按 2026-06-30 的可用数据穿透，其 0.08% 仓位仅计入可能上限。</li><li>018078 南方恒生 生物科技 ETF(QDII) 无法按 2026-06-30 的可用数据穿透，其 94.93% 仓位仅计入可能上限。</li><li>018078 美股占比区间 0.00%-94.93% 跨越 50% 阈值，按确认下限进入全球补充榜。</li><li>017730 Harvest G2 Tech 50 ETF 无法按 2026-06-30 的可用数据穿透，其 0.09% 仓位仅计入可能上限。</li><li>501312 ARK Innovatio n ETF 无法按 2026-06-30 的可用数据穿透，其 18.48% 仓位仅计入可能上限。</li><li>501312 ARK Genomic 无法按 2026-06-30 的可用数据穿透，其 16.93% 仓位仅计入可能上限。</li><li>501312 ARK Autonomou s Technolog y &amp; Robotics ETF 无法按 2026-06-30 的可用数据穿透，其 10.15% 仓位仅计入可能上限。</li><li>501312 Global X Artificia l Intellige nce &amp; Technolog y ETF 无法按 2026-06-30 的可用数据穿透，其 6.32% 仓位仅计入可能上限。</li><li>501312 Global X Robotics &amp; Artificia l Intellige nce ETF 无法按 2026-06-30 的可用数据穿透，其 5.05% 仓位仅计入可能上限。</li><li>501312 ARK Space &amp; Defense Innovatio n ETF 无法按 2026-06-30 的可用数据穿透，其 5.00% 仓位仅计入可能上限。</li><li>501312 State Street Technolog y Select Sector SPDR ETF 无法按 2026-06-30 的可用数据穿透，其 4.67% 仓位仅计入可能上限。</li><li>501312 iShares Semicondu ctor ETF 无法按 2026-06-30 的可用数据穿透，其 3.33% 仓位仅计入可能上限。</li><li>501312 前十大基金之外尚有 7.13% 基金仓位未披露，仅计入可能上限。</li><li>501312 美股占比区间 7.66%-84.72% 跨越 50% 阈值，按确认下限进入全球补充榜。</li><li>100055 南方港韩科 技 无法按 2026-06-30 的可用数据穿透，其 0.77% 仓位仅计入可能上限。</li><li>270023 KraneShare s Public-Priv ate AI &amp; Technology ETF 无法按 2026-06-30 的可用数据穿透，其 0.11% 仓位仅计入可能上限。</li><li>000043 SPDR Gold Shares 无法按 2026-06-30 的可用数据穿透，其 0.11% 仓位仅计入可能上限。</li><li>000043 VanEck Gold Miners ETF/USA 无法按 2026-06-30 的可用数据穿透，其 0.08% 仓位仅计入可能上限。</li><li>000043 GraniteSha res 2x Long NVDA Daily ETF 无法按 2026-06-30 的可用数据穿透，其 0.03% 仓位仅计入可能上限。</li><li>000043 Invesco Golden Dragon China ETF 无法按 2026-06-30 的可用数据穿透，其 0.01% 仓位仅计入可能上限。</li><li>000043 Global X Robotics &amp; Artificial Intelligen ce ETF 无法按 2026-06-30 的可用数据穿透，其 7.11% 仓位仅计入可能上限。</li><li>016970 华夏恒生 生物科技 ETF （QDII） 无法按 2026-06-30 的可用数据穿透，其 93.53% 仓位仅计入可能上限。</li><li>016970 美股占比区间 0.00%-93.53% 跨越 50% 阈值，按确认下限进入全球补充榜。</li><li>017091 景顺长城 纳斯达克 科技市值 加权交易 型开放式 指数证券 投资基金 （QDII） 无法按 2026-06-30 的可用数据穿透，其 94.15% 仓位仅计入可能上限。</li><li>017091 美股占比区间 0.00%-94.15% 跨越 50% 阈值，按确认下限进入全球补充榜。</li><li>005698 Direxion Daily Semiconducto r Bull 3X ETF 无法按 2026-06-30 的可用数据穿透，其 8.57% 仓位仅计入可能上限。</li><li>005698 CSOP SK Hynix Daily 2x Leveraged Product 无法按 2026-06-30 的可用数据穿透，其 1.01% 仓位仅计入可能上限。</li><li>016664 CSOP SK H ynix Daily 2 x Leveraged Product 无法按 2026-06-30 的可用数据穿透，其 7.44% 仓位仅计入可能上限。</li><li>016664 CSOP Sams ung Electro nics Daily 2 x Leveraged Product 无法按 2026-06-30 的可用数据穿透，其 1.50% 仓位仅计入可能上限。</li><li>164212 CSOP SK H ynix Daily 2 x Leveraged Product 无法按 2026-06-30 的可用数据穿透，其 4.87% 仓位仅计入可能上限。</li><li>164212 CSOP Sams ung Electro nics Daily 2 x Leveraged Product 无法按 2026-06-30 的可用数据穿透，其 1.90% 仓位仅计入可能上限。</li><li>164212 美股占比区间 44.19%-50.96% 跨越 50% 阈值，按确认下限进入全球补充榜。</li><li>013328 的申购额度无法确定；引用前请核对关联公告。</li><li>额度剔除 013328：直销额度无法可靠解析。</li><li>016452 的申购额度无法确定；引用前请核对关联公告。</li><li>额度剔除 016452：直销额度无法可靠解析。</li><li>场外纳指100告警 019172：019172 的净值历史不足 3 年，近三年涨幅和最大回撤无法计算。</li><li>场外纳指100告警 019441：019441 的净值历史不足 3 年，近三年涨幅和最大回撤无法计算。</li><li>持有费率告警 019441：Could not locate annualized comprehensive operating expense</li><li>场外纳指100告警 019524：019524 的净值历史不足 3 年，近三年涨幅和最大回撤无法计算。</li><li>场外纳指100告警 019547：019547 的净值历史不足 3 年，近三年涨幅和最大回撤无法计算。</li><li>场外纳指100告警 019736：019736 的净值历史不足 3 年，近三年涨幅和最大回撤无法计算。</li><li>持有费率告警 019736：Could not locate annualized comprehensive operating expense</li><li>场内费率告警 162415：最新产品概要无法解析：Could not locate annualized comprehensive operating expense</li><li>场内费率告警 520870：最新产品概要无法解析：Could not locate annualized comprehensive operating expense</li><li>场内费率告警 159100：最新产品概要无法解析：Could not locate annualized comprehensive operating expense</li><li>场内费率告警 520570：最新产品概要无法解析：Could not locate annualized comprehensive operating expense</li><li>场内费率告警 159202：最新产品概要无法解析：Could not locate annualized comprehensive operating expense</li><li>场内费率告警 520500：最新产品概要无法解析：Could not locate annualized comprehensive operating expense</li><li>场内费率告警 501312：最新产品概要无法解析：Could not locate annualized comprehensive operating expense</li><li>场内费率告警 520580：最新产品概要无法解析：Could not locate annualized comprehensive operating expense</li><li>场内费率告警 501300：截至 2026-09-20 没有可用的产品概要。</li><li>场内费率告警 162411：最新产品概要无法解析：Could not locate annualized comprehensive operating expense</li><li>场内费率告警 163208：最新产品概要无法解析：Could not locate annualized comprehensive operating expense</li></ul>
       </details>
     </main>
     <footer>额度为基金管理人层面的单日单基金账户上限；综合费率已从基金资产中扣除，不含场内券商佣金；场内溢价按约15分钟延迟价格相对 ETF 的 IOPV 或 LOF 的最新单位净值计算。</footer>

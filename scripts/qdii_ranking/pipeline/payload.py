@@ -44,8 +44,9 @@ GLOBAL_RANKING_METHOD = (
     "scale_billion_cny desc, code asc"
 )
 NASDAQ_RANKING_METHOD = (
-    "two_year_return_pct desc, holding_cost.annualized_pct asc, "
-    "nasdaq100_fit_2y.tracking_error_pct asc, three_year_return_pct desc, "
+    "common_period_return_pct desc, holding_cost.annualized_pct asc, "
+    "nasdaq100_fit_common_period.tracking_error_pct asc, "
+    "common_period_max_drawdown_pct desc, "
     "scale_billion_cny desc, code asc; missing values last"
 )
 NASDAQ_SELECTION_METHOD = (
@@ -114,6 +115,7 @@ def _filters(
             "ranking_method": NASDAQ_RANKING_METHOD,
             "candidate_count": len(nasdaq.records),
             "missing_fields": nasdaq.missing_fields,
+            "comparison_window": nasdaq.comparison_window,
         },
     }
 
@@ -197,6 +199,7 @@ def assemble_payload(
             "ranking_method": NASDAQ_RANKING_METHOD,
             "candidate_count": len(nasdaq.records),
             "missing_fields": nasdaq.missing_fields,
+            "comparison_window": nasdaq.comparison_window,
             "records": list(nasdaq.records),
         },
         "exclusion_summary": exclusions.public_records(),

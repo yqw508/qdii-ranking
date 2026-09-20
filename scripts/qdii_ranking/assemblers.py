@@ -13,6 +13,7 @@ from .errors import DataError
 from .models import Nasdaq100Benchmark
 from .runtime import HttpClient
 from .ranking import contract_mentions_nasdaq100, nasdaq100_otc_sort_key
+from .services.nasdaq100 import apply_common_window
 from .sources.candidates import build_nasdaq100_otc_candidates
 from .sources.contracts import (
     ContractBenchmarkCatalog,
@@ -169,6 +170,16 @@ def build_nasdaq100_otc_output_record(
         "two_year_max_drawdown_pct": fund.get("two_year_max_drawdown_pct"),
         "two_year_performance_start_date": fund.get("two_year_performance_start_date"),
         "two_year_performance_end_date": fund.get("two_year_performance_end_date"),
+        "common_period_return_pct": fund.get("common_period_return_pct"),
+        "common_period_max_drawdown_pct": fund.get("common_period_max_drawdown_pct"),
+        "common_period_performance_start_date": fund.get(
+            "common_period_performance_start_date"
+        ),
+        "common_period_performance_end_date": fund.get(
+            "common_period_performance_end_date"
+        ),
+        "nasdaq100_fit_common_period": fund.get("nasdaq100_fit_common_period"),
+        "common_period_error": fund.get("common_period_error"),
         "three_year_return_pct": fund.get("three_year_return_pct"),
         "three_year_max_drawdown_pct": fund.get("three_year_max_drawdown_pct"),
         "three_year_performance_start_date": fund.get("three_year_performance_start_date"),
@@ -208,7 +219,7 @@ def build_nasdaq100_otc_records(
     document_cache: PeriodicReportCache,
     contract_catalog: ContractBenchmarkCatalog,
     run_performance_cache: dict[str, tuple[dict[str, Any], list[str]]] | None = None,
-) -> tuple[list[dict[str, Any]], list[str], dict[str, int]]:
+) -> tuple[list[dict[str, Any]], list[str], dict[str, int], dict[str, Any]]:
     candidates = build_nasdaq100_otc_candidates(metadata, holder_rows)
     known = {item["code"]: item for item in enriched_candidates}
     missing = [item for item in candidates if item["code"] not in known]
@@ -317,6 +328,16 @@ def build_nasdaq100_otc_records(
             }
         )
 
+    comparison_window, common_warnings = apply_common_window(
+        performance_records,
+        {
+            item["code"]: performance_cache.loaded_points(item["code"])
+            for item in performance_records
+        },
+        as_of,
+        benchmark,
+    )
+    warnings.extend(common_warnings)
     performance_records.sort(key=nasdaq100_otc_sort_key)
     records = [
         build_nasdaq100_otc_output_record(fund, rank, holder_report_date)
@@ -326,5 +347,16 @@ def build_nasdaq100_otc_records(
         "two_year_return": sum(item.get("two_year_return_pct") is None for item in records),
         "holding_cost": sum(item["holding_cost"].get("annualized_pct") is None for item in records),
         "nasdaq100_fit_2y": sum(not isinstance(item.get("nasdaq100_fit_2y"), dict) for item in records),
+        "common_period_return": sum(
+            item.get("common_period_return_pct") is None for item in records
+        ),
+        "common_period_max_drawdown": sum(
+            item.get("common_period_max_drawdown_pct") is None for item in records
+        ),
+        "nasdaq100_fit_common_period": sum(
+            not isinstance(item.get("nasdaq100_fit_common_period"), dict)
+            for item in records
+        ),
+        "inception_date": sum(item.get("inception_date") is None for item in records),
     }
-    return records, list(dict.fromkeys(warnings)), missing_counts
+    return records, list(dict.fromkeys(warnings)), missing_counts, comparison_window

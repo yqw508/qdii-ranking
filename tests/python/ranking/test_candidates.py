@@ -284,14 +284,16 @@ class Nasdaq100OTCTests(unittest.TestCase):
         )
 
     def test_sort_places_missing_values_last(self):
-        def item(code, ret, fee, te, three, scale):
+        def item(code, ret, fee, te, drawdown, scale):
             return {
                 "code": code,
-                "two_year_return_pct": ret,
-                "three_year_return_pct": three,
+                "common_period_return_pct": ret,
+                "common_period_max_drawdown_pct": drawdown,
                 "scale_billion_cny": scale,
                 "holding_cost": {"annualized_pct": fee},
-                "nasdaq100_fit_2y": None if te is None else {"tracking_error_pct": te},
+                "nasdaq100_fit_common_period": (
+                    None if te is None else {"tracking_error_pct": te}
+                ),
             }
         records = [
             item("000003", None, 0.4, 1.0, 50, 2),
@@ -300,3 +302,29 @@ class Nasdaq100OTCTests(unittest.TestCase):
         ]
         records.sort(key=ranking.nasdaq100_otc_sort_key)
         self.assertEqual(["000001", "000002", "000003"], [item["code"] for item in records])
+
+    def test_sort_uses_all_six_common_window_levels(self):
+        def item(code, ret, fee, te, drawdown, scale):
+            return {
+                "code": code,
+                "common_period_return_pct": ret,
+                "common_period_max_drawdown_pct": drawdown,
+                "scale_billion_cny": scale,
+                "holding_cost": {"annualized_pct": fee},
+                "nasdaq100_fit_common_period": {"tracking_error_pct": te},
+            }
+
+        records = [
+            item("000009", 51, 9.0, 9.0, -90, 1),
+            item("000008", 50, 0.3, 2.0, -30, 1),
+            item("000007", 50, 0.4, 0.8, -30, 1),
+            item("000006", 50, 0.4, 0.7, -20, 1),
+            item("000005", 50, 0.4, 0.7, -10, 2),
+            item("000004", 50, 0.4, 0.7, -10, 3),
+            item("000003", 50, 0.4, 0.7, -10, 3),
+        ]
+        records.sort(key=ranking.nasdaq100_otc_sort_key)
+        self.assertEqual(
+            ["000009", "000008", "000003", "000004", "000005", "000006", "000007"],
+            [record["code"] for record in records],
+        )

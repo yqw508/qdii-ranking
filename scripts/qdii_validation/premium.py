@@ -264,6 +264,10 @@ def validate_html_document(
             record["code"] in all_text and record["name"] in all_text,
             f"{label} OTC Nasdaq-100 record is missing for {record['code']}",
         )
+    require(
+        parser.nasdaq_item_count == len(nasdaq_records),
+        f"{label} OTC Nasdaq-100 detail rows differ",
+    )
     premium_records = payload["exchange_premium"]["records"]
     require(
         parser.premium_codes == [record["code"] for record in premium_records],

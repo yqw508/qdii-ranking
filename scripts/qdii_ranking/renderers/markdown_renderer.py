@@ -132,6 +132,15 @@ def render_markdown(path: Path, payload: dict[str, Any]) -> None:
     if not global_records:
         lines.append("| - | 暂无符合全部条件的基金 | - | - | - | - | - | - | - | - | - | - |")
     nasdaq_records = (payload.get("nasdaq100_otc") or {}).get("records") or []
+    nasdaq_window = (payload.get("nasdaq100_otc") or {}).get("comparison_window") or {}
+    anchor_codes = "、".join(
+        item["code"] for item in nasdaq_window.get("anchor_funds") or []
+    ) or "暂无"
+    window_text = (
+        f"{nasdaq_window.get('start_date')} 至 {nasdaq_window.get('end_date')}"
+        if nasdaq_window.get("status") == "available"
+        else "暂不可用"
+    )
     lines.extend(
         [
             "",
@@ -139,14 +148,14 @@ def render_markdown(path: Path, payload: dict[str, Any]) -> None:
             "",
             "按名称匹配纳斯达克100、纳指100或 NASDAQ 100 的场外人民币 A 类份额；不以合同基准、成立年限、收益门槛、额度或当前申购状态筛除产品。",
             "",
-            "排序：近两年收益降序、年化综合费率升序、两年纳指跟踪误差升序、近三年收益降序、规模降序、代码升序；缺失值排在有数据记录之后。",
+            f"共同区间：{window_text}；锚点基金：{anchor_codes}。结束日随最新共同净值滚动。",
+            "排序：公共区间收益降序、年化综合费率升序、公共区间跟踪误差升序、公共区间最大回撤较小者优先、规模降序、代码升序；缺失值排在有数据记录之后。",
             "",
-            "| 排名 | 基金 | 申购状态 | 近两年 | 两年回撤 | 综合费率 | 两年跟踪误差 | 近三年 | 规模 | 合同基准 |",
+            "| 排名 | 基金 | 成立日 | 申购状态 | 区间收益 | 区间回撤 | 综合费率 | 区间跟踪误差 | 规模 | 合同基准 |",
             "|---:|---|---|---:|---:|---:|---:|---:|---:|---|",
         ]
     )
     for item in nasdaq_records:
-        fit_2y = item.get("nasdaq100_fit_2y") or {}
         contract = item["contract_benchmark"]
         contract_source = contract.get("source_url") or item["fund_page_url"]
         scale_text = (
@@ -156,17 +165,19 @@ def render_markdown(path: Path, payload: dict[str, Any]) -> None:
         )
         lines.append(
             f"| {item['rank']} | {item['name']} {item['code']} | "
+            f"{item.get('inception_date') or '--'} | "
             f"{item.get('purchase_status_text') or item.get('purchase_status') or '待核实'} | "
-            f"{format_optional_percentage(item.get('two_year_return_pct'), show_sign=True)} | "
-            f"{format_optional_percentage(item.get('two_year_max_drawdown_pct'))} | "
+            f"{format_optional_percentage(item.get('common_period_return_pct'), show_sign=True)} | "
+            f"{format_optional_percentage(item.get('common_period_max_drawdown_pct'))} | "
             f"{format_holding_cost(item['holding_cost'])} | "
-            f"{format_optional_percentage(fit_2y.get('tracking_error_pct'))} | "
-            f"{format_optional_percentage(item.get('three_year_return_pct'), show_sign=True)} | "
+            f"{format_optional_percentage((item.get('nasdaq100_fit_common_period') or {}).get('tracking_error_pct'))} | "
             f"{scale_text} | "
             f"[{benchmark_display(contract)}]({contract_source}) |"
         )
         if item.get("contract_name_match_warning"):
             lines.append(f"  - {item['contract_name_match_warning']}")
+        if item.get("common_period_error"):
+            lines.append(f"  - 公共区间数据：{item['common_period_error']}")
     if not nasdaq_records:
         lines.append("| - | 暂无名称匹配的场外纳指100产品 | - | - | - | - | - | - | - | - |")
     if payload["warnings"]:

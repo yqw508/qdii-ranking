@@ -141,9 +141,31 @@ def calculate_nasdaq100_fit(
     wealth_series = build_adjusted_wealth_series(points, code, as_of)
     end_date = wealth_series[-1][0]
     target_start = years_ago(end_date, window_years)
+    return _calculate_nasdaq100_fit_from_wealth(
+        wealth_series,
+        code,
+        benchmark,
+        target_start,
+        end_date,
+        min_observations,
+        min_span_days,
+    )
+
+
+def _calculate_nasdaq100_fit_from_wealth(
+    wealth_series: list[tuple[date, float]],
+    code: str,
+    benchmark: Nasdaq100Benchmark,
+    start_date: date,
+    end_date: date,
+    min_observations: int,
+    min_span_days: int,
+    min_coverage_ratio: float | None = None,
+) -> dict[str, Any]:
+    requested_start_date = start_date
     weekly: dict[date, tuple[date, float]] = {}
     for observed, wealth in wealth_series:
-        if observed < target_start:
+        if observed < start_date or observed > end_date:
             continue
         week_start = observed - timedelta(days=observed.weekday())
         weekly[week_start] = (observed, wealth)
@@ -190,6 +212,16 @@ def calculate_nasdaq100_fit(
             f"Fund {code} Nasdaq-100 fit spans only {span_days} days; "
             f"requires {min_span_days}"
         )
+    if min_coverage_ratio is not None:
+        expected_observations = max(
+            1, (end_date - requested_start_date).days // 7
+        )
+        coverage_ratio = observations / expected_observations
+        if coverage_ratio < min_coverage_ratio:
+            raise DataError(
+                f"Fund {code} Nasdaq-100 fit covers only {coverage_ratio:.1%} of "
+                f"the common weekly window; requires {min_coverage_ratio:.0%}"
+            )
 
     fund_mean = statistics.mean(fund_returns)
     benchmark_mean = statistics.mean(benchmark_returns)
@@ -218,6 +250,54 @@ def calculate_nasdaq100_fit(
         "start_date": start_date.isoformat(),
         "end_date": fit_end_date.isoformat(),
     }
+
+
+def calculate_period_performance(
+    points: list[dict[str, Any]], code: str, start_date: date, end_date: date
+) -> dict[str, Any]:
+    """Calculate adjusted cumulative return and drawdown on exact endpoints."""
+    window = [point for point in points if start_date <= point["date"] <= end_date]
+    if not window or window[0]["date"] != start_date or window[-1]["date"] != end_date:
+        raise DataError(
+            f"Fund {code} lacks exact NAV endpoints for {start_date} to {end_date}"
+        )
+    wealth = 1.0
+    peak = 1.0
+    max_drawdown = 0.0
+    for previous, current in zip(window, window[1:]):
+        wealth *= adjusted_daily_factor(previous, current, code)
+        peak = max(peak, wealth)
+        max_drawdown = min(max_drawdown, wealth / peak - 1)
+    return {
+        "return_pct": round((wealth - 1) * 100, 2),
+        "max_drawdown_pct": round(max_drawdown * 100, 2),
+        "start_date": start_date.isoformat(),
+        "end_date": end_date.isoformat(),
+    }
+
+
+def calculate_nasdaq100_fit_for_period(
+    points: list[dict[str, Any]],
+    code: str,
+    benchmark: Nasdaq100Benchmark,
+    start_date: date,
+    end_date: date,
+    *,
+    min_observations: int,
+    min_span_days: int,
+    min_coverage_ratio: float,
+) -> dict[str, Any]:
+    wealth_series = build_adjusted_wealth_series(points, code, end_date)
+    return _calculate_nasdaq100_fit_from_wealth(
+        wealth_series,
+        code,
+        benchmark,
+        start_date,
+        end_date,
+        min_observations,
+        min_span_days,
+        min_coverage_ratio,
+    )
 
 
 def calculate_trailing_performance(

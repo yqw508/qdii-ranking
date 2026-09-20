@@ -163,7 +163,7 @@ the old value with unavailable; only an announcement-index outage may reuse the 
 is visibly marked stale. This expense is display-only, is already reflected in fund assets, and excludes
 investor-specific brokerage commissions.
 
-JSON schema 14 is the structured source of truth. `records` contains the US main list,
+JSON schema 15 is the structured source of truth. `records` contains the US main list,
 `global_supplement.records` contains the supplement, and `exclusion_summary` records reason counts and
 codes. `exchange_premium.records` contains the auxiliary snapshot of all discovered listed QDII products. Each ranking record has a
 `routing_reason`; filters expose `us_main_exclude_keywords` and an empty
@@ -174,11 +174,15 @@ The standalone `nasdaq100_otc.records` section is a name-based display ranking. 
 OTC RMB A shares whose names match `纳斯达克100`, `纳指100`, or `NASDAQ 100`, while excluding standalone
 ETF shares. Contract benchmark identity is displayed but never gates inclusion. It does not apply the
 main ranking's age, return, quota, or purchase-status thresholds, so suspended products and records with
-missing two-year NAV or fee data remain visible. The order is two-year adjusted return descending,
-annualized comprehensive operating expense ascending, two-year CNY Nasdaq-100 tracking error ascending,
-three-year adjusted return descending, scale descending, and fund code ascending; unavailable values sort
-after available values. The two-year NAV window is complete-only and does not use the three-year boundary
-tolerance. The public ranking schema is version 14 when this section is present.
+missing common-window NAV or fee data remain visible. The common start is set by the latest inception date
+among candidates that are at least one calendar year old. Younger candidates remain visible without common
+metrics until they reach one year. The end advances to the latest NAV date shared by all otherwise comparable
+candidates on every run. Both boundaries use actual NAV dates, allow at most seven calendar days of delay,
+and never interpolate values. The order is common-window adjusted return descending, annualized comprehensive
+operating expense ascending, common-window CNY Nasdaq-100 tracking error ascending, smaller common-window
+maximum drawdown, scale descending, and fund code ascending; unavailable values sort after available values.
+Common Nasdaq fitting requires at least 45 weekly observations, 330 elapsed days, and 85% weekly coverage.
+The public ranking schema is version 15 when this section is present.
 
 Filters expose `three_year_boundary_tolerance_days: 7`. Each ranking record and CSV row includes
 `three_year_boundary_shortfall_days` (zero for a complete window). Markdown, HTML, and email disclose

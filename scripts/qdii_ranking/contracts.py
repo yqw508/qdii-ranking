@@ -27,6 +27,12 @@ class RankingRecordContract(TypedDict, total=False):
     holding_cost: HoldingCostContract
     two_year_return_pct: float | None
     two_year_max_drawdown_pct: float | None
+    common_period_return_pct: float | None
+    common_period_max_drawdown_pct: float | None
+    common_period_performance_start_date: str | None
+    common_period_performance_end_date: str | None
+    nasdaq100_fit_common_period: dict[str, Any] | None
+    common_period_error: str | None
     three_year_return_pct: float | None
     scale_billion_cny: float | None
     purchase_status: str

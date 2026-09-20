@@ -216,6 +216,62 @@ class HtmlOutputTests(unittest.TestCase):
         self.assertIn("10万元", harvest)
         self.assertIn("100元", harvest)
 
+    def test_nasdaq_common_window_and_inception_are_rendered(self):
+        payload = self.payload()
+        record = self.record(1, "019736", "万家纳斯达克100指数发起式A", None, None)
+        record.update(
+            {
+                "ranking_list": "nasdaq100_otc",
+                "inception_date": "2024-03-22",
+                "purchase_status": "open",
+                "purchase_status_text": "开放申购",
+                "common_period_return_pct": 75.43,
+                "common_period_max_drawdown_pct": -24.56,
+                "nasdaq100_fit_common_period": {"tracking_error_pct": 4.32},
+                "common_period_error": None,
+            }
+        )
+        payload["nasdaq100_otc"] = {
+            "records": [record],
+            "comparison_window": {
+                "status": "available",
+                "start_date": "2024-03-22",
+                "end_date": "2026-09-17",
+                "anchor_funds": [{"code": "019736", "name": record["name"]}],
+            },
+        }
+        payload["filters"].update(
+            {
+                "performance_candidates_scanned": 2,
+                "us_equity_candidates_scanned": 2,
+                "us_quota_candidates_scanned": 2,
+                "global_quota_candidates_scanned": 0,
+            }
+        )
+        payload["cache"] = {
+            "performance": {"hits": 0},
+            "fund_us_equity_exposures": {"hits": 0},
+            "announcement_pdfs": {"hits": 0, "downloads": 0},
+        }
+        with TemporaryDirectory() as directory:
+            html_path = Path(directory) / "latest.html"
+            markdown_path = Path(directory) / "latest.md"
+            ranking.write_html(html_path, payload)
+            ranking.write_markdown(markdown_path, payload)
+            document = html_path.read_text(encoding="utf-8")
+            markdown = markdown_path.read_text(encoding="utf-8")
+        for rendered in (document, markdown):
+            self.assertIn("2024-03-22", rendered)
+            self.assertIn("2026-09-17", rendered)
+            self.assertIn("019736", rendered)
+        self.assertEqual(1, document.count('class="nasdaq-item"'))
+        self.assertIn("<summary>", document)
+        self.assertIn("<dt>成立日</dt>", document)
+        self.assertIn("<dt>数据状态</dt>", document)
+        self.assertIn("<dt>跟踪拟合区间</dt>", document)
+        self.assertIn("共同区间", document)
+        self.assertIn("| 排名 | 基金 | 成立日 |", markdown)
+
     def test_main_writes_latest_html(self):
         with TemporaryDirectory() as directory, patch(
             "qdii_ranking.cli.build_payload", return_value=self.payload()

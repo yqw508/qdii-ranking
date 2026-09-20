@@ -215,7 +215,7 @@ def make_global_record(rank):
 
 def make_payload():
     return {
-        "schema_version": 14,
+        "schema_version": 15,
         "run_date": RUN_DATE,
         "generated_at": "2026-08-20T09:08:00+08:00",
         "holder_report_date": "2025-12-31",
@@ -299,7 +299,26 @@ def make_payload():
         "nasdaq100_otc": {
             "ranking_method": validator.EXPECTED_NASDAQ100_OTC_RANKING_METHOD,
             "candidate_count": 0,
-            "missing_fields": {"two_year_return": 0, "holding_cost": 0, "nasdaq100_fit_2y": 0},
+            "missing_fields": {
+                "two_year_return": 0,
+                "holding_cost": 0,
+                "nasdaq100_fit_2y": 0,
+                "common_period_return": 0,
+                "common_period_max_drawdown": 0,
+                "nasdaq100_fit_common_period": 0,
+                "inception_date": 0,
+            },
+            "comparison_window": {
+                "status": "unavailable",
+                "minimum_anchor_age_years": 1,
+                "max_boundary_delay_days": 7,
+                "anchor_inception_date": None,
+                "anchor_funds": [],
+                "start_date": None,
+                "end_date": None,
+                "comparable_count": 0,
+                "error": "No candidates",
+            },
             "records": [],
         },
         "exclusion_summary": [

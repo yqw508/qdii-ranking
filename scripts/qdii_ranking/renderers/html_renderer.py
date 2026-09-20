@@ -22,6 +22,21 @@ def render_html(path: Path, payload: dict[str, Any]) -> None:
     us_records = payload["records"]
     global_records = payload["global_supplement"]["records"]
     nasdaq_records = (payload.get("nasdaq100_otc") or {}).get("records") or []
+    nasdaq_window = (payload.get("nasdaq100_otc") or {}).get("comparison_window") or {}
+    anchor_funds = nasdaq_window.get("anchor_funds") or []
+    anchor_label = "、".join(
+        f"{item['code']} {item['name']}" for item in anchor_funds
+    ) or "暂无"
+    if nasdaq_window.get("status") == "available":
+        nasdaq_window_text = (
+            f"共同区间 {nasdaq_window['start_date']} 至 {nasdaq_window['end_date']}；"
+            f"起点由成立满一年的最新产品 {anchor_label} 决定，结束日随共同净值滚动。"
+        )
+    else:
+        nasdaq_window_text = (
+            "共同区间暂不可用："
+            f"{nasdaq_window.get('error') or '缺少完整净值数据'}"
+        )
     premium = payload["exchange_premium"]
     premium_records = premium["records"]
     dynamic_premium_catalog = (
@@ -147,9 +162,9 @@ def render_html(path: Path, payload: dict[str, Any]) -> None:
       <section id="panel-us" class="ranking-list" role="tabpanel" aria-labelledby="tab-us">{render_list(us_records, payload)}</section>
       <section id="panel-global" class="ranking-list" role="tabpanel" aria-labelledby="tab-global" hidden>{render_list(global_records, payload)}</section>
       <section id="panel-nasdaq100-otc" class="nasdaq-panel" role="tabpanel" aria-labelledby="tab-nasdaq100-otc" hidden>
-        <div class="nasdaq-toolbar"><h2>场外纳指100</h2><p>按名称匹配纳斯达克100、纳指100或 NASDAQ 100；完整展示场外人民币 A 类候选。排序依次为近两年收益、综合费率、两年跟踪误差、近三年收益、规模和代码，缺失数据排在后面。</p></div>
+        <div class="nasdaq-toolbar"><h2>场外纳指100</h2><p>{html.escape(nasdaq_window_text)}排序依次为区间收益、综合费率、区间跟踪误差、较小回撤、规模和代码。</p></div>
         <p class="nasdaq-warning">本榜按名称识别，合同基准仅作展示。名称命中不等于基金严格跟踪纳斯达克100；请展开合同基准和来源核对。</p>
-        <div class="nasdaq-table-wrap"><table class="nasdaq-table"><thead><tr><th>排名</th><th>基金</th><th>申购状态</th><th>近两年</th><th>两年回撤</th><th>综合费率</th><th>两年跟踪误差</th><th>近三年</th><th>规模</th><th>合同基准</th></tr></thead><tbody>{render_nasdaq100_table(nasdaq_records)}</tbody></table></div>
+        <div class="nasdaq-list">{render_nasdaq100_table(nasdaq_records)}</div>
       </section>
       <section id="panel-premium" class="premium-panel" role="tabpanel" aria-labelledby="tab-premium" hidden>
         <div class="premium-toolbar">

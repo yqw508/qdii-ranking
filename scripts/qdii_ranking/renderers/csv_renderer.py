@@ -65,6 +65,11 @@ def _write_csv(path: Path, payload: dict[str, Any]) -> None:
         "two_year_max_drawdown_pct",
         "two_year_performance_start_date",
         "two_year_performance_end_date",
+        "common_period_return_pct",
+        "common_period_max_drawdown_pct",
+        "common_period_performance_start_date",
+        "common_period_performance_end_date",
+        "common_period_error",
         "three_year_return_pct",
         "three_year_max_drawdown_pct",
         "three_year_performance_start_date",
@@ -88,6 +93,12 @@ def _write_csv(path: Path, payload: dict[str, Any]) -> None:
         "nasdaq100_2y_observations",
         "nasdaq100_2y_start_date",
         "nasdaq100_2y_end_date",
+        "nasdaq100_common_correlation",
+        "nasdaq100_common_beta",
+        "nasdaq100_common_tracking_error_pct",
+        "nasdaq100_common_observations",
+        "nasdaq100_common_start_date",
+        "nasdaq100_common_end_date",
         "three_year_annualized_return_pct",
         "return_drawdown_ratio",
         "us_equity_confirmed_pct",
@@ -111,6 +122,7 @@ def _write_csv(path: Path, payload: dict[str, Any]) -> None:
         for item in _all_ranking_records(payload):
             fit = item.get("nasdaq100_fit") or {}
             fit_2y = item.get("nasdaq100_fit_2y") or {}
+            fit_common = item.get("nasdaq100_fit_common_period") or {}
             exposure = item.get("us_equity_exposure") or {}
             contract = item["contract_benchmark"]
             holding_cost = item["holding_cost"]
@@ -132,6 +144,14 @@ def _write_csv(path: Path, payload: dict[str, Any]) -> None:
                     "contract_structure": contract["structure"],
                     "nasdaq100_name_contract_match": item.get("contract_name_match"),
                     "nasdaq100_name_contract_warning": item.get("contract_name_match_warning"),
+                    "nasdaq100_common_correlation": fit_common.get("correlation"),
+                    "nasdaq100_common_beta": fit_common.get("beta"),
+                    "nasdaq100_common_tracking_error_pct": fit_common.get(
+                        "tracking_error_pct"
+                    ),
+                    "nasdaq100_common_observations": fit_common.get("observations"),
+                    "nasdaq100_common_start_date": fit_common.get("start_date"),
+                    "nasdaq100_common_end_date": fit_common.get("end_date"),
                     "contract_prospectus_published_date": contract[
                         "prospectus_published_date"
                     ],

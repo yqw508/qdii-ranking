@@ -138,31 +138,91 @@ def render_card(item: dict[str, Any], payload: dict[str, Any]) -> str:
 def render_nasdaq100_table(records: list[dict[str, Any]]) -> str:
     rows: list[str] = []
     for item in records:
-        fit = item.get("nasdaq100_fit_2y") or {}
+        fit = item.get("nasdaq100_fit_common_period") or {}
         contract = item["contract_benchmark"]
         contract_label = benchmark_display(contract)
         if item.get("contract_name_match_warning"):
             contract_label += "（名称与合同基准需核对）"
+        purchase_status_detail = (
+            item.get("purchase_status_text")
+            or item.get("purchase_status")
+            or "待核实"
+        )
+        purchase_status = {
+            "open": "开放申购",
+            "limited": "限额申购",
+            "suspended": "暂停申购",
+            "unknown": "待核实",
+        }.get(item.get("purchase_status"), purchase_status_detail)
         scale = (
             "--"
             if item.get("scale_billion_cny") is None
             else f"{float(item['scale_billion_cny']):.2f} 亿元"
         )
-        rows.append(
-            "<tr>"
-            f"<td data-label=\"排名\"><strong>{item['rank']}</strong></td>"
-            f"<td data-label=\"基金\"><a class=\"source-link\" href=\"{html.escape(item['fund_page_url'], quote=True)}\" target=\"_blank\" rel=\"noopener noreferrer\">{html.escape(item['name'])}</a><small>{html.escape(item['code'])} · {html.escape(item.get('fund_type') or '')}</small></td>"
-            f"<td data-label=\"申购状态\">{html.escape(item.get('purchase_status_text') or item.get('purchase_status') or '待核实')}</td>"
-            f"<td data-label=\"近两年\" class=\"{'positive-text' if item.get('two_year_return_pct') is not None and float(item['two_year_return_pct']) >= 0 else ''}\">{html.escape(format_optional_percentage(item.get('two_year_return_pct'), show_sign=True))}</td>"
-            f"<td data-label=\"两年回撤\" class=\"negative-text\">{html.escape(format_optional_percentage(item.get('two_year_max_drawdown_pct')))}</td>"
-            f"<td data-label=\"综合费率\">{html.escape(format_holding_cost(item['holding_cost']))}</td>"
-            f"<td data-label=\"两年跟踪误差\">{html.escape(format_optional_percentage(fit.get('tracking_error_pct')))}</td>"
-            f"<td data-label=\"近三年\">{html.escape(format_optional_percentage(item.get('three_year_return_pct'), show_sign=True))}</td>"
-            f"<td data-label=\"规模\">{html.escape(scale)}</td>"
-            f"<td data-label=\"合同基准\"><span class=\"benchmark-compact\">{html.escape(contract_label)}</span></td>"
-            "</tr>"
+        performance_period = (
+            f"{item['common_period_performance_start_date']} 至 "
+            f"{item['common_period_performance_end_date']}"
+            if item.get("common_period_performance_start_date")
+            and item.get("common_period_performance_end_date")
+            else "--"
         )
-    return "".join(rows) or '<tr><td colspan="10" class="empty-state">暂无名称匹配的场外纳指100产品</td></tr>'
+        fit_period = (
+            f"{fit['start_date']} 至 {fit['end_date']}"
+            if fit.get("start_date") and fit.get("end_date")
+            else "--"
+        )
+        data_status = item.get("common_period_error") or "公共区间数据完整"
+        status_class = "metric-warning" if item.get("common_period_error") else ""
+        correlation = (
+            "--"
+            if fit.get("correlation") is None
+            else format_correlation(fit["correlation"])
+        )
+        beta = "--" if fit.get("beta") is None else format_beta(fit["beta"])
+        observations = (
+            "--" if fit.get("observations") is None else f"{fit['observations']} 周"
+        )
+        rows.append(
+            f"""<details class="nasdaq-item" data-code="{html.escape(item['code'], quote=True)}">
+      <summary>
+        <span class="rank">{item['rank']}</span>
+        <span class="fund-identity"><span class="fund-name-row"><strong>{html.escape(item['name'])}</strong></span><span class="fund-code">{html.escape(item['code'])} · {html.escape(item.get('fund_type') or '')}</span></span>
+        <span class="nasdaq-summary-metrics">
+          <span class="nasdaq-summary-metric"><span class="metric-label">申购状态</span><span class="metric-value small">{html.escape(purchase_status)}</span></span>
+          <span class="nasdaq-summary-metric accent"><span class="metric-label">区间收益</span><span class="metric-value positive-text">{html.escape(format_optional_percentage(item.get('common_period_return_pct'), show_sign=True))}</span></span>
+          <span class="nasdaq-summary-metric"><span class="metric-label">综合费率</span><span class="metric-value small">{html.escape(format_holding_cost(item['holding_cost']))}</span></span>
+        </span>
+        <span class="chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="nasdaq-detail">
+        <dl class="nasdaq-detail-grid">
+          <div><dt>成立日</dt><dd>{html.escape(item.get('inception_date') or '--')}</dd></div>
+          <div><dt>申购状态</dt><dd>{html.escape(purchase_status_detail)}</dd></div>
+          <div><dt>区间回撤</dt><dd class="negative-text">{html.escape(format_optional_percentage(item.get('common_period_max_drawdown_pct')))}</dd></div>
+          <div><dt>区间跟踪误差</dt><dd>{html.escape(format_optional_percentage(fit.get('tracking_error_pct')))}</dd></div>
+          <div><dt>基金规模</dt><dd>{html.escape(scale)}</dd></div>
+          <div><dt>纳指相关性</dt><dd>{html.escape(correlation)}</dd></div>
+          <div><dt>Beta</dt><dd>{html.escape(beta)}</dd></div>
+          <div><dt>跟踪周样本</dt><dd>{html.escape(observations)}</dd></div>
+          <div><dt>数据状态</dt><dd class="{status_class}">{html.escape(data_status)}</dd></div>
+          <div class="nasdaq-period"><dt>收益与回撤区间</dt><dd>{html.escape(performance_period)}</dd></div>
+          <div class="nasdaq-period"><dt>跟踪拟合区间</dt><dd>{html.escape(fit_period)}</dd></div>
+        </dl>
+        <section class="benchmark-detail">
+          <span>合同基准</span>
+          <strong>{html.escape(contract_label)}</strong>
+          <small>解析状态：{html.escape(contract.get('status') or 'unreadable')}；仅作资料展示，不参与入选。</small>
+        </section>
+        <div class="source-row">
+          {html_source_link('基金主页', item['fund_page_url'])}
+          {html_source_link('招募说明书', contract.get('source_url'))}
+          {html_source_link('人民币产品概要', contract.get('product_summary_source_url'))}
+          {html_source_link('费率来源', item['holding_cost'].get('source_url'))}
+        </div>
+      </div>
+    </details>"""
+        )
+    return "".join(rows) or '<p class="empty-state">暂无名称匹配的场外纳指100产品</p>'
 
 def render_list(
     records: list[dict[str, Any]], payload: dict[str, Any]

@@ -1,9 +1,4 @@
-"""Small transport abstraction for source adapters.
-
-The legacy client remains the compatibility implementation initially. This
-module defines the seam used by new source adapters and keeps retry behavior
-and metrics independent from ranking rules.
-"""
+"""HTTP transport and request metrics shared by ranking sources."""
 
 from __future__ import annotations
 

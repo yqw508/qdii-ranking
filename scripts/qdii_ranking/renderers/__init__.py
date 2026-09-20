@@ -1,4 +1,4 @@
-"""Output renderer seams used during the legacy-to-package migration."""
+"""Public artifact renderers for the QDII ranking."""
 
 from .json_renderer import render_json
 

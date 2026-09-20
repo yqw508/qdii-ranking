@@ -10,30 +10,28 @@ from typing import Any
 
 from ..config import FUND_EXPOSURE_CACHE_SCHEMA_VERSION, US_EQUITY_METHOD_VERSION
 from ..errors import DataError
+from ..sources.announcements import fetch_latest_periodic_report
+from ..sources.exposure import (
+    apply_us_equity_threshold,
+    calculate_us_equity_exposure_base,
+    parse_us_equity_report,
+)
 from .base import parse_cache_date, write_json_atomic
 
 
 def _fetch_latest_periodic_report(*args: Any, **kwargs: Any) -> Any:
-    from update_qdii_ranking import fetch_latest_periodic_report
-
     return fetch_latest_periodic_report(*args, **kwargs)
 
 
 def _parse_us_equity_report(*args: Any, **kwargs: Any) -> Any:
-    from update_qdii_ranking import parse_us_equity_report
-
     return parse_us_equity_report(*args, **kwargs)
 
 
 def _calculate_us_equity_exposure_base(*args: Any, **kwargs: Any) -> Any:
-    from update_qdii_ranking import calculate_us_equity_exposure_base
-
     return calculate_us_equity_exposure_base(*args, **kwargs)
 
 
 def _apply_us_equity_threshold(*args: Any, **kwargs: Any) -> Any:
-    from update_qdii_ranking import apply_us_equity_threshold
-
     return apply_us_equity_threshold(*args, **kwargs)
 
 

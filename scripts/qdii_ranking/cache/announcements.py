@@ -11,7 +11,13 @@ from threading import Lock, get_ident
 from typing import Any
 
 from ..config import ANNOUNCEMENT_INDEX_CACHE_SCHEMA_VERSION
+from ..documents import extract_pdf_text
 from ..errors import DataError
+from ..sources.announcements import (
+    _announcement_has_legal_pair,
+    _announcement_page,
+    _parse_announcement_page,
+)
 from .base import parse_cache_date, write_json_atomic
 
 
@@ -27,27 +33,19 @@ def _announcement_snapshot(*args: Any, **kwargs: Any) -> Any:
     return FundAnnouncementSnapshot(*args, **kwargs)
 
 
-def _legacy_announcement_page(*args: Any, **kwargs: Any) -> Any:
-    from update_qdii_ranking import _announcement_page
-
+def _source_announcement_page(*args: Any, **kwargs: Any) -> Any:
     return _announcement_page(*args, **kwargs)
 
 
-def _legacy_parse_announcement_page(*args: Any, **kwargs: Any) -> Any:
-    from update_qdii_ranking import _parse_announcement_page
-
+def _source_parse_announcement_page(*args: Any, **kwargs: Any) -> Any:
     return _parse_announcement_page(*args, **kwargs)
 
 
-def _legacy_announcement_has_legal_pair(*args: Any, **kwargs: Any) -> Any:
-    from update_qdii_ranking import _announcement_has_legal_pair
-
+def _source_announcement_has_legal_pair(*args: Any, **kwargs: Any) -> Any:
     return _announcement_has_legal_pair(*args, **kwargs)
 
 
 def _extract_pdf_text(payload: bytes) -> str:
-    from update_qdii_ranking import extract_pdf_text
-
     return extract_pdf_text(payload)
 
 
@@ -136,11 +134,11 @@ class AnnouncementIndexCache:
                 cached = {}
                 history_seeded = False
 
-        first = _legacy_announcement_page(client, code, 1)
+        first = _source_announcement_page(client, code, 1)
         with self._stats_lock:
             self.checks += 1
             self.pages_fetched += 1
-        first_records = _legacy_parse_announcement_page(first, code)
+        first_records = _source_parse_announcement_page(first, code)
         latest_page_ids = tuple(record.announcement_id for record in first_records)
         for record in first_records:
             cached[record.announcement_id] = record
@@ -152,13 +150,13 @@ class AnnouncementIndexCache:
             with self._stats_lock:
                 self.full_seeds += 1
             page = 2
-            while page <= total_pages and not _legacy_announcement_has_legal_pair(
+            while page <= total_pages and not _source_announcement_has_legal_pair(
                 item for item in cached.values() if item.published_date <= as_of
             ):
-                payload = _legacy_announcement_page(client, code, page)
+                payload = _source_announcement_page(client, code, page)
                 with self._stats_lock:
                     self.pages_fetched += 1
-                page_items = _legacy_parse_announcement_page(payload, code)
+                page_items = _source_parse_announcement_page(payload, code)
                 for record in page_items:
                     cached[record.announcement_id] = record
                 if not page_items:

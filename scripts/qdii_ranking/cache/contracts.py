@@ -11,18 +11,15 @@ from typing import Any
 
 from ..config import CONTRACT_RESULT_CACHE_SCHEMA_VERSION, CONTRACT_RESULT_METHOD_VERSION
 from ..errors import DataError
+from ..sources.contracts import fetch_latest_legal_documents, resolve_contract_benchmark
 from .base import parse_cache_date, write_json_atomic
 
 
 def _fetch_latest_legal_documents(*args: Any, **kwargs: Any) -> Any:
-    from update_qdii_ranking import fetch_latest_legal_documents
-
     return fetch_latest_legal_documents(*args, **kwargs)
 
 
 def _resolve_contract_benchmark(*args: Any, **kwargs: Any) -> Any:
-    from update_qdii_ranking import resolve_contract_benchmark
-
     return resolve_contract_benchmark(*args, **kwargs)
 
 

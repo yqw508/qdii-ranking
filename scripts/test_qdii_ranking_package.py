@@ -1,3 +1,4 @@
+import ast
 import json
 import unittest
 from datetime import date
@@ -7,6 +8,7 @@ from unittest.mock import patch
 from urllib.error import HTTPError, URLError
 from io import BytesIO
 
+import update_qdii_ranking as legacy
 from qdii_ranking.atomic import atomic_write_text
 from qdii_ranking.cache.base import JsonFileCache
 from qdii_ranking.config import RANKING_SCHEMA_VERSION
@@ -25,6 +27,51 @@ from qdii_ranking.transport import HttpTransport, TransportError
 
 
 class PackageContractTests(unittest.TestCase):
+    def test_legacy_facade_exports_stable_surface(self):
+        required = {
+            "AnnouncementIndexCache",
+            "ContractBenchmarkCatalog",
+            "DataError",
+            "HttpClient",
+            "LookthroughResolver",
+            "PerformanceResultCache",
+            "build_exchange_premium_snapshot",
+            "build_payload",
+            "calculate_trailing_performance",
+            "fetch_latest_legal_documents",
+            "main",
+            "parse_args",
+            "parse_quota_notice",
+            "resolve_quota",
+            "write_html",
+        }
+        self.assertTrue(required.issubset(legacy.__all__))
+        self.assertTrue(all(hasattr(legacy, name) for name in required))
+
+    def test_legacy_facade_stays_below_line_budget(self):
+        facade = Path(__file__).with_name("update_qdii_ranking.py")
+        self.assertLessEqual(len(facade.read_text(encoding="utf-8").splitlines()), 700)
+
+    def test_package_never_imports_legacy_facade(self):
+        package = Path(__file__).with_name("qdii_ranking")
+        offenders = []
+        for path in package.rglob("*.py"):
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+            imports = [
+                node.module
+                for node in ast.walk(tree)
+                if isinstance(node, ast.ImportFrom) and node.module is not None
+            ]
+            imports.extend(
+                alias.name
+                for node in ast.walk(tree)
+                if isinstance(node, ast.Import)
+                for alias in node.names
+            )
+            if "update_qdii_ranking" in imports:
+                offenders.append(path.relative_to(package).as_posix())
+        self.assertEqual([], offenders)
+
     def test_schema_contract_is_shared_by_renderer(self):
         payload = {"schema_version": RANKING_SCHEMA_VERSION, "records": []}
         with TemporaryDirectory() as directory:

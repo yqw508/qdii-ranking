@@ -15,24 +15,20 @@ from ..config import (
     BENCHMARK_WINDOW_YEARS,
 )
 from ..errors import DataError
+from ..runtime import years_ago
+from ..sources.benchmark import fetch_nasdaq100_history, fetch_safe_usd_cny_history
 from .base import parse_cache_date, write_json_atomic
 
 
 def _fetch_nasdaq100_history(*args: Any, **kwargs: Any) -> Any:
-    from update_qdii_ranking import fetch_nasdaq100_history
-
     return fetch_nasdaq100_history(*args, **kwargs)
 
 
 def _fetch_safe_usd_cny_history(*args: Any, **kwargs: Any) -> Any:
-    from update_qdii_ranking import fetch_safe_usd_cny_history
-
     return fetch_safe_usd_cny_history(*args, **kwargs)
 
 
 def _years_ago(*args: Any, **kwargs: Any) -> Any:
-    from update_qdii_ranking import years_ago
-
     return years_ago(*args, **kwargs)
 
 

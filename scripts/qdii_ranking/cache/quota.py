@@ -9,18 +9,16 @@ from typing import Any
 
 from ..config import QUOTA_NOTICE_CACHE_SCHEMA_VERSION, QUOTA_NOTICE_METHOD_VERSION
 from ..errors import DataError
+from ..models import LegalDocument
+from ..sources.quota import parse_quota_notice
 from .base import parse_cache_date, write_json_atomic
 
 
 def _parse_quota_notice(*args: Any, **kwargs: Any) -> Any:
-    from update_qdii_ranking import parse_quota_notice
-
     return parse_quota_notice(*args, **kwargs)
 
 
 def _legal_document(*args: Any, **kwargs: Any) -> Any:
-    from ..models import LegalDocument
-
     return LegalDocument(*args, **kwargs)
 
 

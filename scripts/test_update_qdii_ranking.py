@@ -440,7 +440,7 @@ class ContractBenchmarkTests(unittest.TestCase):
             ranking.detect_product_structure("风险章节说明基金不得形成杠杆", "standard"),
         )
 
-    @patch.object(ranking, "_announcement_page")
+    @patch("qdii_ranking.sources.contracts._announcement_page")
     def test_legal_document_selection_never_uses_future_or_wrong_share(self, page):
         page.return_value = {
             "TotalCount": 4,
@@ -474,7 +474,7 @@ class ContractBenchmarkTests(unittest.TestCase):
         self.assertEqual("prospectus", prospectus.announcement_id)
         self.assertEqual("summary", summary.announcement_id)
 
-    @patch.object(ranking, "fetch_latest_legal_documents")
+    @patch("qdii_ranking.sources.contracts.fetch_latest_legal_documents")
     def test_product_summary_conflict_warns_and_does_not_block(self, documents):
         prospectus = ranking.LegalDocument(
             "p", "招募说明书", date(2026, 6, 1), "https://example.test/p.pdf", "prospectus"
@@ -497,7 +497,7 @@ class ContractBenchmarkTests(unittest.TestCase):
         self.assertEqual("unavailable", holding_cost["status"])
         self.assertTrue(any("不一致" in warning for warning in warnings))
 
-    @patch.object(ranking, "fetch_latest_legal_documents")
+    @patch("qdii_ranking.sources.contracts.fetch_latest_legal_documents")
     def test_legal_document_index_failure_is_non_blocking(self, documents):
         documents.side_effect = ranking.DataError("source unavailable")
         profile, holding_cost, warnings = ranking.resolve_contract_benchmark(
@@ -508,7 +508,7 @@ class ContractBenchmarkTests(unittest.TestCase):
         self.assertEqual("unavailable", holding_cost["status"])
         self.assertEqual(2, len(warnings))
 
-    @patch.object(ranking, "fetch_latest_legal_documents")
+    @patch("qdii_ranking.sources.contracts.fetch_latest_legal_documents")
     def test_missing_product_summary_warns_about_holding_cost(self, documents):
         prospectus = ranking.LegalDocument(
             "p", "招募说明书", date(2026, 6, 1), "https://example.test/p.pdf", "prospectus"
@@ -610,7 +610,7 @@ class ContractBenchmarkTests(unittest.TestCase):
 
 
 class AnnouncementCacheTests(unittest.TestCase):
-    @patch.object(ranking, "_announcement_page")
+    @patch("qdii_ranking.cache.announcements._announcement_page")
     def test_daily_check_seeds_history_once_and_reuses_snapshot(self, page):
         page_one = {
             "TotalCount": 200,
@@ -659,7 +659,7 @@ class AnnouncementCacheTests(unittest.TestCase):
                 cache.stats(),
             )
 
-    @patch.object(ranking, "resolve_contract_benchmark")
+    @patch("qdii_ranking.cache.contracts.resolve_contract_benchmark")
     def test_contract_result_cache_invalidates_on_document_change(self, resolve):
         profile = {
             "status": "recognized",
@@ -728,7 +728,7 @@ class PerformanceTests(unittest.TestCase):
         self.assertIs(run_cache["000001"], result)
         performance_cache.get.assert_called_once()
 
-    @patch.object(ranking, "fetch_trailing_performance")
+    @patch("qdii_ranking.ranking.fetch_trailing_performance")
     def test_three_year_threshold_full_scan_includes_exact_match(self, fetch):
         fetch.side_effect = [
             ({"three_year_return_pct": 29.99}, []),
@@ -976,7 +976,10 @@ class ThreeYearBoundaryTests(unittest.TestCase):
                 self.assertEqual(1, performance["three_year_boundary_shortfall_days"])
                 self.assertEqual(1, len(warnings))
                 self.assertIn("距完整三年少 1 天", warnings[0])
-                with patch.object(ranking, "fetch_trailing_performance", return_value=(performance, warnings)):
+                with patch(
+                    "qdii_ranking.ranking.fetch_trailing_performance",
+                    return_value=(performance, warnings),
+                ):
                     selected, retained, scanned = ranking.filter_performance_full_scan(
                         object(), [{"code": code}], date(2026, 9, 8), 30.0, top=10,
                     )
@@ -1116,8 +1119,8 @@ class Nasdaq100BenchmarkCacheTests(unittest.TestCase):
             {observed: 6.8 for observed in dates},
         )
 
-    @patch.object(ranking, "fetch_safe_usd_cny_history")
-    @patch.object(ranking, "fetch_nasdaq100_history")
+    @patch("qdii_ranking.cache.benchmark.fetch_safe_usd_cny_history")
+    @patch("qdii_ranking.cache.benchmark.fetch_nasdaq100_history")
     def test_populates_cache_and_uses_complete_cache_on_source_failure(
         self, fetch_xndx, fetch_fx
     ):
@@ -1177,7 +1180,7 @@ class PerformanceCacheTests(unittest.TestCase):
             "nasdaq100_fit_error": None,
         }
 
-    @patch.object(ranking, "calculate_performance_from_points")
+    @patch("qdii_ranking.cache.performance.calculate_performance_from_points")
     def test_cache_revalidates_with_304_and_rebuilds_corruption(self, calculate):
         calculate.return_value = (self.result(), ["cached warning"])
         observed = date(2026, 8, 19)
@@ -1351,7 +1354,7 @@ class ExchangePremiumTests(unittest.TestCase):
             "160125": {"code": "160125", "name": "南方香港LOF", "fund_type": "QDII-普通股票"},
         }
         client = Client()
-        with patch.object(ranking, "ETF_MARKET_LIST_PAGE_SIZE", 2):
+        with patch("qdii_ranking.sources.premium.ETF_MARKET_LIST_PAGE_SIZE", 2):
             entries, quote_rows, fingerprint = ranking.load_qdii_exchange_premium_catalog(
                 client, metadata
             )
@@ -1861,11 +1864,11 @@ class HtmlOutputTests(unittest.TestCase):
         self.assertIn("100元", harvest)
 
     def test_main_writes_latest_html(self):
-        with TemporaryDirectory() as directory, patch.object(
-            ranking, "build_payload", return_value=self.payload()
-        ), patch.object(ranking, "write_json"), patch.object(
-            ranking, "write_csv"
-        ), patch.object(ranking, "write_markdown"):
+        with TemporaryDirectory() as directory, patch(
+            "qdii_ranking.cli.build_payload", return_value=self.payload()
+        ), patch("qdii_ranking.cli.write_json"), patch(
+            "qdii_ranking.cli.write_csv"
+        ), patch("qdii_ranking.cli.write_markdown"):
             output_dir = Path(directory) / "output"
             publish_dir = Path(directory) / "public"
             result = ranking.main(
@@ -2363,9 +2366,9 @@ class UsEquityExposureTests(unittest.TestCase):
             cached.resolve("GLOBAL FRESH ETF", date(2026, 6, 30))
             self.assertEqual({"hits": 1, "misses": 0}, cached.stats())
 
-    @patch.object(ranking, "calculate_us_equity_exposure_base")
-    @patch.object(ranking, "parse_us_equity_report")
-    @patch.object(ranking, "fetch_latest_periodic_report")
+    @patch("qdii_ranking.cache.exposure.calculate_us_equity_exposure_base")
+    @patch("qdii_ranking.cache.exposure.parse_us_equity_report")
+    @patch("qdii_ranking.cache.exposure.fetch_latest_periodic_report")
     def test_fund_exposure_cache_reuses_base_result_and_invalidates_catalog(
         self, fetch_report, parse_report, calculate_base
     ):
@@ -2439,7 +2442,7 @@ class UsEquityExposureTests(unittest.TestCase):
             {"hits": 1, "misses": 3, "corrupt_rebuilds": 2}, cache.stats()
         )
 
-    @patch.object(ranking, "fetch_latest_periodic_report")
+    @patch("qdii_ranking.cache.exposure.fetch_latest_periodic_report")
     def test_fund_exposure_cache_rejects_future_report(self, fetch_report):
         fetch_report.return_value = ranking.PeriodicReport(
             "future",
@@ -2461,8 +2464,8 @@ class UsEquityExposureTests(unittest.TestCase):
                     50,
                 )
 
-    @patch.object(ranking, "fetch_us_equity_exposure")
-    @patch.object(ranking, "fetch_trailing_performance")
+    @patch("qdii_ranking.ranking.fetch_us_equity_exposure")
+    @patch("qdii_ranking.ranking.fetch_trailing_performance")
     def test_full_scan_does_not_stop_at_top_and_ranks_by_correlation(
         self, performance, exposure
     ):
@@ -2534,8 +2537,8 @@ class UsEquityExposureTests(unittest.TestCase):
             [f"performance {index}" for index in range(12)], warnings
         )
 
-    @patch.object(ranking, "fetch_us_equity_exposure")
-    @patch.object(ranking, "fetch_trailing_performance")
+    @patch("qdii_ranking.ranking.fetch_us_equity_exposure")
+    @patch("qdii_ranking.ranking.fetch_trailing_performance")
     def test_qualified_fund_without_nasdaq_fit_blocks_ranking(
         self, performance, exposure
     ):
@@ -2563,8 +2566,8 @@ class UsEquityExposureTests(unittest.TestCase):
                 object(),
             )
 
-    @patch.object(ranking, "fetch_us_equity_exposure")
-    @patch.object(ranking, "fetch_trailing_performance")
+    @patch("qdii_ranking.ranking.fetch_us_equity_exposure")
+    @patch("qdii_ranking.ranking.fetch_trailing_performance")
     def test_us_exposure_tie_breakers_are_deterministic(self, performance, exposure):
         performance_by_code = {"001": 100.0, "002": 90.0, "003": 90.0, "004": 80.0}
         exposure_by_code = {"001": 71.0, "002": 70.0, "003": 70.0, "004": 70.0}
@@ -2661,7 +2664,7 @@ class QuotaNoticeTests(unittest.TestCase):
         )[0]
         self.assertEqual(5000, base["global_amount_cny"])
 
-    @patch.object(ranking, "fetch_announcements")
+    @patch("qdii_ranking.sources.quota.fetch_announcements")
     def test_newer_unparsed_notice_invalidates_older_limit(self, announcements):
         announcements.return_value = [
             {
@@ -2857,18 +2860,23 @@ class QuotaParseCacheTests(unittest.TestCase):
         documents = Documents()
         with TemporaryDirectory() as directory:
             cache = ranking.QuotaNoticeParseCache(Path(directory))
-            with patch.object(ranking, "parse_quota_notice", return_value=[transition]) as parse:
+            with patch(
+                "qdii_ranking.cache.quota.parse_quota_notice",
+                return_value=[transition],
+            ) as parse:
                 self.assertEqual([transition], cache.get(object(), fund, notice, documents))
                 self.assertEqual([transition], cache.get(object(), fund, notice, documents))
                 self.assertEqual(1, parse.call_count)
             reloaded_cache = ranking.QuotaNoticeParseCache(Path(directory))
-            with patch.object(ranking, "parse_quota_notice") as parse:
+            with patch("qdii_ranking.cache.quota.parse_quota_notice") as parse:
                 self.assertEqual(
                     [transition], reloaded_cache.get(object(), fund, notice, documents)
                 )
                 parse.assert_not_called()
             failed = {**notice, "id": "notice-2", "url": "https://example.test/notice-2.pdf"}
-            with patch.object(ranking, "parse_quota_notice", return_value=[]) as parse:
+            with patch(
+                "qdii_ranking.cache.quota.parse_quota_notice", return_value=[]
+            ) as parse:
                 with self.assertRaisesRegex(ranking.DataError, "no effective"):
                     cache.get(object(), fund, failed, documents)
                 with self.assertRaisesRegex(ranking.DataError, "no effective"):
@@ -2918,19 +2926,24 @@ class QuotaParseCacheTests(unittest.TestCase):
         documents = Documents()
         with TemporaryDirectory() as directory:
             first_run = ranking.QuotaNoticeParseCache(Path(directory))
-            with patch.object(ranking, "parse_quota_notice", return_value=[]):
+            with patch(
+                "qdii_ranking.cache.quota.parse_quota_notice", return_value=[]
+            ):
                 with self.assertRaisesRegex(ranking.DataError, "no effective"):
                     first_run.get(object(), fund, notice, documents)
 
             second_run = ranking.QuotaNoticeParseCache(Path(directory))
-            with patch.object(ranking, "parse_quota_notice", return_value=[transition]) as parse:
+            with patch(
+                "qdii_ranking.cache.quota.parse_quota_notice",
+                return_value=[transition],
+            ) as parse:
                 self.assertEqual(
                     [transition], second_run.get(object(), fund, notice, documents)
                 )
                 self.assertEqual(1, parse.call_count)
 
             third_run = ranking.QuotaNoticeParseCache(Path(directory))
-            with patch.object(ranking, "parse_quota_notice") as parse:
+            with patch("qdii_ranking.cache.quota.parse_quota_notice") as parse:
                 self.assertEqual(
                     [transition], third_run.get(object(), fund, notice, documents)
                 )
@@ -2982,7 +2995,10 @@ class QuotaParseCacheTests(unittest.TestCase):
                 },
             )
             cache = ranking.QuotaNoticeParseCache(Path(directory))
-            with patch.object(ranking, "parse_quota_notice", return_value=[transition]) as parse:
+            with patch(
+                "qdii_ranking.cache.quota.parse_quota_notice",
+                return_value=[transition],
+            ) as parse:
                 self.assertEqual([transition], cache.get(object(), fund, notice, documents))
                 self.assertEqual(1, parse.call_count)
             persisted = json.loads(path.read_text(encoding="utf-8"))

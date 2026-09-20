@@ -15,18 +15,15 @@ from ..config import (
     PERFORMANCE_DATA_URL,
 )
 from ..errors import DataError
+from ..sources.performance import calculate_performance_from_points, parse_performance_page
 from .base import parse_cache_date, write_json_atomic
 
 
 def _parse_performance_page(payload: str, code: str) -> list[dict[str, Any]]:
-    from update_qdii_ranking import parse_performance_page
-
     return parse_performance_page(payload, code)
 
 
 def _calculate_performance_from_points(*args: Any, **kwargs: Any) -> tuple[dict[str, Any], list[str]]:
-    from update_qdii_ranking import calculate_performance_from_points
-
     return calculate_performance_from_points(*args, **kwargs)
 
 

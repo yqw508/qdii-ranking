@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 import send_qdii_email as mailer
+from qdii_ranking.config import RANKING_SCHEMA_VERSION
 
 
 SHANGHAI_TZ = timezone(timedelta(hours=8))
@@ -1553,7 +1554,10 @@ def validate_local_artifacts(
     output_dir: Path, publish_dir: Path, expected_date: str
 ) -> tuple[dict[str, Any], list[str]]:
     payload = load_payload(output_dir / "latest.json")
-    require(payload.get("schema_version") == 14, "Unexpected JSON schema version")
+    require(
+        payload.get("schema_version") == RANKING_SCHEMA_VERSION,
+        "Unexpected JSON schema version",
+    )
     require(payload.get("run_date") == expected_date, "Ranking date is not today's Shanghai date")
     require(
         str(payload.get("generated_at", ""))[:10] == expected_date,

@@ -72,9 +72,9 @@ jobs:
         uses: actions/cache@v6
         with:
           path: output/qdii-ranking/cache
-          key: qdii-ranking-${{ runner.os }}-${{ hashFiles('scripts/update_qdii_ranking.py', 'scripts/premium_refresh.js', 'scripts/update_index_valuation.py', 'scripts/valuation_page.js', 'references/index-valuation-catalog.json', 'references/us-equity-instruments.json', 'references/us-equity-etfs.json', 'references/contract-benchmarks.json') }}-${{ github.run_id }}
+          key: qdii-ranking-${{ runner.os }}-${{ hashFiles('scripts/update_qdii_ranking.py', 'scripts/qdii_ranking/**', 'scripts/premium_refresh.js', 'scripts/update_index_valuation.py', 'scripts/valuation_page.js', 'references/index-valuation-catalog.json', 'references/us-equity-instruments.json', 'references/us-equity-etfs.json', 'references/contract-benchmarks.json') }}-${{ github.run_id }}
           restore-keys: |
-            qdii-ranking-${{ runner.os }}-${{ hashFiles('scripts/update_qdii_ranking.py', 'scripts/premium_refresh.js', 'scripts/update_index_valuation.py', 'scripts/valuation_page.js', 'references/index-valuation-catalog.json', 'references/us-equity-instruments.json', 'references/us-equity-etfs.json', 'references/contract-benchmarks.json') }}-
+            qdii-ranking-${{ runner.os }}-${{ hashFiles('scripts/update_qdii_ranking.py', 'scripts/qdii_ranking/**', 'scripts/premium_refresh.js', 'scripts/update_index_valuation.py', 'scripts/valuation_page.js', 'references/index-valuation-catalog.json', 'references/us-equity-instruments.json', 'references/us-equity-etfs.json', 'references/contract-benchmarks.json') }}-
             qdii-ranking-${{ runner.os }}-
 
       - name: Install Python dependencies

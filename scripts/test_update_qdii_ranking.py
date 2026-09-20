@@ -6,7 +6,7 @@ import urllib.parse
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import update_qdii_ranking as ranking
 
@@ -699,6 +699,35 @@ class AnnouncementCacheTests(unittest.TestCase):
 
 
 class PerformanceTests(unittest.TestCase):
+    def test_full_scan_reuses_run_scoped_performance_result(self):
+        result = (
+            {
+                "three_year_return_pct": 60.0,
+                "five_year_return_pct": None,
+                "ten_year_return_pct": None,
+            },
+            [],
+        )
+        performance_cache = Mock()
+        performance_cache.get.return_value = result
+        run_cache = {}
+
+        selected, warnings, scanned, rejected = ranking.evaluate_performance_full_scan(
+            object(),
+            [{"code": "000001"}],
+            date(2026, 8, 19),
+            50.0,
+            performance_cache,
+            object(),
+            run_cache=run_cache,
+        )
+        self.assertEqual(1, len(selected))
+        self.assertEqual([], warnings)
+        self.assertEqual(1, scanned)
+        self.assertEqual({}, rejected)
+        self.assertIs(run_cache["000001"], result)
+        performance_cache.get.assert_called_once()
+
     @patch.object(ranking, "fetch_trailing_performance")
     def test_three_year_threshold_full_scan_includes_exact_match(self, fetch):
         fetch.side_effect = [

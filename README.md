@@ -42,6 +42,14 @@
 百分位，不输出低估或高估判断。富时 100 固定标记为实验代理。估值 JSON、缓存、校验器和页面均与
 QDII 榜单 schema 独立。
 
+## 代码结构
+
+排行榜实现位于 `scripts/qdii_ranking/`，按 source、cache、service、pipeline 和 renderer 分层；
+估值实现位于 `scripts/index_valuation/`，排行榜校验器位于 `scripts/qdii_validation/`。三个顶层脚本
+`update_qdii_ranking.py`、`update_index_valuation.py` 和 `validate_qdii_ranking.py` 仅保留 CLI 与历史导入兼容。
+Python 测试集中在 `tests/python/`，Node 页面测试集中在 `tests/js/`；结构测试会阻止源码文件超过
+1000 行、类超过 500 行、函数超过 200 行，并检查核心包的依赖方向。
+
 ## 本地更新
 
 使用包含 `pypdf` 的 Python 环境在仓库根目录执行：

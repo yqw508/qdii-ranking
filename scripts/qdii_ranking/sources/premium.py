@@ -10,12 +10,9 @@ import urllib.parse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
-from ..artifacts import write_json
-from ..cache.announcements import AnnouncementIndexCache, PeriodicReportCache
-from ..cache.premium import ExchangePremiumHoldingCostCache
-from ..cache.base import parse_cache_date as parse_source_date
+from ..atomic import atomic_write_text
 from ..config import (
     DOCUMENT_WORKERS,
     ETF_PREMIUM_CACHE_SCHEMA_VERSION,
@@ -38,6 +35,23 @@ from .contracts import (
     parse_holding_cost,
     unavailable_holding_cost,
 )
+from .common import parse_source_date
+
+
+class AnnouncementCache(Protocol):
+    def get(self, client: HttpClient, code: str, as_of: date) -> Any: ...
+
+
+class DocumentTextCache(Protocol):
+    def get_text(self, client: HttpClient, document: Any, referer: str) -> str: ...
+
+
+class HoldingCostResultCache(Protocol):
+    def load(self, code: str, as_of: date) -> Any: ...
+    def save(self, code: str, announcement_id: str | None, result: dict[str, Any]) -> None: ...
+    def mark_stale_fallback(self) -> None: ...
+    def mark_miss(self) -> None: ...
+    def mark_hit(self) -> None: ...
 from .fund import is_qdii_fund_metadata
 
 
@@ -292,9 +306,9 @@ def resolve_exchange_premium_holding_cost(
     client: HttpClient,
     entry: dict[str, Any],
     as_of: date,
-    announcement_cache: AnnouncementIndexCache,
-    document_cache: PeriodicReportCache,
-    result_cache: ExchangePremiumHoldingCostCache,
+    announcement_cache: AnnouncementCache,
+    document_cache: DocumentTextCache,
+    result_cache: HoldingCostResultCache,
 ) -> tuple[dict[str, Any], list[str]]:
     code = entry["code"]
     cached = result_cache.load(code, as_of)
@@ -357,9 +371,9 @@ def build_exchange_premium_holding_costs(
     client: HttpClient,
     entries: list[dict[str, Any]],
     as_of: date,
-    announcement_cache: AnnouncementIndexCache,
-    document_cache: PeriodicReportCache,
-    result_cache: ExchangePremiumHoldingCostCache,
+    announcement_cache: AnnouncementCache,
+    document_cache: DocumentTextCache,
+    result_cache: HoldingCostResultCache,
 ) -> tuple[dict[str, dict[str, Any]], list[str]]:
     costs: dict[str, dict[str, Any]] = {}
     warnings: list[str] = []
@@ -746,15 +760,15 @@ def build_exchange_premium_snapshot(
         else list(ETF_PREMIUM_GROUP_ORDER)
     )
     try:
-        write_json(
+        atomic_write_text(
             cache_path,
-            {
+            json.dumps({
                 "schema_version": ETF_PREMIUM_CACHE_SCHEMA_VERSION,
                 "catalog_fingerprint": catalog_fingerprint,
                 "saved_at": requested_at,
                 "catalog": entries,
                 "records": cache_records,
-            },
+            }, ensure_ascii=False, indent=2),
         )
     except OSError as exc:
         warnings.append(f"场内溢价告警：无法保存行情缓存：{exc}")

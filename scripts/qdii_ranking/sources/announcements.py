@@ -7,10 +7,10 @@ import urllib.parse
 from datetime import date, timedelta
 from typing import Any, Iterable
 
-from ..cache.base import parse_cache_date as parse_source_date
 from ..config import ANNOUNCEMENT_API_URL, NOTICE_TITLE_RE, REPORT_TITLE_EXCLUDE_RE
 from ..errors import DataError
 from ..models import AnnouncementRecord, FundAnnouncementSnapshot, PeriodicReport
+from .common import parse_source_date
 
 
 def parse_periodic_report_date(title: str) -> date | None:

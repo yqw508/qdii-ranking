@@ -7,11 +7,11 @@ import re
 import urllib.parse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from ..cache.base import parse_cache_date as parse_source_date
 from ..config import HOLDER_API_URL
 from ..errors import DataError
 from ..models import HolderPeriod
 from .fund import extract_data_array
+from .common import parse_source_date
 
 
 def period_key(report_date: str) -> str:

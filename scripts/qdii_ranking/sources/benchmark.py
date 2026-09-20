@@ -9,13 +9,13 @@ import urllib.parse
 from datetime import date, datetime, timezone
 from typing import Any
 
-from ..cache.base import parse_cache_date as parse_source_date
 from ..config import (
     NASDAQ100_HISTORY_DATA_URL,
     NASDAQ100_HISTORY_PAGE_URL,
     SAFE_USD_CNY_HISTORY_URL,
 )
 from ..errors import DataError
+from .common import parse_source_date
 
 
 def parse_nasdaq100_history(payload: Any, as_of: date) -> dict[date, float]:

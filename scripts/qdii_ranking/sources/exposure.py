@@ -8,14 +8,23 @@ import re
 from datetime import date
 from pathlib import Path
 from threading import Lock
-from typing import Any
+from typing import Any, Protocol
 
-from ..artifacts import write_json
-from ..cache.announcements import PeriodicReportCache
+from ..atomic import atomic_write_text
 from ..errors import DataError
 from ..models import FundAnnouncementSnapshot, PeriodicReport
 from ..runtime import HttpClient, parse_date
 from .announcements import fetch_latest_periodic_report
+
+
+class ReportTextCache(Protocol):
+    def get_text(
+        self, client: HttpClient, report: PeriodicReport, referer: str
+    ) -> str: ...
+
+
+class ExposureResultCache(Protocol):
+    def get(self, *args: Any, **kwargs: Any) -> tuple[dict[str, Any], list[str]]: ...
 
 
 def normalize_instrument_name(value: str) -> str:
@@ -102,13 +111,13 @@ class LookthroughResolver:
 
     def _save(self) -> None:
         self.cache_path.parent.mkdir(parents=True, exist_ok=True)
-        write_json(
+        atomic_write_text(
             self.cache_path,
-            {
+            json.dumps({
                 "schema_version": 2,
                 "catalog_fingerprint": self.catalog_fingerprint,
                 "entries": self.cache,
-            },
+            }, ensure_ascii=False, indent=2),
         )
 
     def stats(self) -> dict[str, int]:
@@ -411,10 +420,10 @@ def fetch_us_equity_exposure(
     client: HttpClient,
     fund: dict[str, Any],
     as_of: date,
-    report_cache: PeriodicReportCache,
+    report_cache: ReportTextCache,
     resolver: LookthroughResolver,
     threshold: float,
-    exposure_cache: FundExposureResultCache | None = None,
+    exposure_cache: ExposureResultCache | None = None,
     report: PeriodicReport | None = None,
     snapshot: FundAnnouncementSnapshot | None = None,
 ) -> tuple[dict[str, Any], list[str]]:

@@ -8,9 +8,8 @@ import math
 import re
 from datetime import date
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
-from ..cache.announcements import PeriodicReportCache
 from ..errors import DataError
 from ..models import AnnouncementRecord, FundAnnouncementSnapshot, LegalDocument
 from ..runtime import HttpClient
@@ -19,6 +18,12 @@ from .announcements import (
     _is_rmb_product_summary,
     _parse_announcement_page,
 )
+
+
+class DocumentTextCache(Protocol):
+    def get_text(
+        self, client: HttpClient, document: LegalDocument, referer: str
+    ) -> str: ...
 
 
 def normalize_benchmark_name(value: str) -> str:
@@ -354,7 +359,7 @@ def resolve_contract_benchmark(
     client: HttpClient,
     fund: dict[str, Any],
     as_of: date,
-    document_cache: PeriodicReportCache,
+    document_cache: DocumentTextCache,
     catalog: ContractBenchmarkCatalog,
     snapshot: FundAnnouncementSnapshot | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any], list[str]]:

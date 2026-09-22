@@ -148,7 +148,8 @@ def parse_fund_investment_rows(text: str, code: str) -> list[dict[str, Any]]:
     if not headings:
         raise DataError(f"Could not locate top fund investments for fund {code}")
     heading = headings[-1]
-    end = re.search(r"投资组合报告附注", text[heading.end() :])
+    # Exclude the following section number: e.g. 7.12 is not a holding weight.
+    end = re.search(r"(?:\d+(?:\.\d+)+\s+)?投资组合报告附注", text[heading.end() :])
     if not end:
         raise DataError(f"Could not locate end of top fund investments for fund {code}")
     table = text[heading.end() : heading.end() + end.start()]
@@ -162,7 +163,7 @@ def parse_fund_investment_rows(text: str, code: str) -> list[dict[str, Any]]:
             body,
         )
         if not name_match:
-            name_match = re.match(r"(.+?)\s+ETF\s+(?:交易型|契约型)", body)
+            name_match = re.match(r"(.+?)\s+ETF\s+(?:交易型|契约型|开\s*放\s*式)", body)
         if not name_match:
             name_match = re.match(r"(.+?)\s+QDII\s+(?:交易型|契约型|开放式)", body)
         if not name_match:

@@ -11,6 +11,80 @@ from unittest.mock import Mock, patch
 import update_qdii_ranking as ranking
 
 
+# Extracted from 014424's 2026 midyear report, AN202608311828773393, section 7.11.
+OPEN_ENDED_ETF_TABLE = """
+前十名基金投资明细
+金额单位：人民币元
+序号
+基金
+名称
+基金
+类型
+运作
+方式
+管理人 公允价值
+占基金资产净
+值比例(%)
+1
+博时恒生
+医疗保健
+(QDII-ETF)
+ETF 开放式 博时基金管
+理有限公司 1,035,828,825.46 94.91
+注：报告期末,本基金仅持有上述 1 只基金。
+7.12 投资组合报告附注
+"""
+
+
+class OpenEndedETFTests(unittest.TestCase):
+    def resolver(self, directory):
+        return ranking.LookthroughResolver(
+            ranking.DEFAULT_US_EQUITY_CATALOG, Path(directory) / "lookthrough.json"
+        )
+
+    def report(self):
+        return ranking.PeriodicReport(
+            "AN202608311828773393", "2026年中期报告", date(2026, 6, 30),
+            date(2026, 8, 31),
+            "https://pdf.dfcfw.com/pdf/H2_AN202608311828773393_1.pdf",
+        )
+
+    def test_parses_014424_open_ended_etf_with_wrapped_label(self):
+        for operation in ("开放式", "开\n放式", "开 放 式"):
+            with self.subTest(operation=operation):
+                rows = ranking.parse_fund_investment_rows(
+                    OPEN_ENDED_ETF_TABLE.replace("开放式", operation), "014424"
+                )
+                self.assertEqual("博时恒生 医疗保健 (QDII-ETF)", rows[0]["fund_name"])
+                self.assertEqual(94.91, rows[0]["weight_pct"])
+                self.assertEqual(1, rows[0]["rank"])
+                self.assertIsNone(rows[0]["reported_category"])
+                self.assertEqual(1, len(rows))
+
+    def test_open_ended_etf_without_percentage_still_blocks(self):
+        text = OPEN_ENDED_ETF_TABLE.replace(" 94.91", "")
+        with self.assertRaisesRegex(
+            ranking.DataError, "Could not parse top fund investment row 1 for fund 014424"
+        ):
+            ranking.parse_fund_investment_rows(text, "014424")
+
+    def test_unknown_open_ended_etf_stays_in_possible_bound(self):
+        holdings = ranking.parse_fund_investment_rows(OPEN_ENDED_ETF_TABLE, "014424")
+        with TemporaryDirectory() as directory:
+            exposure, warnings = ranking.calculate_us_equity_exposure(
+                {"direct_us_pct": 0.0, "fund_investment_pct": 94.91,
+                 "fund_holdings": holdings}, self.report(),
+                self.resolver(directory), 50,
+            )
+        self.assertEqual(0.0, exposure["confirmed_pct"])
+        self.assertEqual(94.91, exposure["possible_pct"])
+        self.assertEqual(94.91, exposure["unresolved_pct"])
+        self.assertEqual("unresolved", exposure["components"][0]["category"])
+        self.assertEqual("ambiguous", exposure["status"])
+        self.assertTrue(any("无法" in warning and "94.91%" in warning for warning in warnings))
+        self.assertTrue(any("跨越" in warning for warning in warnings))
+
+
 class UsEquityExposureTests(unittest.TestCase):
     def resolver(self, directory):
         return ranking.LookthroughResolver(
@@ -298,6 +372,58 @@ class UsEquityExposureTests(unittest.TestCase):
                     resolver,
                     50,
                 )
+
+    @patch("qdii_ranking.cache.exposure.parse_us_equity_report")
+    def test_fund_exposure_cache_rebuilds_old_method_and_reuses_current(self, parse_report):
+        parse_report.return_value = {
+            "direct_us_pct": 0.0,
+            "fund_investment_pct": 0.0,
+            "fund_holdings": [],
+        }
+        report = self.report()
+        report_cache = Mock()
+        report_cache.get_text.return_value = "report text"
+        fund = {"code": "014424", "fund_page_url": "https://example.test/fund"}
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            resolver = self.resolver(directory)
+            cache = ranking.FundExposureResultCache(root / "fund-exposure")
+            args = (object(), fund, date(2026, 9, 22), report_cache, resolver, 50)
+            cache.get(*args, report=report)
+            path = root / "fund-exposure" / fund["code"] / f"{report.announcement_id}.json"
+            old_payload = json.loads(path.read_text(encoding="utf-8"))
+            old_payload["method_version"] = 1
+            old_payload["exposure"]["confirmed_pct"] = 80.0
+            old_payload["exposure"]["possible_pct"] = 80.0
+            path.write_text(json.dumps(old_payload), encoding="utf-8")
+
+            rebuilt, _ = cache.get(*args, report=report)
+            reused, _ = cache.get(*args, report=report)
+            self.assertEqual(0.0, rebuilt["confirmed_pct"])
+            self.assertEqual(rebuilt, reused)
+            self.assertEqual(2, json.loads(path.read_text(encoding="utf-8"))["method_version"])
+            self.assertEqual(2, parse_report.call_count)
+            self.assertEqual(2, report_cache.get_text.call_count)
+            self.assertEqual({"hits": 1, "misses": 2, "corrupt_rebuilds": 1}, cache.stats())
+
+    @patch("qdii_ranking.cache.exposure.parse_us_equity_report")
+    def test_fund_exposure_cache_does_not_cache_parse_failure(self, parse_report):
+        parse_report.side_effect = ranking.DataError("malformed holding row")
+        report = self.report()
+        fund = {"code": "014424", "fund_page_url": "https://example.test/fund"}
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            cache = ranking.FundExposureResultCache(root / "fund-exposure")
+            resolver = self.resolver(directory)
+            for _ in range(2):
+                with self.assertRaisesRegex(ranking.DataError, "malformed holding row"):
+                    cache.get(
+                        object(), fund, date(2026, 9, 22), Mock(), resolver, 50,
+                        report=report,
+                    )
+            path = root / "fund-exposure" / fund["code"] / f"{report.announcement_id}.json"
+            self.assertFalse(path.exists())
+            self.assertEqual(2, parse_report.call_count)
 
     @patch("qdii_ranking.ranking.fetch_us_equity_exposure")
     @patch("qdii_ranking.ranking.fetch_trailing_performance")

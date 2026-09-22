@@ -8,6 +8,7 @@ from typing import Any
 from send_qdii_email import format_three_year_boundary
 
 from ..config import ROUTING_REASON_GEOGRAPHY_OVERRIDE
+from ..sources.otc_shares import EVIDENCE_LABEL
 from .common import (
     benchmark_display,
     format_beta,
@@ -182,6 +183,13 @@ def render_nasdaq100_table(records: list[dict[str, Any]]) -> str:
         observations = (
             "--" if fit.get("observations") is None else f"{fit['observations']} 周"
         )
+        evidence = item.get("share_class_evidence")
+        share_detail = (
+            '<div class="nasdaq-period"><dt>份额核实</dt><dd>'
+            f'{EVIDENCE_LABEL} · {html_source_link("产品概要", evidence["source_url"])}'
+            f'（{html.escape(evidence["published_date"])}）</dd></div>'
+            if evidence else ""
+        )
         rows.append(
             f"""<details class="nasdaq-item" data-code="{html.escape(item['code'], quote=True)}">
       <summary>
@@ -196,6 +204,7 @@ def render_nasdaq100_table(records: list[dict[str, Any]]) -> str:
       </summary>
       <div class="nasdaq-detail">
         <dl class="nasdaq-detail-grid">
+          {share_detail}
           <div><dt>成立日</dt><dd>{html.escape(item.get('inception_date') or '--')}</dd></div>
           <div><dt>申购状态</dt><dd>{html.escape(purchase_status_detail)}</dd></div>
           <div><dt>区间回撤</dt><dd class="negative-text">{html.escape(format_optional_percentage(item.get('common_period_max_drawdown_pct')))}</dd></div>

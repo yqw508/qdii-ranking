@@ -45,10 +45,10 @@ def is_nasdaq100_otc_name(name: str) -> bool:
     return bool(NASDAQ100_OTC_NAME_RE.search(str(name or "")))
 
 
-def build_nasdaq100_otc_candidates(
+def nasdaq100_holder_details(
     metadata: dict[str, dict[str, str]],
     holder_rows: list[list[str]],
-) -> list[dict[str, Any]]:
+) -> dict[str, dict[str, Any]]:
     holder_by_code: dict[str, dict[str, Any]] = {}
     for row in holder_rows:
         if len(row) < 6 or row[0] not in metadata:
@@ -64,6 +64,14 @@ def build_nasdaq100_otc_candidates(
             "personal_holding_ratio_pct": personal,
             "holder_total_shares_100m": total,
         }
+    return holder_by_code
+
+
+def build_nasdaq100_otc_candidates(
+    metadata: dict[str, dict[str, str]],
+    holder_rows: list[list[str]],
+) -> list[dict[str, Any]]:
+    holder_by_code = nasdaq100_holder_details(metadata, holder_rows)
     candidates: list[dict[str, Any]] = []
     for meta in metadata.values():
         if (

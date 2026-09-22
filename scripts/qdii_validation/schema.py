@@ -6,6 +6,7 @@ import re
 from datetime import date
 from pathlib import Path
 from typing import Any
+from .otc_shares import validate_share_evidence
 
 from .common import (
     EXPECTED_FILTERS,
@@ -518,6 +519,8 @@ def validate_nasdaq100_otc_section(section: Any, run_date: date) -> list[dict[st
     require(isinstance(section, dict), "nasdaq100_otc must be an object")
     records = section.get("records")
     require(isinstance(records, list), "nasdaq100_otc records must be a list")
+    require(section.get("candidate_count") == len(records), "OTC Nasdaq-100 candidate count differs")
+    require(len({item.get("code") for item in records}) == len(records), "OTC Nasdaq-100 codes are duplicated")
     require(section.get("ranking_method") == EXPECTED_NASDAQ100_OTC_RANKING_METHOD, "OTC Nasdaq-100 ranking method differs")
     window = section.get("comparison_window")
     require(isinstance(window, dict), "OTC Nasdaq-100 comparison window is missing")
@@ -551,6 +554,7 @@ def validate_nasdaq100_otc_section(section: Any, run_date: date) -> list[dict[st
             f"{code} is outside the QDII candidate scope",
         )
         require(record.get("purchase_status") in {"open", "limited", "suspended", "unknown"}, f"{code} has an invalid purchase status")
+        validate_share_evidence(record, run_date)
         if "ETF" in name.upper():
             require("联接" in name or "LOF" in name.upper(), f"{code} is a standalone ETF")
         inception = record.get("inception_date")

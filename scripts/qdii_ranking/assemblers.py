@@ -14,7 +14,7 @@ from .models import Nasdaq100Benchmark
 from .runtime import HttpClient
 from .ranking import contract_mentions_nasdaq100, nasdaq100_otc_sort_key
 from .services.nasdaq100 import apply_common_window
-from .sources.candidates import build_nasdaq100_otc_candidates
+from .services.otc_shares import discover_nasdaq100_otc_candidates
 from .sources.contracts import (
     ContractBenchmarkCatalog,
     unavailable_holding_cost,
@@ -140,6 +140,8 @@ def build_nasdaq100_otc_output_record(
         "ranking_list": "nasdaq100_otc",
         "routing_reason": "name_match",
         "name_match_rule": "纳斯达克100 / 纳指100 / NASDAQ 100 名称匹配",
+        **({"share_class_evidence": fund["share_class_evidence"]}
+           if fund.get("share_class_evidence") else {}),
         "code": fund["code"],
         "name": fund["name"],
         "fund_type": fund["fund_type"],
@@ -220,10 +222,11 @@ def build_nasdaq100_otc_records(
     contract_catalog: ContractBenchmarkCatalog,
     run_performance_cache: dict[str, tuple[dict[str, Any], list[str]]] | None = None,
 ) -> tuple[list[dict[str, Any]], list[str], dict[str, int], dict[str, Any]]:
-    candidates = build_nasdaq100_otc_candidates(metadata, holder_rows)
+    candidates, snapshots, warnings = discover_nasdaq100_otc_candidates(
+        client, metadata, holder_rows, as_of, announcement_cache, document_cache
+    )
     known = {item["code"]: item for item in enriched_candidates}
     missing = [item for item in candidates if item["code"] not in known]
-    warnings: list[str] = []
     if missing:
         for candidate in missing:
             try:
@@ -253,7 +256,7 @@ def build_nasdaq100_otc_records(
 
     performance_records: list[dict[str, Any]] = []
     for candidate in candidates:
-        fund = known[candidate["code"]]
+        fund = {**known[candidate["code"]], **candidate}
         try:
             if run_performance_cache is not None and fund["code"] in run_performance_cache:
                 performance, performance_warnings = run_performance_cache[fund["code"]]
@@ -294,7 +297,9 @@ def build_nasdaq100_otc_records(
                 "nasdaq100_fit_2y_error": str(exc),
             }
         try:
-            snapshot = announcement_cache.get(client, fund["code"], as_of)
+            snapshot = snapshots.get(fund["code"])
+            if snapshot is None:
+                snapshot = announcement_cache.get(client, fund["code"], as_of)
             profile, holding_cost, profile_warnings = contract_result_cache.get(
                 client, fund, as_of, document_cache, contract_catalog, snapshot
             )

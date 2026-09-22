@@ -172,7 +172,18 @@ codes. `exchange_premium.records` contains the auxiliary snapshot of all discove
 
 The standalone `nasdaq100_otc.records` section is a name-based display ranking. It discovers all
 OTC RMB A shares whose names match `纳斯达克100`, `纳指100`, or `NASDAQ 100`, while excluding standalone
-ETF shares. Contract benchmark identity is displayed but never gates inclusion. It does not apply the
+ETF shares. Only this display list additionally verifies names with no explicit A/RMB marker against
+the latest RMB product summary published on or before the ranking date. Its product overview must
+uniquely match the fund code and short name and explicitly state RMB currency and ordinary open-ended
+operation. Foreign-currency, back-end and non-target share classes remain excluded. Missing documents,
+ambiguous multi-share mappings, identity conflicts or parsing failures exclude the supplemental candidate
+with a code-specific warning. Investment scope and contract benchmarks cannot establish share eligibility.
+The same-run announcement snapshot and existing PDF cache are reused for contract and fee parsing;
+there is no persistent eligibility cache. Supplemental records carry `share_class_evidence` with identity,
+verification method, currency, share attribute, operation mode, announcement ID, publication date and URL.
+HTML details and Markdown disclose “人民币主份额，经产品概要确认”; CSV includes the evidence fields.
+Shared share identification and US-main/global candidate discovery are unchanged; public schema stays 15.
+Contract benchmark identity is displayed but never gates inclusion. It does not apply the
 main ranking's age, return, quota, or purchase-status thresholds, so suspended products and records with
 missing common-window NAV or fee data remain visible. The common start is set by the latest inception date
 among candidates that are at least one calendar year old. Younger candidates remain visible without common

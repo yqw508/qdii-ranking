@@ -5,6 +5,7 @@ import json
 import math
 from pathlib import Path
 from typing import Any
+from .otc_shares import validate_share_evidence_csv, validate_share_evidence_markdown
 
 from .common import (
     MARKDOWN_ROW_RE,
@@ -47,6 +48,7 @@ def validate_csv(path: Path, records: list[dict[str, Any]]) -> None:
         raise ValidationError(f"Could not read {path}: {exc}") from exc
     require(len(rows) == len(records), "CSV record count differs from JSON")
     for record, row in zip(records, rows):
+        validate_share_evidence_csv(row, record)
         code = record["code"]
         for field in ("ranking_list", "routing_reason", "code", "name"):
             require(row.get(field) == str(record[field]), f"CSV {field} differs for {code}")
@@ -233,6 +235,7 @@ def validate_csv(path: Path, records: list[dict[str, Any]]) -> None:
 def validate_markdown(path: Path, payload: dict[str, Any], records: list[dict[str, Any]]) -> None:
     require(path.is_file(), f"Missing artifact: {path}")
     document = path.read_text(encoding="utf-8")
+    validate_share_evidence_markdown(document, (payload.get("nasdaq100_otc") or {}).get("records", []))
     require(f"- 更新日期：{payload['run_date']}" in document, "Markdown run date differs")
     for warning in payload["warnings"]:
         if warning.startswith("三年边界容差 "):

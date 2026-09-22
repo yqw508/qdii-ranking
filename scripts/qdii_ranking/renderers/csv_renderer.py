@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from ..atomic import atomic_render
+from ..sources.otc_shares import EVIDENCE_FIELDS
 from .common import format_limit
 
 
@@ -115,6 +116,7 @@ def _write_csv(path: Path, payload: dict[str, Any]) -> None:
         "fund_page_url",
         "performance_source_url",
         "quota_source_urls",
+        *(f"share_evidence_{field}" for field in EVIDENCE_FIELDS),
     ]
     with path.open("w", encoding="utf-8-sig", newline="") as stream:
         writer = csv.DictWriter(stream, fieldnames=fields)
@@ -129,6 +131,8 @@ def _write_csv(path: Path, payload: dict[str, Any]) -> None:
             writer.writerow(
                 {
                     **{field: item.get(field) for field in fields},
+                    **{f"share_evidence_{field}": (item.get("share_class_evidence") or {}).get(field)
+                       for field in EVIDENCE_FIELDS},
                     "product_structure_tags": " | ".join(item["product_structure_tags"]),
                     "contract_benchmark_status": contract["status"],
                     "contract_benchmark_name": contract["benchmark_name"],

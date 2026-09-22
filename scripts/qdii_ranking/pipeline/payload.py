@@ -51,7 +51,11 @@ NASDAQ_RANKING_METHOD = (
 )
 NASDAQ_SELECTION_METHOD = (
     "从完整基金元数据按名称发现候选；不设置成立年限、收益、额度或申购状态硬门槛，"
-    "仅保留场外人民币 A/未标记主份额并排除独立 ETF"
+    "保留场外人民币 A/明确人民币主份额；无 A/人民币标记的主份额须经最新产品概要核实；排除独立 ETF"
+)
+NASDAQ_SHARE_CLASS_RULE = (
+    "OTC RMB A or explicit RMB primary share, plus unlabeled primary shares verified by "
+    "the latest product summary; exclude C/D/E/F/I, foreign-currency and back-end shares"
 )
 
 
@@ -108,7 +112,7 @@ def _filters(
             "selection_method": NASDAQ_SELECTION_METHOD,
             "name_match_rule": "纳斯达克100 / 纳指100 / NASDAQ 100 名称匹配",
             "name_match_pattern": NASDAQ100_OTC_NAME_RE.pattern,
-            "share_class": "OTC RMB A or explicit RMB primary share without C/D/E/F/I marker",
+            "share_class": NASDAQ_SHARE_CLASS_RULE,
             "exclude_standalone_etf": True,
             "purchasable_only": False,
             "top": None,
@@ -193,7 +197,7 @@ def assemble_payload(
         "nasdaq100_otc": {
             "selection_method": NASDAQ_SELECTION_METHOD,
             "name_match_rule": "纳斯达克100 / 纳指100 / NASDAQ 100 名称匹配",
-            "share_class_rule": "OTC RMB A or explicit RMB primary share without C/D/E/F/I marker",
+            "share_class_rule": NASDAQ_SHARE_CLASS_RULE,
             "exclude_standalone_etf": True,
             "purchasable_only": False,
             "ranking_method": NASDAQ_RANKING_METHOD,

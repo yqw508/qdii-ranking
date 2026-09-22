@@ -23,6 +23,7 @@ from .common import (
     require,
 )
 from .schema import validate_holding_cost
+from .otc_shares import validate_share_evidence_html
 
 def parse_html(document: str) -> RankingHtmlParser:
     parser = RankingHtmlParser()
@@ -260,6 +261,7 @@ def validate_html_document(
         f"{label} OTC Nasdaq-100 tab is missing or duplicated",
     )
     for record in nasdaq_records:
+        validate_share_evidence_html(document, record)
         require(
             record["code"] in all_text and record["name"] in all_text,
             f"{label} OTC Nasdaq-100 record is missing for {record['code']}",

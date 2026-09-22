@@ -8,6 +8,7 @@ from typing import Any
 from send_qdii_email import format_three_year_boundary
 
 from ..atomic import atomic_write_text
+from ..sources.otc_shares import EVIDENCE_LABEL
 from .common import (
     benchmark_display,
     format_beta,
@@ -146,7 +147,7 @@ def render_markdown(path: Path, payload: dict[str, Any]) -> None:
             "",
             "## 场外纳指100",
             "",
-            "按名称匹配纳斯达克100、纳指100或 NASDAQ 100 的场外人民币 A 类份额；不以合同基准、成立年限、收益门槛、额度或当前申购状态筛除产品。",
+            "按名称匹配纳斯达克100、纳指100或 NASDAQ 100 的场外人民币 A 类份额及经产品概要确认的无标记人民币主份额；不以合同基准、成立年限、收益门槛、额度或当前申购状态筛除产品。",
             "",
             f"共同区间：{window_text}；锚点基金：{anchor_codes}。结束日随最新共同净值滚动。",
             "排序：公共区间收益降序、年化综合费率升序、公共区间跟踪误差升序、公共区间最大回撤较小者优先、规模降序、代码升序；缺失值排在有数据记录之后。",
@@ -176,6 +177,11 @@ def render_markdown(path: Path, payload: dict[str, Any]) -> None:
         )
         if item.get("contract_name_match_warning"):
             lines.append(f"  - {item['contract_name_match_warning']}")
+        if evidence := item.get("share_class_evidence"):
+            lines.append(
+                f"  - {item['code']}：{EVIDENCE_LABEL}；"
+                f"[产品概要 {evidence['published_date']}]({evidence['source_url']})"
+            )
         if item.get("common_period_error"):
             lines.append(f"  - 公共区间数据：{item['common_period_error']}")
     if not nasdaq_records:

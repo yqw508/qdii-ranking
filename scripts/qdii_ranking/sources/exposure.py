@@ -15,6 +15,7 @@ from ..errors import DataError
 from ..models import FundAnnouncementSnapshot, PeriodicReport
 from ..runtime import HttpClient, parse_date
 from .announcements import fetch_latest_periodic_report
+from .holding_rows import parse_index_holding_row
 
 
 class ReportTextCache(Protocol):
@@ -157,7 +158,12 @@ def parse_fund_investment_rows(text: str, code: str) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for index, match in enumerate(row_matches):
         row_end = row_matches[index + 1].start() if index + 1 < len(row_matches) else len(table)
-        body = re.sub(r"\s+", " ", table[match.end() : row_end]).strip()
+        raw_row = table[match.end() : row_end]
+        index_row = parse_index_holding_row(raw_row, int(match.group(1)), code)
+        if index_row is not None:
+            rows.append(index_row)
+            continue
+        body = re.sub(r"\s+", " ", raw_row).strip()
         name_match = re.match(
             r"(.+?)\s+(?:ETF\s*基\s*金|指数基\s*金|开放式\s*基\s*金|基\s*金)\s+",
             body,

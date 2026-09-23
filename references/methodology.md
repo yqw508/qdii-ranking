@@ -18,6 +18,12 @@
 The public endpoints are not guaranteed APIs. A ranking-critical fetch or parse failure stops the run;
 the updater never silently drops a required evaluation.
 
+Interrupted HTTP bodies (`IncompleteRead`), remote disconnects and connection errors enter the
+existing bounded retry policy for GET, conditional GET and query-only form POST requests: four
+attempts by default, with 0.5/1/2-second backoff. Partial bodies are discarded before parsing or
+successful cache writes. Exhaustion retains the source URL and original cause and remains blocking
+where the source is ranking-critical; conditional 304 revalidation behavior is unchanged.
+
 ## Shared Eligibility
 
 1. Keep purchasable OTC RMB A shares and an explicit RMB primary share without C/D markers. Exclude
@@ -50,6 +56,11 @@ the updater never silently drops a required evaluation.
 - Read direct US equities from the latest eligible report's country table. For fund-of-funds, classify
   disclosed underlying funds using official sources. Unknown positions contribute zero to the confirmed
   lower bound and their full weight to the possible upper bound; an interval midpoint is never used.
+- Index-fund holding rows require an explicit type/operation boundary and an amount/weight pair.
+  A report-title plus numbered-page boundary may separate a Chinese fund-name suffix from its prefix.
+  Reassemble only a demonstrable legal-name continuation within the same row, excluding headers,
+  managers, following holdings and notes. Ambiguous or missing continuations remain parse failures.
+  Exposure method version 3 rebuilds derived exposure results while retaining independent caches.
 - Require confirmed US-equity exposure of at least 50% and no configured geography keyword in the fund
   name. A critical report or table parse failure stops the run. Contract benchmark classification does
   not decide list placement.

@@ -7,6 +7,7 @@ import json
 import urllib.parse
 import urllib.error
 import urllib.request
+from http.client import IncompleteRead, RemoteDisconnected
 from threading import Lock
 from typing import Any, Callable, Type
 
@@ -104,7 +105,7 @@ class HttpTransport:
                     )
                     return 304, b"", dict(exc.headers.items())
                 last_error = exc
-            except (urllib.error.URLError, TimeoutError) as exc:
+            except (urllib.error.URLError, TimeoutError, IncompleteRead, RemoteDisconnected, ConnectionError) as exc:
                 last_error = exc
             self._record_attempt(category, time.perf_counter() - started, retry=attempt > 0)
             if attempt + 1 < self.retries:
@@ -185,6 +186,9 @@ class HttpTransport:
                 urllib.error.HTTPError,
                 urllib.error.URLError,
                 TimeoutError,
+                IncompleteRead,
+                RemoteDisconnected,
+                ConnectionError,
             ) as exc:
                 last_error = exc
                 self._record_attempt(

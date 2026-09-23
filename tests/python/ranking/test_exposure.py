@@ -392,7 +392,7 @@ class UsEquityExposureTests(unittest.TestCase):
             cache.get(*args, report=report)
             path = root / "fund-exposure" / fund["code"] / f"{report.announcement_id}.json"
             old_payload = json.loads(path.read_text(encoding="utf-8"))
-            old_payload["method_version"] = 1
+            old_payload["method_version"] = 2
             old_payload["exposure"]["confirmed_pct"] = 80.0
             old_payload["exposure"]["possible_pct"] = 80.0
             path.write_text(json.dumps(old_payload), encoding="utf-8")
@@ -401,7 +401,7 @@ class UsEquityExposureTests(unittest.TestCase):
             reused, _ = cache.get(*args, report=report)
             self.assertEqual(0.0, rebuilt["confirmed_pct"])
             self.assertEqual(rebuilt, reused)
-            self.assertEqual(2, json.loads(path.read_text(encoding="utf-8"))["method_version"])
+            self.assertEqual(3, json.loads(path.read_text(encoding="utf-8"))["method_version"])
             self.assertEqual(2, parse_report.call_count)
             self.assertEqual(2, report_cache.get_text.call_count)
             self.assertEqual({"hits": 1, "misses": 2, "corrupt_rebuilds": 1}, cache.stats())

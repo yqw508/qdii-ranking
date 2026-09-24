@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -26,6 +27,7 @@ from ..ranking import (
     global_supplement_sort_key,
     ranking_route,
     us_main_sort_key,
+    disappeared_ranked_candidates,
 )
 from ..runtime import HttpClient, RunMetrics
 from ..sources.announcements import fetch_latest_periodic_report
@@ -74,6 +76,19 @@ def discover_candidates(
         periods = fetch_holder_periods(client)
         selected, warnings = select_holder_period(periods, args.allow_partial_holder_period)
         holder_rows = fetch_holder_rows(client, selected)
+        previous_payload = _load_previous_payload(args.output_dir)
+        missing_previous = disappeared_ranked_candidates(
+            previous_payload,
+            holder_rows,
+            metadata,
+            selected.report_date,
+        )
+        if missing_previous:
+            joined = ", ".join(missing_previous)
+            raise DataError(
+                f"Holder data omitted previously ranked eligible fund(s) "
+                f"for unchanged report period {selected.report_date}: {joined}"
+            )
         candidates = build_holder_candidates(holder_rows, metadata, [])
         enriched = enrich_fund_pages(client, candidates)
         preliminary = filter_and_rank(
@@ -92,6 +107,17 @@ def discover_candidates(
         preliminary,
         tuple(warnings),
     )
+
+
+def _load_previous_payload(output_dir: Path) -> dict[str, Any] | None:
+    path = output_dir / "latest.json"
+    if not path.exists():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, json.JSONDecodeError):
+        return None
+    return payload if isinstance(payload, dict) else None
 
 
 def initialize_resources(

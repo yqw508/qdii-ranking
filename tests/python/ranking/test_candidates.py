@@ -30,6 +30,59 @@ class HolderPeriodTests(unittest.TestCase):
         selected, _ = ranking.select_holder_period(periods, allow_partial=True)
         self.assertEqual("2026-06-30", selected.report_date)
 
+    def test_detects_previous_ranked_fund_missing_from_unchanged_holder_period(self):
+        metadata = {
+            "016701": {
+                "code": "016701",
+                "name": "银华海外数字经济量化选股混合发起式(QDII)A",
+                "fund_type": "QDII-混合偏股",
+            }
+        }
+        previous = {
+            "holder_report_date": "2026-06-30",
+            "records": [{"code": "016701"}],
+            "global_supplement": {"records": []},
+        }
+        self.assertEqual(
+            ["016701"],
+            ranking.disappeared_ranked_candidates(
+                previous, [], metadata, "2026-06-30"
+            ),
+        )
+
+    def test_allows_report_period_change_and_ineligible_metadata_change(self):
+        previous = {
+            "holder_report_date": "2026-06-30",
+            "records": [{"code": "016701"}],
+            "global_supplement": {"records": []},
+        }
+        eligible_metadata = {
+            "016701": {
+                "code": "016701",
+                "name": "银华海外数字经济量化选股混合发起式(QDII)A",
+                "fund_type": "QDII-混合偏股",
+            }
+        }
+        self.assertEqual(
+            [],
+            ranking.disappeared_ranked_candidates(
+                previous, [], eligible_metadata, "2026-12-31"
+            ),
+        )
+        ineligible_metadata = {
+            **eligible_metadata,
+            "016701": {
+                **eligible_metadata["016701"],
+                "name": "银华海外数字经济量化选股混合发起式(QDII)C",
+            },
+        }
+        self.assertEqual(
+            [],
+            ranking.disappeared_ranked_candidates(
+                previous, [], ineligible_metadata, "2026-06-30"
+            ),
+        )
+
 
 class FundFilterTests(unittest.TestCase):
     def test_default_result_count_and_return_threshold(self):

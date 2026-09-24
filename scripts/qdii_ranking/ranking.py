@@ -64,6 +64,45 @@ def build_holder_candidates(
     return candidates
 
 
+def disappeared_ranked_candidates(
+    previous_payload: dict[str, Any] | None,
+    holder_rows: list[list[str]],
+    metadata: dict[str, dict[str, str]],
+    report_date: str,
+) -> list[str]:
+    """Return previously ranked eligible funds missing from the same holder period.
+
+    The holder endpoint is the source for the main candidate universe.  A transient
+    missing row must therefore stop publication instead of silently changing the
+    universe.  A changed report period or a fund that is no longer an eligible OTC
+    RMB share is allowed to change the universe normally.
+    """
+    if not previous_payload or previous_payload.get("holder_report_date") != report_date:
+        return []
+
+    previous_records = [
+        *previous_payload.get("records", []),
+        *((previous_payload.get("global_supplement") or {}).get("records") or []),
+    ]
+    previous_codes = {
+        str(record.get("code"))
+        for record in previous_records
+        if record.get("code")
+    }
+    current_codes = {
+        str(row[0])
+        for row in holder_rows
+        if len(row) >= 1 and row[0]
+    }
+    missing: list[str] = []
+    for code in sorted(previous_codes - current_codes):
+        meta = metadata.get(code)
+        if not meta or not is_otc_share(meta) or meta["fund_type"] in EXCLUDED_FUND_TYPES:
+            continue
+        missing.append(code)
+    return missing
+
+
 def filter_and_rank(
     candidates: list[dict[str, Any]],
     min_scale: float | None,

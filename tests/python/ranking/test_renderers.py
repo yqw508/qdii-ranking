@@ -128,7 +128,7 @@ class HtmlOutputTests(unittest.TestCase):
                 "min_age_years": 3,
                 "min_three_year_return_pct": 30.0,
                 "three_year_boundary_tolerance_days": 7,
-                "min_five_year_return_pct_if_available": 50.0,
+                "min_five_year_return_pct_if_available": 40.0,
                 "min_ten_year_return_pct_if_available": 100.0,
                 "min_us_equity_pct": 50.0,
                 "min_direct_limit_cny_inclusive": 200,
@@ -167,7 +167,7 @@ class HtmlOutputTests(unittest.TestCase):
         self.assertIn('name="viewport"', document)
         self.assertIn("规模不限", document)
         self.assertIn("三年收益 ≥ 30%", document)
-        self.assertIn("五年有数据 ≥ 50%", document)
+        self.assertIn("五年有数据 ≥ 40%", document)
         self.assertIn("十年有数据 ≥ 100%", document)
         self.assertEqual(2, document.count('<details class="fund-item"'))
         self.assertNotIn("<script>alert(1)</script>", document)

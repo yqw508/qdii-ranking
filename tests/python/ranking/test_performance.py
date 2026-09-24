@@ -108,7 +108,7 @@ class PerformanceTests(unittest.TestCase):
                     "ten_year_return_pct": None,
                 },
                 30,
-                50,
+                40,
                 100,
             ),
         )
@@ -117,11 +117,11 @@ class PerformanceTests(unittest.TestCase):
             ranking.performance_threshold_failures(
                 {
                     "three_year_return_pct": 30.0,
-                    "five_year_return_pct": 50.0,
+                    "five_year_return_pct": 40.0,
                     "ten_year_return_pct": 100.0,
                 },
                 30,
-                50,
+                40,
                 100,
             ),
         )
@@ -130,11 +130,11 @@ class PerformanceTests(unittest.TestCase):
             for reason, _label in ranking.performance_threshold_failures(
                 {
                     "three_year_return_pct": 30.0,
-                    "five_year_return_pct": 49.99,
+                    "five_year_return_pct": 39.99,
                     "ten_year_return_pct": 99.99,
                 },
                 30,
-                50,
+                40,
                 100,
             )
         }

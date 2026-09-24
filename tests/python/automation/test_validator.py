@@ -319,7 +319,7 @@ class RankingValidatorTests(unittest.TestCase):
 
     def test_rejects_available_long_return_below_conditional_threshold(self):
         for field, value in (
-            ("five_year_return_pct", 49.99),
+            ("five_year_return_pct", 39.99),
             ("ten_year_return_pct", 99.99),
         ):
             with self.subTest(field=field):

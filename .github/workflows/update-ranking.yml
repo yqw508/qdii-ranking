@@ -356,6 +356,7 @@ jobs:
           if-no-files-found: warn
           path: |
             output/qdii-ranking/candidate-audit.json
+            output/qdii-ranking/cache/quota-notices/*.json
             output/qdii-ranking/run-metrics.json
             output/qdii-ranking/latest.*
             output/qdii-ranking/ranking-changes.md

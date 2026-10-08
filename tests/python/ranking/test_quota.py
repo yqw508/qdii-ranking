@@ -9,6 +9,7 @@ from tempfile import TemporaryDirectory
 from unittest.mock import Mock, patch
 
 import update_qdii_ranking as ranking
+from qdii_ranking.cache.quota import PARSER_FINGERPRINT
 
 
 class QuotaNoticeTests(unittest.TestCase):
@@ -225,6 +226,35 @@ class QuotaNoticeTests(unittest.TestCase):
 
 
 class QuotaParseCacheTests(unittest.TestCase):
+    def test_rebuilds_legacy_or_different_parser_success_instead_of_false_zero(self):
+        fund = {"code": "016701", "fund_page_url": "https://example.test/016701"}
+        notice = {"id": "quota-fingerprint", "title": "恢复及暂停直销机构大额申购公告",
+                  "published": date(2026, 9, 21), "url": "https://example.test/quota.pdf"}
+        text = "直销机构的个人投资者200万元以上大额申购。代销机构1000元以上的大额申购。"
+        documents = Mock()
+        documents.get_text.return_value = text
+        for fingerprint in (None, "obsolete-parser"):
+            with self.subTest(fingerprint=fingerprint), TemporaryDirectory() as directory:
+                path = Path(directory) / "quota-fingerprint.json"
+                stale = {"schema_version": ranking.QUOTA_NOTICE_CACHE_SCHEMA_VERSION,
+                         "method_version": ranking.QUOTA_NOTICE_METHOD_VERSION,
+                         "identity": ranking.QuotaNoticeParseCache._identity(notice), "ok": True,
+                         "transitions": [{"effective_date": "2026-09-21", "source_url": notice["url"],
+                                          "direct_amount_cny": 0, "agency_amount_cny": 0}]}
+                if fingerprint is not None:
+                    stale["parser_fingerprint"] = fingerprint
+                ranking.write_json(path, stale)
+                cache = ranking.QuotaNoticeParseCache(Path(directory))
+                actual = cache.get(object(), fund, notice, documents)
+                self.assertEqual(2000000, actual[0]["direct_amount_cny"])
+                self.assertEqual(1000, actual[0]["agency_amount_cny"])
+                self.assertTrue(documents.get_text.call_args.kwargs["force_refresh"])
+                self.assertEqual(1, cache.stats()["corrupt_rebuilds"])
+                self.assertEqual(PARSER_FINGERPRINT, json.loads(path.read_text(encoding="utf-8"))["parser_fingerprint"])
+                with patch("qdii_ranking.cache.quota.parse_quota_notice") as parse:
+                    self.assertEqual(actual, ranking.QuotaNoticeParseCache(Path(directory)).get(object(), fund, notice, documents))
+                    parse.assert_not_called()
+
     def test_reuses_success_across_runs_and_failure_within_run(self):
         class Documents:
             def __init__(self):
@@ -387,6 +417,7 @@ class QuotaParseCacheTests(unittest.TestCase):
                 {
                     "schema_version": ranking.QUOTA_NOTICE_CACHE_SCHEMA_VERSION,
                     "method_version": ranking.QUOTA_NOTICE_METHOD_VERSION,
+                    "parser_fingerprint": PARSER_FINGERPRINT,
                     "identity": identity,
                     "ok": False,
                     "error": "quota notice produced no effective limit transition",

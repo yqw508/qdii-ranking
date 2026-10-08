@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
+from importlib.metadata import version
 from pathlib import Path
 from threading import Lock
 from typing import Any
@@ -12,6 +14,16 @@ from ..errors import DataError
 from ..models import LegalDocument
 from ..sources.quota import parse_quota_notice
 from .base import parse_cache_date, write_json_atomic
+
+
+def parser_fingerprint() -> str:
+    root = Path(__file__).resolve().parents[1]
+    sources = [root / 'sources' / 'quota.py', root / 'documents.py']
+    content = '\0'.join(path.read_text(encoding='utf-8') for path in sources)
+    return hashlib.sha256((content + '\0' + version('pypdf')).encode('utf-8')).hexdigest()
+
+
+PARSER_FINGERPRINT = parser_fingerprint()
 
 
 def _parse_quota_notice(*args: Any, **kwargs: Any) -> Any:
@@ -62,6 +74,7 @@ class QuotaNoticeParseCache:
         if (
             payload.get("schema_version") != QUOTA_NOTICE_CACHE_SCHEMA_VERSION
             or payload.get("method_version") != QUOTA_NOTICE_METHOD_VERSION
+            or payload.get("parser_fingerprint") != PARSER_FINGERPRINT
             or payload.get("identity") != identity
             or not isinstance(payload.get("ok"), bool)
         ):
@@ -153,6 +166,7 @@ class QuotaNoticeParseCache:
             {
                 "schema_version": QUOTA_NOTICE_CACHE_SCHEMA_VERSION,
                 "method_version": QUOTA_NOTICE_METHOD_VERSION,
+                "parser_fingerprint": PARSER_FINGERPRINT,
                 "identity": identity,
                 "ok": True,
                 "transitions": self._encode_transitions(transitions),

@@ -22,8 +22,12 @@ from ..pipeline.core import RunMemo
 @dataclass
 class ExclusionCollector:
     items: dict[str, dict[str, Any]] = field(default_factory=dict)
+    audit: Any = None
 
     def add(self, reason: str, label: str, code: str) -> None:
+        if self.audit is not None:
+            stage = "performance" if "return" in reason else ("ranking" if reason == "ranking_cap" else "quota")
+            self.audit.event(code, stage, "excluded", reason, label)
         item = self.items.setdefault(
             reason, {"reason": reason, "label": label, "codes": []}
         )

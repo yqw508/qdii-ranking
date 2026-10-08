@@ -82,7 +82,7 @@ def parse_fund_page(page: str, code: str) -> dict[str, Any]:
     scale = amount_to_billion(scale_match.group(1), scale_match.group(2))
     buy_match = re.search(r'var fundBuyStatus = "([^"]+)"', page)
     sale_match = re.search(r"var fundIsSale = (true|false)", page)
-    state_match = re.search(r"交易状态：(.{0,450}?)购买手续费", page, re.S)
+    state_match = re.search(r"交易状态[：:](.{0,2000}?)(?:</div>|购买手续费)", page, re.S)
     state_text = strip_tags(state_match.group(1)) if state_match else ""
     buy_status = buy_match.group(1) if buy_match else None
     is_sale = sale_match.group(1) == "true" if sale_match else None

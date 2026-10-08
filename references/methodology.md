@@ -199,7 +199,7 @@ main ranking's age, return, quota, or purchase-status thresholds, so suspended p
 missing common-window NAV or fee data remain visible. The common start is set by the latest inception date
 among candidates that are at least one calendar year old. Younger candidates remain visible without common
 metrics until they reach one year. The end advances to the latest NAV date shared by all otherwise comparable
-candidates on every run. Both boundaries use actual NAV dates, allow at most seven calendar days of delay,
+candidates on every run. Both boundaries use actual NAV dates. The start allows at most seven calendar days of delay; the end allows at most seven completed publication workdays,
 and never interpolate values. The order is common-window adjusted return descending, annualized comprehensive
 operating expense ascending, common-window CNY Nasdaq-100 tracking error ascending, smaller common-window
 maximum drawdown, scale descending, and fund code ascending; unavailable values sort after available values.
@@ -259,3 +259,46 @@ dependency marks its assets `cached_stale`. Validation blocks only an all-unavai
 artifact contract. Run metrics retain per-source duration, status, bytes, request mode, cache fallback,
 and the hot `<10s`/`<300KB` and cold `<15s` warning targets. `latest.html` and
 `public/valuation/index.html` must remain byte-identical.
+
+
+## Complete Discovery, Audit, And Freshness (version 1)
+
+The complete metadata type/share scope drives candidate discovery; institution holder rows are a
+left join, not a universe filter. Holder pagination must have the reported count, unique codes, and
+finite valid numeric values; retry the full fetch once on failure. Empty institutional ratios stay
+unknown. Evaluate eligibility first, then block before ranking if an otherwise qualified candidate
+has no institution ratio. Explicit fundraising and foreign-currency pages are diagnosed as excluded;
+unparseable purchase status, missing required source fields, and critical parses block publication.
+
+`references/ranking-baseline.json` is the last validated continuity snapshot, not proof of deployment.
+It is committed with public pages only after tests and both artifact validators pass. Every previous
+ranked code needs an assessment across both unchanged and changed holder periods. It is not a whitelist
+and does not replace current sources. The first snapshot was bootstrapped from the verified September 24
+artifact; subsequent snapshots include every discovered candidate. Production deployment is confirmed
+separately by HTTP/content checks. Failed runs never promote the baseline.
+
+`candidate-audit.json` version 1 stores each code's stages, terminal status, reason codes, evidence values,
+thresholds, source URLs and dates. A failed run preserves blocked and not-evaluated candidates with the
+failure stage. Public exclusion summaries are derived from these events; the ranking JSON references
+the audit's SHA256. Diagnostics and generated artifacts are archived for 90 days even on failures.
+
+The additive `freshness_policy_version: 1` changes source-tail freshness only: count publication days
+strictly after the observation through the last ended source-local day, capped by the requested as-of
+ date. Seven is inclusive. CN NAV uses the SSE securities calendar by default, XNDX uses Nasdaq holidays,
+and CNY parity uses the official CFETS CNY calendar. Makeup work Saturdays are not publication days.
+The versioned calendar contains official sources and verified closure dates for 2026; unsupported years
+block and must be populated from official calendars before use. Cross-year windows require both years.
+
+Explicit NAV-publication suspensions may be added to `nav_suspensions` with code, start, end,
+published_date, scope `nav_publication`, evidence_text, official source_url, and source_sha256. The
+reviewed evidence must expressly concern NAV disclosure, not subscription or redemption availability.
+Re-fetch each applicable source and verify its content digest during every run; changed/unavailable
+notices block. Future notices never apply retrospectively. No implicit offshore-market holiday
+inference or invented disclosure-lag allowance is applied.
+
+The page discloses generation time, observation date, raw calendar lag and publication-workday lag.
+Calendar-adjusted acceptance is labeled, and is distinct from cached source failure. Existing same-run
+source revalidation remains mandatory. Historical index/FX carry-forward and all start-boundary limits
+still use seven calendar days; historical sample requirements are unchanged. The legacy
+`max_source_staleness_days` field retains its historical matching meaning, while tail evidence uses
+`max_publication_lag_days`. The valuation research page keeps its independent freshness model.

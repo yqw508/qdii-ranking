@@ -84,11 +84,13 @@ class FundAnnouncementSnapshot:
 class Nasdaq100Benchmark:
     xndx_levels: dict[date, float]
     usd_cny_rates: dict[date, float]
+    freshness: dict[str, Any] | None = None
 
     def metadata(self) -> dict[str, Any]:
         xndx_dates = sorted(self.xndx_levels)
         fx_dates = sorted(self.usd_cny_rates)
         return {
+            **({"freshness": self.freshness} if self.freshness is not None else {}),
             "symbol": "XNDX",
             "name": "NASDAQ-100 Total Return",
             "return_type": "gross_total_return",

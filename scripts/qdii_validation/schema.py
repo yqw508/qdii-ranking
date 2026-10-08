@@ -158,10 +158,11 @@ def validate_benchmark(benchmark: Any, run_date: date) -> None:
         start = parse_date(benchmark[f"{prefix}_start_date"])
         latest = parse_date(benchmark[f"{prefix}_latest_date"])
         require(start <= latest <= run_date, f"Benchmark {prefix} dates are invalid")
-        require(
-            (run_date - latest).days <= 7,
-            f"Benchmark {prefix} source is stale",
-        )
+        if "freshness" in benchmark:
+            from qdii_ranking.freshness import validate_freshness
+            validate_freshness(benchmark["freshness"][prefix], latest, run_date, "nasdaq" if prefix == "index" else "safe_fx")
+        else:
+            require((run_date - latest).days <= 7, f"Benchmark {prefix} source is stale")
 
 
 def validate_limit(
@@ -533,7 +534,13 @@ def validate_nasdaq100_otc_section(section: Any, run_date: date) -> list[dict[st
         window_start = parse_date(window.get("start_date"))
         window_end = parse_date(window.get("end_date"))
         require(window_start < window_end <= run_date, "OTC Nasdaq-100 comparison dates are invalid")
-        require((run_date - window_end).days <= 7, "OTC Nasdaq-100 comparison end is stale")
+        if section.get("freshness_policy_version") == 1:
+            from qdii_ranking.freshness import validate_freshness
+            for record in records:
+                if record.get("common_period_return_pct") is not None:
+                    validate_freshness(record["common_end_freshness"], window_end, run_date, "cn_nav", code=record["code"])
+        else:
+            require((run_date - window_end).days <= 7, "OTC Nasdaq-100 comparison end is stale")
         anchor_inception = parse_date(window.get("anchor_inception_date"))
         require(
             anchor_inception <= window_start

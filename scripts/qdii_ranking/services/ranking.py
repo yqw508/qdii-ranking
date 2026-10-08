@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import argparse
-import json
+import re
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -18,6 +18,10 @@ from ..cache.premium import ExchangePremiumHoldingCostCache
 from ..cache.quota import QuotaNoticeParseCache
 from ..config import DEFAULT_US_EQUITY_ETF_CATALOG, DOCUMENT_WORKERS
 from ..errors import DataError
+from ..freshness import require_fresh
+from ..runtime import is_older_than_years
+from ..config import FUND_LIST_URL, FUND_PAGE_URL
+from ..sources.fund import parse_fund_page
 from ..ranking import (
     build_holder_candidates,
     calculate_return_drawdown_ratio,
@@ -73,32 +77,61 @@ def discover_candidates(
 ) -> DiscoveryResult:
     with metrics.phase("candidate_discovery"):
         metadata = fetch_fund_metadata(client)
+        audit = args._audit
+        candidates = build_holder_candidates([], metadata, [])
+        for fund in candidates:
+            audit.register(fund)
+        candidate_codes = {f["code"] for f in candidates}
+        previous = {r["code"]: r for r in audit.baseline["records"]}
+        for code, record in previous.items():
+            if code not in metadata:
+                audit.register(record)
+                audit.event(code, "discovery", "blocked", "metadata_missing", "完整基金目录缺失", sources=[FUND_LIST_URL])
+                raise DataError(f"{code}: previously ranked fund missing from metadata")
+            if code not in candidate_codes:
+                audit.register(metadata[code])
+                audit.event(code, "discovery", "excluded", "type_or_share_ineligible", "类型或份额不符合范围",
+                            values=metadata[code], sources=[FUND_LIST_URL])
         periods = fetch_holder_periods(client)
         selected, warnings = select_holder_period(periods, args.allow_partial_holder_period)
         holder_rows = fetch_holder_rows(client, selected)
-        previous_payload = _load_previous_payload(args.output_dir)
-        missing_previous = disappeared_ranked_candidates(
-            previous_payload,
-            holder_rows,
-            metadata,
-            selected.report_date,
-        )
-        if missing_previous:
-            joined = ", ".join(missing_previous)
-            raise DataError(
-                f"Holder data omitted previously ranked eligible fund(s) "
-                f"for unchanged report period {selected.report_date}: {joined}"
-            )
         candidates = build_holder_candidates(holder_rows, metadata, [])
-        enriched = enrich_fund_pages(client, candidates)
-        preliminary = filter_and_rank(
-            enriched,
-            args.min_scale,
-            len(enriched),
-            exclude_keywords=(),
-            as_of=as_of,
-            min_age_years=args.min_age_years,
-        )
+        enriched, preliminary = [], []
+        def evaluate_page(fund):
+            url = FUND_PAGE_URL.format(code=fund["code"])
+            try:
+                page = client.get_text(url, referer=url)
+                currency = re.search(r'var currency = "([^"]+)"', page)
+                if currency and currency[1] in ("美元", "港币", "港元", "USD", "HKD"):
+                    return {**fund, "fund_page_url": url, "_early_exclusion": ("foreign_currency_share", "非人民币份额")}
+                if "认购期：" in page and re.search(r"成\s*立\s*日</span>[：:]\s*--", page):
+                    return {**fund, "fund_page_url": url, "_early_exclusion": ("not_incepted", "募集期尚未成立")}
+                return {**fund, **parse_fund_page(page, fund["code"])}
+            except (DataError, OSError, ValueError) as exc:
+                audit.event(fund["code"], "fund_page", "blocked", "fund_page_unresolved", str(exc), sources=[url])
+                raise
+        audit.stage = "fund_page"
+        enriched = evaluate_batch(candidates, evaluate_page, 12)
+        for fund in enriched:
+            code = fund["code"]
+            audit.event(code, "preliminary", "evaluated", "fund_page", "已读取基金资料",
+                        values={k: fund.get(k) for k in ("purchase_status", "inception_date", "institution_holding_ratio_pct", "scale_billion_cny")},
+                        thresholds={"min_age_years": args.min_age_years}, sources=[fund["fund_page_url"]], data_date=selected.report_date)
+            if fund.get("_early_exclusion"):
+                reason, label = fund["_early_exclusion"]
+                audit.event(code, "preliminary", "excluded", reason, label, sources=[fund["fund_page_url"]])
+                continue
+            if fund["purchase_status"] == "unknown":
+                audit.event(code, "preliminary", "blocked", "purchase_unknown", "申购状态无法确定")
+                raise DataError(f"{code}: purchase status is unknown")
+            if fund["purchase_status"] == "suspended":
+                audit.event(code, "preliminary", "excluded", "purchase_suspended", "暂停申购")
+            elif not is_older_than_years(fund["inception_date"], as_of, args.min_age_years):
+                audit.event(code, "preliminary", "excluded", "inception_too_recent", "成立未严格超过年限门槛")
+            elif args.min_scale is not None and fund["scale_billion_cny"] <= args.min_scale:
+                audit.event(code, "preliminary", "excluded", "scale_below_threshold", "未达到自定义规模门槛")
+            else:
+                preliminary.append(fund)
     return DiscoveryResult(
         metadata,
         selected,
@@ -107,17 +140,6 @@ def discover_candidates(
         preliminary,
         tuple(warnings),
     )
-
-
-def _load_previous_payload(output_dir: Path) -> dict[str, Any] | None:
-    path = output_dir / "latest.json"
-    if not path.exists():
-        return None
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError, json.JSONDecodeError):
-        return None
-    return payload if isinstance(payload, dict) else None
 
 
 def initialize_resources(
@@ -177,6 +199,7 @@ def scan_performance(
             min_five_year_return_pct=args.min_five_year_return_pct,
             min_ten_year_return_pct=args.min_ten_year_return_pct,
             run_cache=resources.memo.performance,
+            audit=args._audit,
         )
     return PerformanceStage(tuple(qualified), scanned, tuple(warnings), rejections)
 
@@ -245,7 +268,17 @@ def scan_documents(
     resources: PipelineResources,
     funds: tuple[dict[str, Any], ...],
 ) -> DocumentStage:
-    evaluator = lambda fund: _evaluate_documents(args, client, as_of, resources, fund)
+    def evaluator(fund):
+        try:
+            result = _evaluate_documents(args, client, as_of, resources, fund)
+            args._audit.event(fund["code"], "documents", "evaluated", "documents_resolved", "合同、持仓与额度评估完成",
+                              values={"exposure": result["exposure"], "quota": result["quota"], "quota_error": result["quota_error"]},
+                              thresholds={"min_us_equity_pct": args.min_us_equity_pct, "min_direct_limit_cny": args.min_direct_limit_cny},
+                              sources=[result["exposure"].get("source_url", "")])
+            return result
+        except (DataError, OSError, ValueError) as exc:
+            args._audit.event(fund["code"], "documents", "blocked", "documents_unresolved", str(exc))
+            raise
     with metrics.phase("document_scan"):
         results = evaluate_batch(funds, evaluator, DOCUMENT_WORKERS)
     classified: list[dict[str, Any]] = []
@@ -288,6 +321,10 @@ def route_and_rank(
     )
     for reason, label, code in (*us_quota.exclusions, *global_quota.exclusions):
         exclusions.add(reason, label, code)
+    for fund in (*us_quota.qualified, *global_quota.qualified):
+        if fund.get("institution_holding_ratio_pct") is None:
+            args._audit.event(fund["code"], "ranking", "blocked", "holder_missing", "资格通过但机构持仓缺失", data_date=holder_report_date)
+            raise DataError(f"{fund['code']}: qualified candidate is missing institution holding data for {holder_report_date}")
     ranked = rank_candidates(
         us_quota.qualified,
         global_quota.qualified,

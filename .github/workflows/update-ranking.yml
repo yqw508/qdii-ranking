@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: "7 23 * * *"
   workflow_dispatch:
+    inputs:
+      verify_only:
+        description: 'Run a clean-history refresh, tests and diagnostics without publishing or email'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -49,6 +54,7 @@ jobs:
           node-version: "20"
 
       - name: Validate required secrets
+        if: ${{ inputs.verify_only != true }}
         id: configuration
         shell: bash
         env:
@@ -76,6 +82,12 @@ jobs:
           restore-keys: |
             qdii-ranking-${{ runner.os }}-${{ hashFiles('scripts/update_qdii_ranking.py', 'scripts/qdii_ranking/**', 'scripts/qdii_validation/**', 'scripts/premium_refresh.js', 'scripts/update_index_valuation.py', 'scripts/index_valuation/**', 'scripts/valuation_page.js', 'references/index-valuation-catalog.json', 'references/us-equity-instruments.json', 'references/us-equity-etfs.json', 'references/contract-benchmarks.json') }}-
             qdii-ranking-${{ runner.os }}-
+
+      - name: Verify clean-history startup
+        if: ${{ inputs.verify_only == true }}
+        run: |
+          test ! -f "$OUTPUT_DIR/latest.json"
+          test -f references/ranking-baseline.json
 
       - name: Install Python dependencies
         id: dependencies
@@ -139,13 +151,18 @@ jobs:
           node --test tests/js/test_premium_refresh.mjs
           node --test tests/js/test_valuation_page.mjs
 
+      - name: Promote validated ranking baseline
+        if: ${{ inputs.verify_only != true }}
+        run: python scripts/promote_ranking_baseline.py
+
       - name: Commit generated page
+        if: ${{ inputs.verify_only != true }}
         id: git_publish
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- public/index.html public/valuation/index.html
+          git add -- public/index.html public/valuation/index.html references/ranking-baseline.json
           if git diff --cached --quiet; then
             echo "Generated page is unchanged; no commit needed"
           else
@@ -154,10 +171,12 @@ jobs:
           fi
 
       - name: Install CloudBase CLI
+        if: ${{ inputs.verify_only != true }}
         id: cloudbase_cli
         run: npm install --global @cloudbase/cli@3.7.3
 
       - name: Log in to CloudBase
+        if: ${{ inputs.verify_only != true }}
         id: cloudbase_login
         shell: bash
         env:
@@ -174,6 +193,7 @@ jobs:
           echo "Verified CloudBase account AppID ${account_app_id}"
 
       - name: Deploy static application
+        if: ${{ inputs.verify_only != true }}
         id: deployment
         shell: bash
         run: |
@@ -219,6 +239,7 @@ jobs:
           exit 1
 
       - name: Verify deployed page
+        if: ${{ inputs.verify_only != true }}
         id: deployed_validation
         shell: bash
         run: |
@@ -240,6 +261,7 @@ jobs:
             --delay-seconds 10
 
       - name: Send success email
+        if: ${{ inputs.verify_only != true }}
         id: success_notification
         env:
           QQ_SMTP_USER: ${{ secrets.QQ_SMTP_USER }}
@@ -261,7 +283,7 @@ jobs:
           --job-started-epoch "$JOB_STARTED_EPOCH"
 
       - name: Send failure email
-        if: ${{ failure() }}
+        if: ${{ failure() && inputs.verify_only != true }}
         continue-on-error: true
         shell: bash
         env:
@@ -324,3 +346,34 @@ jobs:
             args+=(--date "$RUN_DATE")
           fi
           python3 scripts/send_qdii_email.py "${args[@]}"
+
+      - name: Archive ranking diagnostics
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ranking-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          retention-days: 90
+          if-no-files-found: warn
+          path: |
+            output/qdii-ranking/candidate-audit.json
+            output/qdii-ranking/run-metrics.json
+            output/qdii-ranking/latest.*
+            output/qdii-ranking/ranking-changes.md
+            output/index-valuation/latest.json
+            output/index-valuation/run-metrics.json
+
+      - name: Summarize failed candidate assessment
+        if: ${{ failure() }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          path = Path("output/qdii-ranking/candidate-audit.json")
+          if path.exists():
+              audit = json.loads(path.read_text(encoding="utf-8"))
+              with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as out:
+                  print("Ranking assessment failed:", audit.get("error"), file=out)
+                  for item in audit["records"]:
+                      if item["status"] == "blocked":
+                          print(item["code"], item["stage"], item.get("label"), file=out)
+          PY

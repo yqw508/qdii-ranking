@@ -115,6 +115,7 @@ def render_html(path: Path, payload: dict[str, Any]) -> None:
         <ul>{warning_items}</ul>
       </details>"""
 
+    changes_section, freshness_section = render_run_evidence(payload)
     styles = (Path(__file__).with_name("ranking.css")).read_text(
         encoding="utf-8"
     ).rstrip()
@@ -188,6 +189,8 @@ def render_html(path: Path, payload: dict[str, Any]) -> None:
           </article>
         </div>
       </section>
+      {changes_section}
+      {freshness_section}
       {warning_section}
     </main>
     <footer>额度为基金管理人层面的单日单基金账户上限；综合费率已从基金资产中扣除，不含场内券商佣金；场内溢价按约15分钟延迟价格相对 ETF 的 IOPV 或 LOF 的最新单位净值计算。</footer>
@@ -213,3 +216,23 @@ def render_html(path: Path, payload: dict[str, Any]) -> None:
 """
     document = "\n".join(line.rstrip() for line in document.splitlines()) + "\n"
     atomic_write_text(path, document)
+
+
+def render_run_evidence(payload):
+    changes = payload.get("ranking_changes")
+    changes_section = ""
+    freshness_section = ""
+    if changes:
+        labels = {"added": "新增", "removed": "退出", "rerouted": "分榜变化"}
+        items = "".join(f"<li>{html.escape(r['code'])} {html.escape(r['name'])}：{labels[r['change']]}，{html.escape(r['reason'])}</li>" for r in changes["records"])
+        changes_section = f'<details class="warnings" id="ranking-changes"><summary>本次榜单变化</summary><p>对比已验证榜单 {html.escape(changes["baseline_date"])}</p><ul>{items or "<li>名单与分榜无变化</li>"}</ul></details>'
+    if payload.get("freshness_policy_version") == 1:
+        from ..freshness import freshness_text
+        lines = []
+        for label, item in payload["benchmark"]["freshness"].items():
+            lines.append(f'<li>{"Nasdaq XNDX" if label == "index" else "人民币中间价"}：{html.escape(freshness_text(item))}</li>')
+        for record in [*payload["records"], *payload["global_supplement"]["records"], *(payload.get("nasdaq100_otc") or {}).get("records", [])]:
+            if record.get("nav_freshness"):
+                lines.append(f'<li>{html.escape(record["code"])} {html.escape(record["name"])}：{html.escape(freshness_text(record["nav_freshness"]))}</li>')
+        freshness_section = f'<details class="warnings" id="data-freshness"><summary>数据日期与发布工作日</summary><p>生成时间 {html.escape(payload["generated_at"])}；按各来源日历统计已结束发布工作日。假期仍重新核验来源。</p><ul>{"".join(lines)}</ul></details>'
+    return changes_section, freshness_section

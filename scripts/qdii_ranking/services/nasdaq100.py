@@ -13,6 +13,7 @@ from ..config import (
     NASDAQ100_COMMON_MIN_SPAN_DAYS,
 )
 from ..errors import DataError
+from ..freshness import freshness, require_fresh
 from ..models import Nasdaq100Benchmark
 from ..sources.performance import (
     calculate_nasdaq100_fit_for_period,
@@ -55,9 +56,10 @@ def _fresh_points(
     available = [point for point in points if point["date"] <= as_of]
     if not available:
         return None, "排名日及之前没有可用净值。"
-    lag_days = (as_of - available[-1]["date"]).days
-    if lag_days > NASDAQ100_COMMON_MAX_BOUNDARY_DELAY_DAYS:
-        return None, f"最新净值距排名日 {lag_days} 天，超过 7 天上限。"
+    try:
+        record["nav_freshness"] = require_fresh(available[-1]["date"], as_of, code=record["code"])
+    except DataError as exc:
+        return None, str(exc)
     return available, None
 
 
@@ -158,17 +160,18 @@ def apply_common_window(
                 f"场外纳指100公共区间告警 {record['code']}："
                 f"{record['common_period_error']}"
             )
-    end_floor = as_of - timedelta(days=NASDAQ100_COMMON_MAX_BOUNDARY_DELAY_DAYS)
+    floors = {record["code"]: _freshness_floor(as_of, record["code"]) for record, _, _ in comparable}
     end_date_sets = [
-        {point["date"] for point in points if end_floor <= point["date"] <= as_of}
-        for _, _, points in comparable
+        {point["date"] for point in reversed(points)
+         if floors[record["code"]] <= point["date"] <= as_of}
+        for record, _, points in comparable
     ]
     candidate_end_dates = set().union(*end_date_sets) if end_date_sets else set()
     end_date = _best_shared_date(
         end_date_sets, candidate_end_dates, latest=True
     )
     if end_date is None:
-        reason = "可比较基金在排名日前 7 天内没有共同净值日期。"
+        reason = "可比较基金在 7 个发布工作日内没有共同净值日期。"
         for record, _, _ in comparable:
             record["common_period_error"] = reason
         warnings.append(f"场外纳指100公共区间告警：{reason}")
@@ -237,3 +240,15 @@ def apply_common_window(
 
 
 __all__ = ["apply_common_window"]
+
+
+def _freshness_floor(as_of, code):
+    from ..freshness import load_calendars
+    catalog = load_calendars()
+    day = as_of
+    while freshness(day, as_of, code=code, catalog=catalog)["status"] != "stale":
+        previous = day - timedelta(days=1)
+        if str(previous.year) not in catalog["calendars"]["cn_nav"]["years"]:
+            return day
+        day = previous
+    return day + timedelta(days=1)

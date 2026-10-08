@@ -88,7 +88,7 @@ def select_holder_period(
 
 
 
-def fetch_holder_rows(
+def _fetch_holder_rows_once(
     client: HttpClient, period: HolderPeriod, workers: int = 16
 ) -> list[list[str]]:
     def url_for(page: int) -> str:
@@ -118,4 +118,30 @@ def fetch_holder_rows(
             rows_by_page[page] = rows
     if len(rows_by_page) != pages:
         raise DataError(f"Holder data is incomplete: {len(rows_by_page)}/{pages} pages")
-    return [row for page in range(1, pages + 1) for row in rows_by_page[page]]
+    rows = [row for page in range(1, pages + 1) for row in rows_by_page[page]]
+    if len(rows) != period.fund_count:
+        raise DataError(f"Holder row count {len(rows)} differs from reported {period.fund_count}")
+    seen = set()
+    for row in rows:
+        if len(row) < 6 or not re.fullmatch(r"\d{6}", row[0]) or row[0] in seen:
+            raise DataError("Malformed or duplicate holder row")
+        seen.add(row[0])
+        for index in (2, 3, 5):
+            if not row[index]:
+                continue  # Missing holder values are resolved at the eligibility/ranking gate.
+            try:
+                value = float(row[index].replace(",", ""))
+            except (ValueError, TypeError) as exc:
+                raise DataError(f"{row[0]} invalid holder numeric value") from exc
+            if not math.isfinite(value) or value < 0 or (index in (2, 3) and value > 100):
+                raise DataError(f"{row[0]} invalid holder numeric range")
+    return rows
+
+
+def fetch_holder_rows(client, period, workers=16):
+    for attempt in range(2):
+        try:
+            return _fetch_holder_rows_once(client, period, workers)
+        except DataError:
+            if attempt:
+                raise

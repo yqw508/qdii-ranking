@@ -179,6 +179,7 @@ def assemble_payload(
     warnings: list[str],
 ) -> dict[str, Any]:
     return {
+        "freshness_policy_version": 1,
         "schema_version": RANKING_SCHEMA_VERSION,
         "run_date": as_of.isoformat(),
         "generated_at": datetime.now(SHANGHAI_TZ).isoformat(timespec="seconds"),

@@ -59,6 +59,26 @@
   history bypasses its threshold; missing fee data is reported but does not affect eligibility, and
   NAV returns are not reduced by the fee a second time.
 
+## Candidate Continuity And Publication Calendars
+
+- Discover the full eligible type/share universe from fund metadata, then join holder data. Missing
+  holder rows never remove a candidate. Missing institutional holdings block publication only after
+  the fund passes all other eligibility gates; never impute zero or use a previous report period.
+- Load `references/ranking-baseline.json` even in a clean checkout. Missing, corrupt, or future baseline
+  state blocks refresh. Every former ranked fund needs a recorded assessment, including across periods.
+- Persist `candidate-audit.json` on successful and failed runs. Derive exclusion summaries from audit
+  events. Archive diagnostics for 90 days. Promote the baseline only after both artifact validators and
+  the required test suites pass; stage it alongside both public pages.
+- Current required NAVs, OTC Nasdaq common-window end dates, and benchmark source tails use at most
+  seven **completed publication workdays** from `references/publication-calendars.json`. The current
+  source-local day is not counted until it ends. Missing calendar-year coverage blocks evaluation.
+  CN NAV defaults to the domestic securities calendar; Nasdaq and CNY parity use separate calendars.
+  Administrative makeup weekends are not trading days. Only explicit, source-verified NAV-publication
+  notices may amend an individual fund calendar; subscription/redemption suspensions cannot.
+- Display actual observation dates and both calendar/workday lag. Keep three-year inception-boundary
+  tolerance, common-window start tolerance, and historical index/FX matching at seven calendar days.
+  Keep ranking schema 15; additive audit/freshness interfaces have their own version. Valuation is independent.
+
 ## Index Valuation Research Page
 
 - Keep `/valuation/` and its schema independent from QDII ranking rules. The overview contains exactly
@@ -106,7 +126,8 @@ authorization to complete the full update and publication workflow:
    byte-identical HTML files.
    Ranking schema 15 must include the seven-day tolerance filter and each record's
    `three_year_boundary_shortfall_days`; validate every boundary warning, including excluded candidates.
-7. Stage only intended repository changes, including both generated public pages, commit them, and push
+7. After all checks pass, run `scripts/promote_ranking_baseline.py`. Stage only intended repository
+   changes, including the baseline and both generated public pages, commit them, and push
    `main` to `origin`.
 8. Deploy the verified static page with:
 

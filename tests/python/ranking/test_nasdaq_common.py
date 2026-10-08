@@ -143,7 +143,7 @@ class NasdaqCommonWindowTests(unittest.TestCase):
         healthy_end = self.end - timedelta(days=1)
         healthy = make_points(self.history_start, healthy_end)
         outlier = [
-            *make_points(self.history_start, self.end - timedelta(days=8)),
+            *make_points(self.history_start, self.end - timedelta(days=15)),
             {
                 "date": self.end,
                 "nav": 2.0,
@@ -162,7 +162,7 @@ class NasdaqCommonWindowTests(unittest.TestCase):
         self.assertTrue(any("000001" in warning for warning in warnings))
 
     def test_stale_record_does_not_freeze_healthy_records(self):
-        stale_end = self.as_of - timedelta(days=8)
+        stale_end = self.as_of - timedelta(days=15)
         records = [
             make_record("000001", "2024-03-22"),
             make_record("000002", "2023-01-01"),

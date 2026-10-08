@@ -15,6 +15,7 @@ from ..config import (
     BENCHMARK_WINDOW_YEARS,
 )
 from ..errors import DataError
+from ..freshness import require_fresh
 from ..runtime import years_ago
 from ..sources.benchmark import fetch_nasdaq100_history, fetch_safe_usd_cny_history
 from .base import parse_cache_date, write_json_atomic
@@ -102,8 +103,7 @@ class Nasdaq100BenchmarkCache:
         ):
             raise DataError(f"{label} history does not cover the required three-year window")
         latest = max(observed for observed in series if observed <= as_of)
-        if (as_of - latest).days > BENCHMARK_MAX_STALENESS_DAYS:
-            raise DataError(f"{label} history is stale as of {as_of}: latest {latest}")
+        require_fresh(latest, as_of, "nasdaq" if label == "Nasdaq XNDX" else "safe_fx")
 
     def get(self, client: HttpClient, as_of: date) -> tuple[Nasdaq100Benchmark, list[str]]:
         required_start = _years_ago(as_of, BENCHMARK_WINDOW_YEARS) - timedelta(
@@ -154,7 +154,11 @@ class Nasdaq100BenchmarkCache:
         self._validate_coverage(xndx, "Nasdaq XNDX", required_start, as_of)
         self._validate_coverage(fx, "SAFE USD/CNY", required_start, as_of)
         self._save(xndx, fx)
-        return _nasdaq100_benchmark(xndx, fx), warnings
+        result = _nasdaq100_benchmark(xndx, fx, freshness={
+            "index": require_fresh(max(xndx), as_of, "nasdaq"),
+            "fx": require_fresh(max(fx), as_of, "safe_fx"),
+        })
+        return result, warnings
 
     def stats(self) -> dict[str, int]:
         return {

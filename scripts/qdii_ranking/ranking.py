@@ -37,31 +37,20 @@ def contract_mentions_nasdaq100(profile: dict[str, Any]) -> bool:
 def build_holder_candidates(
     rows: list[list[str]], metadata: dict[str, dict[str, str]], keywords: list[str]
 ) -> list[dict[str, Any]]:
-    candidates: list[dict[str, Any]] = []
-    for row in rows:
-        if len(row) < 6 or row[0] not in metadata or not row[2]:
-            continue
-        meta = metadata[row[0]]
-        if not is_otc_share(meta):
-            continue
-        if meta["fund_type"] in EXCLUDED_FUND_TYPES:
-            continue
-        if any(keyword and keyword in meta["name"] for keyword in keywords):
-            continue
-        try:
-            ratio = float(row[2])
-        except ValueError:
-            continue
-        candidates.append(
-            {
-                **meta,
-                "institution_holding_ratio_pct": ratio,
-                "personal_holding_ratio_pct": float(row[3]) if row[3] else None,
-                "holder_total_shares_100m": float(row[5].replace(",", "")) if row[5] else None,
-            }
-        )
-    candidates.sort(key=lambda item: (-item["institution_holding_ratio_pct"], item["code"]))
-    return candidates
+    # The complete metadata universe drives discovery, never the holder endpoint.
+    from .sources.candidates import nasdaq100_holder_details
+    holders = nasdaq100_holder_details(metadata, rows)
+    return [
+        {**meta, **holders.get(code, {
+            "institution_holding_ratio_pct": None,
+            "personal_holding_ratio_pct": None,
+            "holder_total_shares_100m": None,
+        })}
+        for code, meta in sorted(metadata.items())
+        if is_otc_share(meta) and meta["fund_type"] not in EXCLUDED_FUND_TYPES
+        and not any(k and k in meta["name"] for k in keywords)
+    ]
+
 
 
 def disappeared_ranked_candidates(
@@ -127,7 +116,7 @@ def filter_and_rank(
             keyword and keyword in item["name"] for keyword in exclude_keywords
         )
     ]
-    eligible.sort(key=lambda item: (-item["institution_holding_ratio_pct"], item["code"]))
+    eligible.sort(key=lambda item: (-(item.get("institution_holding_ratio_pct") or 0), item["code"]))
     return eligible[:top]
 
 
@@ -301,6 +290,7 @@ def evaluate_performance_full_scan(
     min_ten_year_return_pct: float = DEFAULT_MIN_TEN_YEAR_RETURN_PCT,
     performance_workers: int = PERFORMANCE_WORKERS,
     run_cache: dict[str, tuple[dict[str, Any], list[str]]] | None = None,
+    audit: Any = None,
 ) -> tuple[
     list[dict[str, Any]],
     list[str],
@@ -312,7 +302,19 @@ def evaluate_performance_full_scan(
     def evaluate(fund: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
         if run_cache is not None and fund["code"] in run_cache:
             return run_cache[fund["code"]]
-        result = performance_cache.get(client, fund, as_of, benchmark)
+        try:
+            result = performance_cache.get(client, fund, as_of, benchmark)
+            if audit is not None:
+                from .freshness import require_fresh
+                values, notes = result
+                values["nav_freshness"] = require_fresh(parse_date(values["nav_history_end_date"]), as_of, code=fund["code"])
+                audit.event(fund["code"], "performance", "evaluated", "performance_calculated", "净值与收益评估完成",
+                            values=values, thresholds={"three_year": min_three_year_return_pct, "five_year": min_five_year_return_pct, "ten_year": min_ten_year_return_pct},
+                            sources=[values["performance_source_url"]], data_date=values["nav_history_end_date"])
+        except (DataError, OSError, ValueError) as exc:
+            if audit is not None:
+                audit.event(fund["code"], "performance", "blocked", "performance_unresolved", str(exc))
+            raise
         if run_cache is not None:
             run_cache[fund["code"]] = result
         return result

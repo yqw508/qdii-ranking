@@ -57,6 +57,7 @@ def build_output_record(
     fund: dict[str, Any], rank: int, ranking_list: str, holder_report_date: str
 ) -> dict[str, Any]:
     record = {
+        **({"nav_freshness": fund["nav_freshness"]} if fund.get("nav_freshness") else {}),
         "rank": rank,
         "ranking_list": ranking_list,
         "routing_reason": fund["routing_reason"],
@@ -136,6 +137,7 @@ def build_nasdaq100_otc_output_record(
     if not contract_mentions_nasdaq100(fund["contract_benchmark"]):
         contract_match_warning = "名称命中但合同基准未明确识别为纳斯达克100，本榜按名称口径保留。"
     return {
+        **({"nav_freshness": fund["nav_freshness"]} if fund.get("nav_freshness") else {}),
         "rank": rank,
         "ranking_list": "nasdaq100_otc",
         "routing_reason": "name_match",

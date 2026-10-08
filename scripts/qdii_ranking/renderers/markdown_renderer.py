@@ -197,4 +197,15 @@ def render_markdown(path: Path, payload: dict[str, Any]) -> None:
             "",
         ]
     )
+    if payload.get("ranking_changes"):
+        changes = payload["ranking_changes"]
+        lines += ["", "## 本次榜单变化", "", f"对比已验证榜单 {changes['baseline_date']}"]
+        lines += [f"- {r['code']} {r['name']}：{r['change']}，{r['reason']}" for r in changes['records']]
+    if payload.get("freshness_policy_version") == 1:
+        from ..freshness import freshness_text
+        lines += ["", "## 数据新鲜度", "", f"生成时间：{payload['generated_at']}；时效上限为 7 个已结束发布工作日。"]
+        for label, evidence in payload["benchmark"]["freshness"].items():
+            lines.append(f"- {label}：{freshness_text(evidence)}")
+        for record in [*payload['records'], *payload['global_supplement']['records']]:
+            lines.append(f"- {record['code']}：{freshness_text(record['nav_freshness'])}")
     atomic_write_text(path, "\n".join(lines))

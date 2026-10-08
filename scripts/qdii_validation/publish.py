@@ -103,6 +103,14 @@ def validate_local_artifacts(
     )
     require(us_records or global_records, "Both ranking lists are empty")
     records = [*us_records, *global_records]
+    if payload.get("candidate_audit_version") == 1:
+        from qdii_ranking.audit import validate_audit
+        validate_audit(payload, output_dir / "candidate-audit.json")
+    if payload.get("freshness_policy_version") == 1:
+        from qdii_ranking.freshness import validate_freshness
+        require("freshness" in payload["benchmark"], "Missing benchmark freshness evidence")
+        for record in records:
+            validate_freshness(record["nav_freshness"], parse_date(record["nav_history_end_date"]), parse_date(expected_date), "cn_nav", code=record["code"])
     codes = [record["code"] for record in records]
     require(len(codes) == len(set(codes)), "Fund codes are duplicated across ranking lists")
     reportable, blocking = classify_warnings(payload.get("warnings"), parse_date(expected_date))

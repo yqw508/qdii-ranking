@@ -334,13 +334,14 @@ def render_premium_row(
               <div><dt data-field="reference-label">{html.escape(reference_label)}</dt><dd data-field="reference-value">{float(reference_value):.4f}</dd></div>
               <div><dt>成交额</dt><dd data-field="turnover">{format_turnover(item['turnover_cny'])}</dd></div>
               <div><dt>行情时间</dt><dd><time data-field="updated">{format_quote_time(item['updated_at'])}</time></dd></div>
+              <div><dt>行情来源</dt><dd data-field="quote-source">{'腾讯行情 · 延迟未保证' if item.get('quote_source') == 'tencent' else '东方财富 · 约15分钟延迟'}</dd></div>
               <div><dt>交易所</dt><dd>{item['exchange']}</dd></div>
               <div><dt>分类</dt><dd>{'QDII' if item['category'] == 'qdii' else ('行业主题' if item['category'] == 'sector_theme' else '宽基')}</dd></div>
               <div><dt>综合费率（年化）</dt><dd>{holding_cost_link}{holding_cost_stale}</dd></div>
               <div><dt>费率资料日期</dt><dd>{html.escape(holding_cost_date)}</dd></div>
             </dl>
             <div class="premium-source-row">
-              <a class="premium-source-link" href="{html.escape(source_url, quote=True)}" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
+              <a class="premium-source-link" data-field="quote-source-link" href="{html.escape(source_url, quote=True)}" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>
               {reference_source}
               {holding_cost_source}
             </div>

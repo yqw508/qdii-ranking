@@ -41,6 +41,7 @@ from ..sources.fund import enrich_fund_pages, fetch_fund_metadata
 from ..sources.holder import fetch_holder_periods, fetch_holder_rows, select_holder_period
 from ..sources.premium import (
     _load_cached_qdii_exchange_premium_catalog,
+    _load_exchange_premium_cache,
     attach_exchange_premium_holding_costs,
     build_exchange_premium_holding_costs,
     build_exchange_premium_snapshot,
@@ -423,8 +424,14 @@ def scan_exchange_premium(
                 entries, fingerprint = cached
                 quote_rows = {}
                 warnings.append(
-                    f"场内溢价告警：QDII 场内目录刷新失败，使用上次目录和行情缓存：{exc}"
+                    f"场内溢价告警：QDII 场内目录刷新失败，沿用已验证目录并独立刷新行情：{exc}"
                 )
+        from ..sources.premium_live import fetch_live_quotes
+        try:
+            previous = _load_exchange_premium_cache(resources.cache_root / "exchange-premium.json", entries, as_of)
+            live_result = fetch_live_quotes(entries, list(previous.values()))
+        except DataError as exc:
+            live_result = {"quotes": {}, "errors": [{"codes": [e["code"] for e in entries], "reason": str(exc)}]}
         snapshot, snapshot_warnings = build_exchange_premium_snapshot(
             client,
             catalog_path,
@@ -433,6 +440,7 @@ def scan_exchange_premium(
             catalog_entries=entries,
             quote_rows=quote_rows,
             catalog_fingerprint=fingerprint,
+            live_result=live_result,
         )
         costs, cost_warnings = build_exchange_premium_holding_costs(
             client,

@@ -158,10 +158,29 @@ with the versioned pre-optimization baseline; performance misses warn but never 
 The exchange-premium tab discovers the full delayed Eastmoney listed-fund set, then intersects it with
 the fund metadata universe whose type starts with `QDII` or equals `指数型-海外股票`. This keeps all
 listed QDII ETF and LOF shares, including non-US products, without a geography or benchmark allowlist.
-The market list is fetched in stable 100-row pages. Each delayed quote supplies market price,
-discount rate, change, turnover, and timestamps for the matching QDII entries. ETF records use the
-quote IOPV as their reference value; records without IOPV use the latest published unit NAV from the
-fund NAV endpoint, which covers listed LOFs.
+The market list is fetched in stable 100-row pages. Quotes are fetched independently from the validated directory. Tencent is the primary quote source;
+Eastmoney is tried only for failed products within the same 25-second deadline. Python daily generation
+invokes the same Node adapter as CloudBase (Node.js is required). The adapter version and source are
+preserved per record; old Eastmoney caches retain their source and timestamp. Tencent's own fund-page
+mapping confirms field 78 is IOPV, 77 is premium, 81 is unit NAV without a date, 57 is turnover in
+CNY 10,000, and 30 is source update time; evidence is recorded in `references/tencent-quote-contract.json`.
+ETF records require IOPV; LOFs require a separately revalidated latest published NAV and date every round.
+The undated Tencent NAV field never substitutes for the independent NAV fetch. A fallback replaces a
+whole record, never just its price or reference. Requests use Tencent's query URL and a per-round cache
+buster, plus no-cache headers. Tencent retries failed products once, including content failures or
+older replica timestamps; successful products are not fetched again. This is the single retry, not an
+additional retry layered over transport retries. Per-code NAV requests are shared within the round.
+Older-than-retained timestamps after that retry also trigger the fallback; they never
+overwrite a newer record. Future, duplicate, malformed or inconsistent quotes
+are rejected. Tencent source time is not last trade time and its latency is not guaranteed; only
+Eastmoney records carry the approximately 15-minute delay description.
+
+The complete discovered catalog remains intact even when Tencent explicitly identifies a zero-price,
+zero-turnover product as unlisted, delisted or suspended. These current-day source statuses appear in
+`unavailable_products` with source URL and timestamp, and do not become valid price records. Unknown
+zero prices and missing records are errors. No product-code whitelist is used. The live publication gate
+requires every catalog entry to have a fresh validated quote or a current, evidenced exception, including
+live Tencent SH ETF, SZ ETF and LOF samples; a single successful quote cannot open the gate.
 Displayed premium is the negated source discount rate and must agree with `price / reference - 1`
 within the price-tick tolerance. The daily run caches valid records individually; quote or reference
 failure falls back per product with a visible timestamp and reportable warning but never weakens or

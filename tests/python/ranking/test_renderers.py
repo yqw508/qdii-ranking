@@ -195,7 +195,8 @@ class HtmlOutputTests(unittest.TestCase):
         self.assertIn("不含场内券商佣金", document)
         self.assertIn("按溢价从高到低排列", document)
         self.assertEqual(1, document.count('id="premium-refresh"'))
-        self.assertIn("行情约延迟 15 分钟", document)
+        self.assertIn("腾讯行情延迟未保证", document)
+        self.assertIn("东方财富约15分钟延迟", document)
         self.assertIn("QdiiPremiumRefresh", document)
 
     def test_regression_channel_limits_are_correct_in_each_fund(self):

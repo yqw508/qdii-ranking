@@ -111,7 +111,13 @@ publishing a frontend change. Confirm its cache collection remains ADMINONLY and
 `scripts/validate_premium_service.py --require-live`. A failed live check keeps the existing static site.
 Stage the public snapshot with the pages only after this gate passes. Use the WEB_SCF route and the
 verified HTTPSERVICE endpoint in `references/premium-service.json`; do not use the old CLI service URL.
-Verify-only Actions runs do not deploy the function or pages. Quote cache freshness is independent of
+Verify-only Actions runs do not deploy the function or pages. Daily snapshots and manual refresh share the Node Tencent-first adapter; Node.js is required for both
+local and CI generation. Preserve per-record source/version and true source timestamps. ETF IOPV must
+use the verified Tencent field mapping, while LOF NAV/date is independently fetched in the same round.
+Eastmoney is a whole-record fallback within the shared 25-second budget. Never call Tencent quotes
+15-minute delayed or real-time without evidence. The live gate requires full catalog accounting, with
+only explicit current source statuses allowing unlisted/suspended exceptions, never a code whitelist.
+Quote cache freshness is independent of
 the ranking publication-workday policy; never relabel cached quote timestamps as current.
 
 When the user says `更新榜单` or otherwise requests a ranking refresh from this repository, treat it as

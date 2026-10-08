@@ -455,7 +455,7 @@ def normalize_exchange_premium_quote(
         reference_value = _finite_quote_number(raw_iopv, "IOPV", code)
         reference_type = "iopv"
         reference_date: str | None = None
-        reference_source_url = ETF_QUOTE_PAGE_URL
+        reference_source_url = raw.get("quote_source_url") or ETF_QUOTE_PAGE_URL
     elif reference and reference.get("reference_value_type") == "nav":
         reference_value = _finite_quote_number(
             reference.get("reference_value_cny"), "NAV", code
@@ -504,7 +504,10 @@ def normalize_exchange_premium_quote(
         "turnover_cny": round(turnover_cny, 3),
         "quote_date": quote_date.isoformat(),
         "updated_at": updated_at.isoformat(timespec="seconds"),
-        "quote_source_url": (
+        "quote_source": raw.get("quote_source", "eastmoney"),
+        "adapter_version": raw.get("adapter_version", "eastmoney-1"),
+        "quote_delay_minutes": raw.get("quote_delay_minutes", 15),
+        "quote_source_url": raw.get("quote_source_url") or (
             f"https://quote.eastmoney.com/{'sh' if catalog_entry['market_id'] == 1 else 'sz'}{code}.html"
         ),
     }
@@ -581,6 +584,9 @@ def _load_exchange_premium_cache(
             normalized.setdefault("reference_value_cny", normalized.get("iopv_cny"))
             normalized.setdefault("reference_value_date", None)
             normalized.setdefault("reference_value_source_url", ETF_QUOTE_PAGE_URL)
+            normalized.setdefault("quote_source", "eastmoney")
+            normalized.setdefault("adapter_version", "eastmoney-1")
+            normalized.setdefault("quote_delay_minutes", 15)
             cached[code] = normalized
     return cached
 
@@ -641,6 +647,7 @@ def build_exchange_premium_snapshot(
     catalog_entries: list[dict[str, Any]] | None = None,
     quote_rows: dict[str, dict[str, Any]] | None = None,
     catalog_fingerprint: str | None = None,
+    live_result: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any], list[str]]:
     if catalog_entries is None:
         entries, loaded_fingerprint = load_exchange_premium_catalog(catalog_path)
@@ -659,6 +666,13 @@ def build_exchange_premium_snapshot(
     fresh: dict[str, dict[str, Any]] = {}
     quote_url = exchange_premium_quote_url(entries)
     try:
+        if live_result is not None:
+            from .premium_live import quote_rows_from_live
+            quote_rows = quote_rows_from_live(live_result)
+            for error in live_result["errors"]:
+                warnings.append(f"场内溢价告警：行情源 {error.get('source', 'combined')} {','.join(error['codes'])}：{error['reason']}")
+            for item in live_result.get("unavailable", []):
+                warnings.append(f"场内溢价告警：行情例外 {item['code']}：{item['reason']}（腾讯状态 {item['source_status']}，{item['observed_at']}）")
         if quote_rows is None:
             payload = client.get_json(quote_url, referer=ETF_QUOTE_PAGE_URL)
             rows = (
@@ -671,7 +685,9 @@ def build_exchange_premium_snapshot(
         if not isinstance(rows, list):
             raise DataError("ETF quote response does not contain a record list")
         quote_references: dict[str, dict[str, Any]] = {}
-        if dynamic_catalog:
+        if live_result is not None:
+            quote_references = {row['f12']: row['_reference'] for row in rows}
+        elif dynamic_catalog:
             quote_references, reference_warnings = fetch_exchange_premium_lof_navs(
                 client, entries, rows, as_of
             )
@@ -697,12 +713,20 @@ def build_exchange_premium_snapshot(
             ):
                 continue
             try:
-                fresh[code] = normalize_exchange_premium_quote(
+                candidate = normalize_exchange_premium_quote(
                     raw, entry, as_of, quote_references.get(code)
                 )
+                previous = cached.get(code)
+                if previous and (datetime.fromisoformat(candidate['updated_at']) < datetime.fromisoformat(previous['updated_at'])
+                                 or candidate['quote_date'] < previous['quote_date']
+                                 or (candidate['reference_value_type'] == previous['reference_value_type'] == 'nav'
+                                     and candidate['reference_value_date'] < previous['reference_value_date'])):
+                    raise ValueError(f"{code} older quote or NAV rejected")
+                fresh[code] = candidate
             except ValueError as exc:
                 invalid.append(str(exc))
-        missing = [entry["code"] for entry in entries if entry["code"] not in seen_response]
+        explained = {e['code'] for e in (live_result or {}).get('unavailable', [])}
+        missing = [entry["code"] for entry in entries if entry["code"] not in seen_response and entry['code'] not in explained]
         if missing:
             invalid.append("missing " + ", ".join(missing))
         if invalid:
@@ -777,7 +801,9 @@ def build_exchange_premium_snapshot(
             "schema_version": 1,
             "status": status,
             "requested_at": requested_at,
-            "quote_delay_minutes": ETF_PREMIUM_DELAY_MINUTES,
+            "quote_delay_minutes": None if live_result is not None else ETF_PREMIUM_DELAY_MINUTES,
+            "adapter_version": "multi-source-1" if live_result is not None else "eastmoney-1",
+            "unavailable_products": (live_result or {}).get("unavailable", []),
             "discovered_count": discovered_count,
             "filtered_unavailable_count": filtered_unavailable_count,
             "expected_count": len(records),
@@ -785,7 +811,7 @@ def build_exchange_premium_snapshot(
             "cache_hit_count": stale_count,
             "catalog_fingerprint": catalog_fingerprint,
             "group_order": group_order,
-            "source_name": "东方财富场内基金行情",
+            "source_name": "腾讯行情（东方财富备用）" if live_result is not None else "东方财富场内基金行情",
             "source_url": ETF_QUOTE_PAGE_URL,
             "refresh_url": quote_url,
             "records": records,

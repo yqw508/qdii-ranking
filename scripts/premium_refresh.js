@@ -103,6 +103,9 @@
     setText(item, "change", formatSigned(quote.changePct));
     setText(item, "turnover", formatTurnover(quote.turnoverCny));
     setText(item, "updated", quote.updatedText);
+    setText(item, "quote-source", quote.quoteSource === "tencent" ? "腾讯行情 · 延迟未保证" : "东方财富 · 约15分钟延迟");
+    const sourceLink = item.querySelector('[data-field="quote-source-link"]');
+    if (sourceLink) sourceLink.href = quote.quoteSourceUrl;
     const premium = item.querySelector('[data-field="premium"]');
     if (premium) premium.className = `premium-value band-${premiumBand(quote.premiumPct).key}`;
     const band = item.querySelector('[data-field="band"]');
@@ -162,10 +165,13 @@
         const quote = normalizeQuote({ f12: record.code, f14: record.name, f2: record.marketPriceCny,
           f402: -record.premiumPct, f3: record.changePct, f6: record.turnoverCny,
           f441: record.referenceType === "iopv" ? record.referenceValueCny : "-",
-          f297: String(record.quoteDate).replaceAll("-", ""), f124: Date.parse(record.updatedAt) / 1000 },
+          f297: String(record.quoteDate).replaceAll("-", ""), f124: Date.parse(record.updatedAt) / 1000,
+          quoteSource: record.quoteSource, adapterVersion: record.adapterVersion,
+          quoteSourceUrl: record.quoteSourceUrl, quoteDelayMinutes: record.quoteDelayMinutes },
         { ...entry, referenceType: record.referenceType, referenceValueCny: record.referenceValueCny,
           referenceDate: record.referenceDate }, asOf);
         if (entry.updatedAt && Date.parse(quote.updatedAt) < Date.parse(entry.updatedAt)) continue;
+        if (Date.parse(quote.updatedAt) > Date.now()) continue;
         if (entry.quoteDate && quote.quoteDate < entry.quoteDate) continue;
         if (entry.referenceType === "nav" && quote.referenceType === "nav" && quote.referenceDate < entry.referenceDate) continue;
         valid.set(quote.code, quote);
@@ -205,7 +211,7 @@
       running = true;
       button.disabled = true;
       button.setAttribute("aria-busy", "true");
-      status.textContent = "正在刷新约15分钟延迟行情…";
+      status.textContent = "正在核验行情…";
       let requestId;
       try {
         const payload = await requestService(config, global.fetch.bind(global));
@@ -222,7 +228,10 @@
         });
         sortPremiumRows(panel);
         const suffix = `，${config.entries.length - updated}只保留旧值`;
-        const evidence = `；请求编号 ${payload.request_id || "--"}；行情约延迟15分钟，实际时间见各行`;
+        const exceptions = (payload.unavailable_products || []).map(e => `${e.code} ${
+          ({ NOT_LISTED: "未上市", DELISTED: "已退市", SUSPENDED: "停牌", LISTING_SUSPENDED: "暂停上市" })[e.reason] || "暂无报价"}`);
+        const evidence = `；请求编号 ${payload.request_id || "--"}；来源及行情时间见各行，腾讯行情延迟未保证` +
+          (exceptions.length ? `；目录内另有${exceptions.length}只无有效报价：${exceptions.join("、")}` : "");
         const reasons = (payload.errors || []).map(e => e.reason).join(" ");
         const failure = /TIMEOUT/.test(reasons) ? "行情源请求超时" :
           /UPSTREAM_FAILURE|UPSTREAM_HTTP/.test(reasons) ? "行情源暂时不可用" :

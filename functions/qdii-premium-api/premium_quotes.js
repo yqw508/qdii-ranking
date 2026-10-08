@@ -80,6 +80,13 @@
     if (Math.abs(premiumPct - calculatedPremium) > tolerance) {
       throw new Error(`${code} premium differs from price/${referenceType.toUpperCase()} calculation`);
     }
+    const source = raw.quoteSource || "eastmoney";
+    const adapterVersion = raw.adapterVersion || "eastmoney-1";
+    const sourceUrl = raw.quoteSourceUrl || "https://quote.eastmoney.com/";
+    if (!["tencent", "eastmoney"].includes(source) || adapterVersion !== `${source}-1` ||
+        new URL(sourceUrl).protocol !== "https:" ||
+        new URL(sourceUrl).hostname !== (source === "tencent" ? "gu.qq.com" : "quote.eastmoney.com"))
+      throw new Error(`${code} invalid quote source metadata`);
     return {
       code,
       name: String(raw.f14 || entry.name || "").trim(),
@@ -94,6 +101,10 @@
       quoteDate,
       updatedAt: updatedDate.toISOString(),
       updatedText: shanghaiDateTime(updatedDate),
+      quoteSource: source,
+      adapterVersion,
+      quoteSourceUrl: sourceUrl,
+      quoteDelayMinutes: raw.quoteSource === "tencent" ? null : 15,
     };
   }
 

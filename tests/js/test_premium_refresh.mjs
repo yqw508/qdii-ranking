@@ -14,6 +14,7 @@ function loadApi(extra = {}) {
     Date,
     Error,
     Intl,
+    URL,
     Map,
     Math,
     Number,
@@ -297,4 +298,22 @@ test("connection failures and catalog mismatches have actionable messages", asyn
   const config = { serviceUrl: "https://example.test", catalogFingerprint: "test" };
   await assert.rejects(api.requestService(config, async () => { throw new Error("Failed to fetch"); }), /无法连接行情服务/);
   await assert.rejects(api.requestService(config, async () => ({ ok: false, json: async () => ({ error: "CATALOG_MISMATCH", request_id: "abc" }) })), /重新加载页面/);
+});
+
+
+test("service preserves source provenance and rejects unsafe source URLs", () => {
+  const { api } = loadApi();
+  const quote = api.normalizeQuote({ ...rawQuote, quoteSource: "tencent", adapterVersion: "tencent-1",
+    quoteSourceUrl: "https://gu.qq.com/sh513500" }, entry, "2026-10-08");
+  const config = { catalogFingerprint: "catalog", entries: [entry] };
+  const payload = { schema_version: 1, catalog_fingerprint: "catalog", status: "fresh",
+    records: [{ ...quote, status: "fresh" }] };
+  const valid = api.serviceResponse(payload, config, "2026-10-08");
+  assert.equal(valid.get(entry.code).quoteSource, "tencent");
+  assert.equal(valid.get(entry.code).quoteDelayMinutes, null);
+  payload.records[0].quoteSourceUrl = "https://untrusted.test/";
+  assert.equal(api.serviceResponse(payload, config, "2026-10-08").size, 0);
+  payload.records[0] = { ...quote, status: "cached_stale" };
+  payload.status = "cached_stale";
+  assert.equal(api.serviceResponse(payload, config, "2026-10-08").size, 0);
 });

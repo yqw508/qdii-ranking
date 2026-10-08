@@ -24,6 +24,8 @@ def snapshot_from_payload(payload):
         raise DataError('Premium service catalog is incomplete or duplicated')
     return {'schema_version': 1, 'generated_at': payload['generated_at'], 'run_date': payload['run_date'],
             'catalog_fingerprint': catalog_fingerprint(catalog), 'catalog': catalog,
+            'unavailable_products': premium.get('unavailable_products', []),
+            'adapter_version': premium.get('adapter_version', 'eastmoney-1'),
             'records': [r for r in premium['records'] if r.get('market_price_cny') is not None]}
 
 

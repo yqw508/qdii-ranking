@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "verified_at": "2026-10-08",
+  "page_url": "https://gu.qq.com/sh513500",
+  "bundle_url": "https://st.gtimg.com/quotes/hs-fund/bundle.13362df9.js",
+  "bundle_sha256": "58ba2828754c5b5fe2db1a1c7d1c8fb35a4fa2e21c46e4b03b768a235b88db8c",
+  "mapping": {
+    "price": 3,
+    "change_pct": 32,
+    "turnover_wan_cny": 57,
+    "source_time": 30,
+    "status": 40,
+    "instrument_type": 61,
+    "premium_pct": 77,
+    "iopv": 78,
+    "unit_nav_without_date": 81,
+    "currency": 82
+  },
+  "source_excerpt": "secu_quote:{amplitude:t[43],avg_price:t[51],cje:t[57],cjl:t[36],code:t[2],dqj:t[3],dynamic_ratio:t[52],gxl:t[64],hsl:t[38],iopv:t[78],jkj:t[5],jz:t[81],lsacle:t[49],ltz:t[44],lyr_ratio:t[53],market:e,mins:t[35],npl:t[8],phcje:t[58],phcjl:t[59],share:t[72],sjl:t[46],syl:t[39],utime:ot(t[30]),wbcale:t[74],week52zdj:t[68],week52zgj:t[67],wpl:t[7],yzl:t[77],zde:t[31],zdf:t[32],zdj:t[34],zgj:t[33],zsj:t[4],zsz:t[45],hblx:t[82]}})},adaptPT:function(t){return q(q({},zt),{},{secu_info:{market:\"p\",nczj:t[50],secu_code:t[2],secu_name:t[1],status:\"\"===t[40]?\"0\":t[40],stk_name:t[1],stocktype:t[58],symbol:a(\"p\",t[2]),zdf_day20:t[52],zdf_day5:t[51]},secu_quote:{amplitude:t[43],cje:t[37],cjl:t[36",
+  "status_excerpt": "status:{C:\"代码变更\",D:\"退市\",S:\"停牌\",Z:\"暂停上市\",U:\"待上市\",I:\"待发行\",P:\"申购日\"}",
+  "turnover_note": "Tencent cje field 57 is in CNY 10,000; 513500 value 18505.8249 matches trade amount 185058249 in field 35 and independent Sina snapshot.",
+  "timestamp_note": "Source update time, not last trade time; no latency guarantee."
+}

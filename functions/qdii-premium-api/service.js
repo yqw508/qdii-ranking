@@ -36,8 +36,9 @@ function createService({ snapshot, store, refreshImpl = refresh, now = Date.now,
       freshCount === snapshot.catalog.length ? "fresh" : "partial";
     return { schema_version: 1, catalog_fingerprint: key, request_id: requestId,
       status, cache_hit: cacheHit, checked_at: state.checked_at, requested_at: new Date(now()).toISOString(),
-      quote_delay_minutes: 15, expected_count: snapshot.catalog.length, fresh_count: freshCount,
+      quote_delay_minutes: null, adapter_version: "multi-source-1", expected_count: snapshot.catalog.length, fresh_count: freshCount,
       retry_after_seconds: Math.max(1, Math.ceil(((busy ? state.lock_until : state.next_attempt) - now()) / 1000)),
+      unavailable_products: busy ? [] : (state.unavailable_products || []),
       errors: busy ? [{ reason: "REFRESH_IN_PROGRESS", codes: [] }] : state.errors, records };
   }
   async function run(requestId) {
@@ -45,7 +46,7 @@ function createService({ snapshot, store, refreshImpl = refresh, now = Date.now,
     const claim = await store.claim(key, requestId, started, initial());
     if (!claim.acquired) return { state: claim.state, cacheHit: true, busy: claim.busy };
     let result;
-    try { result = await refreshImpl(snapshot.catalog); }
+    try { result = await refreshImpl(snapshot.catalog, { previousRecords: claim.state.records }); }
     catch (exc) { result = { quotes: {}, errors: [{ reason: exc.message, codes: [] }] }; }
     const records = { ...claim.state.records }, freshCodes = [];
     for (const [code, quote] of Object.entries(result.quotes)) {
@@ -58,7 +59,8 @@ function createService({ snapshot, store, refreshImpl = refresh, now = Date.now,
       records[code] = quote; freshCodes.push(code);
     }
     const state = { records, fresh_codes: freshCodes, checked_at: new Date(now()).toISOString(),
-      next_attempt: now() + (freshCodes.length === snapshot.catalog.length ? 60000 : 30000),
+      unavailable_products: result.unavailable || [],
+      next_attempt: now() + (freshCodes.length + (result.unavailable || []).length === snapshot.catalog.length ? 60000 : 30000),
       errors: result.errors, lock_until: 0, lock_owner: null };
     const saved = await store.finish(key, requestId, state);
     log(JSON.stringify({ request_id: requestId, duration_ms: now() - started,

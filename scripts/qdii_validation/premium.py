@@ -71,7 +71,7 @@ def _premium_catalog_context(
     require(section.get("schema_version") == 2, "Unexpected exchange premium schema")
     status = section.get("status")
     require(status in {"fresh", "partial", "stale", "unavailable"}, "Invalid exchange premium status")
-    require(section.get("quote_delay_minutes") == 15, "Unexpected ETF quote delay")
+    require(section.get("quote_delay_minutes") == (None if section.get("adapter_version") == "multi-source-1" else 15), "Unexpected ETF quote delay")
     expected_count = section.get("expected_count")
     require(isinstance(expected_count, int) and expected_count >= 0, "ETF premium expected count is invalid")
     groups = section.get("group_order")
@@ -199,12 +199,29 @@ def _validate_premium_record(
         raise ValidationError(f"ETF {code} quote timestamp is invalid") from exc
     require(quote_date <= run_date and updated_at.date() <= run_date, f"ETF {code} quote contains future data")
     require(str(record.get("quote_source_url", "")).startswith("https://"), f"ETF {code} quote URL is invalid")
+    if "quote_source" in record:
+        source = record['quote_source']
+        require(source in {'tencent', 'eastmoney'}, f"ETF {code} unknown quote source")
+        require(record.get('adapter_version') == f'{source}-1', f"ETF {code} adapter version differs")
+        require(record.get('quote_delay_minutes') == (None if source == 'tencent' else 15), f"ETF {code} source delay differs")
+        require(urllib.parse.urlparse(record['quote_source_url']).hostname == ('gu.qq.com' if source == 'tencent' else 'quote.eastmoney.com'), f"ETF {code} source URL differs")
     return quote_status
 
 
 def validate_exchange_premium(section: Any, run_date: date) -> list[dict[str, Any]]:
     require(isinstance(section, dict), "exchange_premium must be an object")
     status, expected_count, dynamic, records, codes, group_order = _premium_catalog_context(section, run_date)
+    exceptions = section.get('unavailable_products', [])
+    require(isinstance(exceptions, list), 'Premium exceptions must be a list')
+    exception_codes = [e['code'] for e in exceptions]
+    require(len(set(exception_codes)) == len(exception_codes), 'Duplicate premium exceptions')
+    for e in exceptions:
+        require(e['code'] in {r['code'] for r in section.get('catalog', [])}, 'Exception outside catalog')
+        require(e['source'] == 'tencent' and e['reason'] == {'U': 'NOT_LISTED', 'D': 'DELISTED', 'S': 'SUSPENDED', 'Z': 'LISTING_SUSPENDED'}.get(e['source_status']), 'Invalid exception evidence')
+        require(urllib.parse.urlparse(e['source_url']).hostname == 'gu.qq.com', 'Invalid exception source')
+        from zoneinfo import ZoneInfo
+        require(datetime.fromisoformat(e['observed_at'].replace('Z', '+00:00')).astimezone(ZoneInfo('Asia/Shanghai')).date() == run_date, 'Stale exception evidence')
+        require(not any(r['code'] == e['code'] and r['quote_status'] == 'fresh' for r in records), 'Unavailable product marked fresh')
     quote_statuses = [
         _validate_premium_record(record, run_date, dynamic, group_order)
         for record in records

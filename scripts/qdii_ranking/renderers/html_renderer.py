@@ -79,6 +79,10 @@ def render_html(path: Path, payload: dict[str, Any]) -> None:
         "unavailable": "日报快照暂不可用",
     }
     premium_status_text = premium_status_labels.get(premium["status"], "行情状态未知")
+    exception_labels = {'NOT_LISTED': '未上市', 'DELISTED': '已退市', 'SUSPENDED': '停牌', 'LISTING_SUSPENDED': '暂停上市'}
+    if premium.get('unavailable_products'):
+        premium_status_text += '；目录内无有效报价：' + '、'.join(
+            f"{e['code']} {exception_labels.get(e['reason'], '暂无报价')}" for e in premium['unavailable_products'])
     from ..premium_service import service_config
     premium_config = service_config(premium)
     premium_config_json = json.dumps(
@@ -158,7 +162,7 @@ def render_html(path: Path, payload: dict[str, Any]) -> None:
           <div><h2>场内 QDII</h2><p>按溢价从高到低排列；点击产品展开行情、综合费率和来源详情。</p></div>
           <button class="refresh-button" id="premium-refresh" type="button" aria-busy="false"><span class="refresh-icon" aria-hidden="true">↻</span><span>刷新行情</span></button>
         </div>
-        <p class="premium-status" id="premium-refresh-status" role="status" aria-live="polite">{html.escape(premium_status_text)}；日报请求于 {html.escape(format_quote_time(premium['requested_at']))}，行情约延迟 {premium['quote_delay_minutes']} 分钟。</p>
+        <p class="premium-status" id="premium-refresh-status" role="status" aria-live="polite">{html.escape(premium_status_text)}；日报请求于 {html.escape(format_quote_time(premium['requested_at']))}；来源时间见各行，腾讯行情延迟未保证，东方财富约15分钟延迟。</p>
         <div class="premium-table-wrap">
           <table class="premium-table">
             <thead><tr><th>{premium_product_label}</th><th>{premium_group_label}</th><th>溢价</th><th>综合费率</th><th>涨跌</th></tr></thead>
@@ -179,7 +183,7 @@ def render_html(path: Path, payload: dict[str, Any]) -> None:
       {freshness_section}
       {warning_section}
     </main>
-    <footer>额度为基金管理人层面的单日单基金账户上限；综合费率已从基金资产中扣除，不含场内券商佣金；场内溢价按约15分钟延迟价格相对 ETF 的 IOPV 或 LOF 的最新单位净值计算。</footer>
+    <footer>额度为基金管理人层面的单日单基金账户上限；综合费率已从基金资产中扣除，不含场内券商佣金；场内溢价按来源报价相对 ETF 的 IOPV 或 LOF 的最新单位净值计算。行情源时间不等于最后成交时间，延迟说明见各行。</footer>
   </div>
   <script>
     const tabs = Array.from(document.querySelectorAll('[role="tab"][data-panel]'));

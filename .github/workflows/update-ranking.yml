@@ -212,15 +212,18 @@ jobs:
         if: ${{ inputs.verify_only != true }}
         id: deployment
         shell: bash
+        working-directory: public
         run: |
           deploy_log=$(mktemp)
           trap 'rm -f "$deploy_log"' EXIT
           tcb app deploy qdii-ranking-web \
             --env-id run-cool-d2gy0iw957219659c \
             --framework static \
-            --output-dir public \
+            --output-dir . \
             --deploy-path /qdii \
             --cwd . \
+            --install-command= \
+            --build-command= \
             --force \
             --yes \
             --json > >(tee "$deploy_log") 2>&1 &

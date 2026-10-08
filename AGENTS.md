@@ -145,15 +145,19 @@ authorization to complete the full update and publication workflow:
 7. After all checks pass, run `scripts/promote_ranking_baseline.py`. Stage only intended repository
    changes, including the baseline and both generated public pages, commit them, and push
    `main` to `origin`.
-8. Deploy the verified static page with:
+8. Run the deployment from `public` as the actual process working directory. CloudBase CLI 3.4.0
+   does not forward `--cwd` to its ZIP uploader, so running at the repository root uploads caches
+   and function dependencies too. Deploy only the verified public files:
 
    ```powershell
    tcb app deploy qdii-ranking-web `
      --env-id run-cool-d2gy0iw957219659c `
      --framework static `
-     --output-dir public `
+     --output-dir . `
      --deploy-path /qdii `
      --cwd . `
+     --install-command= `
+     --build-command= `
      --force `
      --json
    ```

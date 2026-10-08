@@ -1,0 +1,7 @@
+{
+  "name": "qdii-premium-api",
+  "version": "1.0.0",
+  "private": true,
+  "engines": { "node": ">=20" },
+  "dependencies": { "@cloudbase/node-sdk": "3.18.3" }
+}

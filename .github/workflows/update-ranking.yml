@@ -78,9 +78,9 @@ jobs:
         uses: actions/cache@v6
         with:
           path: output/qdii-ranking/cache
-          key: qdii-ranking-${{ runner.os }}-${{ hashFiles('scripts/update_qdii_ranking.py', 'scripts/qdii_ranking/**', 'scripts/qdii_validation/**', 'scripts/premium_refresh.js', 'scripts/update_index_valuation.py', 'scripts/index_valuation/**', 'scripts/valuation_page.js', 'references/index-valuation-catalog.json', 'references/us-equity-instruments.json', 'references/us-equity-etfs.json', 'references/contract-benchmarks.json') }}-${{ github.run_id }}
+          key: qdii-ranking-${{ runner.os }}-${{ hashFiles('scripts/update_qdii_ranking.py', 'scripts/qdii_ranking/**', 'scripts/qdii_validation/**', 'scripts/premium_refresh.js', 'functions/qdii-premium-api/*.js', 'references/premium-service.json', 'scripts/update_index_valuation.py', 'scripts/index_valuation/**', 'scripts/valuation_page.js', 'references/index-valuation-catalog.json', 'references/us-equity-instruments.json', 'references/us-equity-etfs.json', 'references/contract-benchmarks.json') }}-${{ github.run_id }}
           restore-keys: |
-            qdii-ranking-${{ runner.os }}-${{ hashFiles('scripts/update_qdii_ranking.py', 'scripts/qdii_ranking/**', 'scripts/qdii_validation/**', 'scripts/premium_refresh.js', 'scripts/update_index_valuation.py', 'scripts/index_valuation/**', 'scripts/valuation_page.js', 'references/index-valuation-catalog.json', 'references/us-equity-instruments.json', 'references/us-equity-etfs.json', 'references/contract-benchmarks.json') }}-
+            qdii-ranking-${{ runner.os }}-${{ hashFiles('scripts/update_qdii_ranking.py', 'scripts/qdii_ranking/**', 'scripts/qdii_validation/**', 'scripts/premium_refresh.js', 'functions/qdii-premium-api/*.js', 'references/premium-service.json', 'scripts/update_index_valuation.py', 'scripts/index_valuation/**', 'scripts/valuation_page.js', 'references/index-valuation-catalog.json', 'references/us-equity-instruments.json', 'references/us-equity-etfs.json', 'references/contract-benchmarks.json') }}-
             qdii-ranking-${{ runner.os }}-
 
       - name: Verify clean-history startup
@@ -149,26 +149,8 @@ jobs:
         run: |
           python tests/run_python.py
           node --test tests/js/test_premium_refresh.mjs
+          node --test tests/js/test_premium_service.mjs
           node --test tests/js/test_valuation_page.mjs
-
-      - name: Promote validated ranking baseline
-        if: ${{ inputs.verify_only != true }}
-        run: python scripts/promote_ranking_baseline.py
-
-      - name: Commit generated page
-        if: ${{ inputs.verify_only != true }}
-        id: git_publish
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- public/index.html public/valuation/index.html references/ranking-baseline.json
-          if git diff --cached --quiet; then
-            echo "Generated page is unchanged; no commit needed"
-          else
-            git commit -m "chore: update QDII ranking for ${RUN_DATE}"
-            git push origin HEAD:main
-          fi
 
       - name: Install CloudBase CLI
         if: ${{ inputs.verify_only != true }}
@@ -191,6 +173,40 @@ jobs:
             exit 1
           fi
           echo "Verified CloudBase account AppID ${account_app_id}"
+
+      - name: Prepare premium service package
+        if: ${{ inputs.verify_only != true }}
+        run: python scripts/prepare_premium_function.py
+
+      - name: Deploy and verify premium service
+        if: ${{ inputs.verify_only != true }}
+        id: premium_service
+        shell: bash
+        run: |
+          tcb fn deploy qdii-premium-api --env-id run-cool-d2gy0iw957219659c --httpFn --dir tmp/premium-function --force --json
+          tcb routes edit --env-id run-cool-d2gy0iw957219659c --data "$(cat references/premium-route.json)" --yes --json
+          tcb permission get collection:qdii_premium_cache --env-id run-cool-d2gy0iw957219659c --json > /tmp/premium-permission.json
+          python -c 'import json; p=json.load(open("/tmp/premium-permission.json")); assert p["data"]["PermissionList"][0]["Permission"] == "ADMINONLY"'
+          python scripts/validate_premium_service.py --require-live
+
+      - name: Promote validated ranking baseline
+        if: ${{ inputs.verify_only != true }}
+        run: python scripts/promote_ranking_baseline.py
+
+      - name: Commit generated page
+        if: ${{ inputs.verify_only != true }}
+        id: git_publish
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- public/index.html public/valuation/index.html public/premium-snapshot.json references/ranking-baseline.json
+          if git diff --cached --quiet; then
+            echo "Generated page is unchanged; no commit needed"
+          else
+            git commit -m "chore: update QDII ranking for ${RUN_DATE}"
+            git push origin HEAD:main
+          fi
 
       - name: Deploy static application
         if: ${{ inputs.verify_only != true }}
@@ -301,6 +317,7 @@ jobs:
           CLI_OUTCOME: ${{ steps.cloudbase_cli.outcome }}
           LOGIN_OUTCOME: ${{ steps.cloudbase_login.outcome }}
           DEPLOY_OUTCOME: ${{ steps.deployment.outcome }}
+          PREMIUM_OUTCOME: ${{ steps.premium_service.outcome }}
           REMOTE_OUTCOME: ${{ steps.deployed_validation.outcome }}
           SUCCESS_MAIL_OUTCOME: ${{ steps.success_notification.outcome }}
         run: |
@@ -317,6 +334,7 @@ jobs:
             "git-push:${GIT_OUTCOME}" \
             "cloudbase-cli:${CLI_OUTCOME}" \
             "cloudbase-login:${LOGIN_OUTCOME}" \
+            "premium-service:${PREMIUM_OUTCOME}" \
             "deployment:${DEPLOY_OUTCOME}" \
             "remote-validation:${REMOTE_OUTCOME}" \
             "success-email:${SUCCESS_MAIL_OUTCOME}"; do
@@ -356,6 +374,7 @@ jobs:
           if-no-files-found: warn
           path: |
             output/qdii-ranking/candidate-audit.json
+            output/qdii-ranking/premium-snapshot.json
             output/qdii-ranking/cache/quota-notices/*.json
             output/qdii-ranking/run-metrics.json
             output/qdii-ranking/latest.*

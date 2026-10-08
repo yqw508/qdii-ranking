@@ -88,6 +88,7 @@ python scripts/validate_index_valuation.py `
   --expected-date <北京时间当天日期>
 python tests/run_python.py
 node --test tests/js/test_premium_refresh.mjs
+node --test tests/js/test_premium_service.mjs
 node --test tests/js/test_valuation_page.mjs
 ```
 

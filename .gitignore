@@ -1,5 +1,6 @@
 output/
 tmp/
+node_modules/
 agents/
 .idea/
 .codegraph/

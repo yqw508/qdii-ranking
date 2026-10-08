@@ -155,6 +155,10 @@ def main(argv: Iterable[str] | None = None) -> int:
             write_markdown(output_dir / "latest.md", payload)
             write_html(output_dir / "latest.html", payload)
             write_html(publish_dir / "index.html", payload)
+            if payload["exchange_premium"].get("refresh_service_version") == 1:
+                from .premium_service import write_snapshot
+                write_snapshot(publish_dir / "premium-snapshot.json", payload)
+                write_snapshot(output_dir / "premium-snapshot.json", payload)
             write_json(output_dir / "history" / f"{payload['run_date']}.json", payload)
     except (DataError, OSError, ValueError) as exc:
         try:

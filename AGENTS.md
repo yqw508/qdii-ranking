@@ -104,6 +104,16 @@
 
 ## Update And Publish
 
+The premium refresh service is an independent CloudBase HTTP function. Generate and validate
+`public/premium-snapshot.json` with the ranking artifacts, run `tests/js/test_premium_service.mjs`,
+prepare the function with `scripts/prepare_premium_function.py`, and deploy `qdii-premium-api` before
+publishing a frontend change. Confirm its cache collection remains ADMINONLY and run
+`scripts/validate_premium_service.py --require-live`. A failed live check keeps the existing static site.
+Stage the public snapshot with the pages only after this gate passes. Use the WEB_SCF route and the
+verified HTTPSERVICE endpoint in `references/premium-service.json`; do not use the old CLI service URL.
+Verify-only Actions runs do not deploy the function or pages. Quote cache freshness is independent of
+the ranking publication-workday policy; never relabel cached quote timestamps as current.
+
 When the user says `更新榜单` or otherwise requests a ranking refresh from this repository, treat it as
 authorization to complete the full update and publication workflow:
 

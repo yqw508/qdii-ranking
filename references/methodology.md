@@ -166,7 +166,8 @@ Displayed premium is the negated source discount rate and must agree with `price
 within the price-tick tolerance. The daily run caches valid records individually; quote or reference
 failure falls back per product with a visible timestamp and reportable warning but never weakens or
 blocks ranking validation. The
-browser refresh uses the same validation rules and keeps the rendered value when a row fails. Static
+browser refresh uses a CloudBase HTTP quote service and the same validation rules, keeping the entire
+rendered value and its timestamp when a row fails. It does not directly query Eastmoney. Static
 and refreshed records share one compact table sorted by premium descending. Dynamically discovered
 products without either a valid current quote and reference or a validated cached quote are counted
 but omitted from the output. The daily run revalidates the current announcement index only for
@@ -176,6 +177,32 @@ operating expense. An unchanged summary may reuse its parsed cache. A new unread
 the old value with unavailable; only an announcement-index outage may reuse the last parsed value, which
 is visibly marked stale. This expense is display-only, is already reflected in fund assets, and excludes
 investor-specific brokerage commissions.
+
+The independent service contract and `public/premium-snapshot.json` use schema 1. The snapshot includes
+the complete discovered catalog, including entries with no usable quote. Its fingerprint covers sorted
+code, market, name and type tuples. The HTTP function is packaged with the validated snapshot before
+the page is published. A changed catalog requires reloading the page. Browser refresh does not add
+products absent from the current rendered page or change its holding costs.
+
+The service batches at most 50 codes per request, runs up to three requests concurrently, retries each
+request once with an eight-second timeout, and has a 25-second source budget. LOFs require a same-round
+NAV reference fetch. Entire records are retained on failure, including their original observation
+time. Monotonicity checks cover quote timestamps, quote dates and NAV reference dates. These quotes do
+not use the ranking's seven-publication-day rule. A successful retrieval can still carry a prior market
+date (for example during holidays), which remains visible.
+
+An ADMINONLY CloudBase collection stores records keyed by code inside each catalog state and a
+transactional 35-second refresh lease. Complete refreshes are shared for 60 seconds; failures and partial
+refreshes cool down for 30 seconds. Cold starts may initialize only from the validated packaged snapshot,
+marked cached_stale until revalidated. No valid records means unavailable, not fabricated prices. Cache
+reads, source failures and rejected codes carry request IDs and source timestamps.
+
+The HTTP route is WEB_SCF with path transmission enabled. Use the environment's actual HTTPSERVICE
+domain returned by `tcb domains ls`, recorded in `references/premium-service.json`; older CLIs may print
+an incompatible legacy service URL. The gateway supplies CORS headers once, and the handler rejects
+origins other than the ranking site. No browser database permissions or credentials are provided.
+Only GET/OPTIONS and the catalog parameter are accepted. Deploy and verify the backend (including a
+validated upstream response) before publishing the frontend; otherwise retain the existing page.
 
 JSON schema 15 is the structured source of truth. `records` contains the US main list,
 `global_supplement.records` contains the supplement, and `exclusion_summary` records reason counts and

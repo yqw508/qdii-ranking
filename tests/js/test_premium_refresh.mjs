@@ -26,6 +26,7 @@ function loadApi(extra = {}) {
     ...extra,
   };
   context.globalThis = context;
+  vm.runInNewContext(readFileSync(new URL("../../functions/qdii-premium-api/premium_quotes.js", import.meta.url), "utf8"), context);
   vm.runInNewContext(source, context, { filename: "premium_refresh.js" });
   return { api: context.QdiiPremiumRefresh, context };
 }
@@ -265,14 +266,35 @@ test("ignores a repeated refresh while the first request is running", async () =
   context.fetch = async () => {
     calls += 1;
     await responsePromise;
-    return { ok: true, json: async () => ({ data: { diff: [rawQuote] } }) };
+    return { ok: true, json: async () => ({ schema_version: 1, catalog_fingerprint: "test", status: "fresh",
+      request_id: "test-request", records: [{ ...api.normalizeQuote(rawQuote, entry, "2026-08-21"), status: "fresh" }] }) };
   };
-  api.boot({ refreshUrl: "https://example.test", entries: [entry] });
+  api.boot({ serviceUrl: "https://example.test", catalogFingerprint: "test", entries: [entry] });
   const first = handler();
   const second = handler();
   assert.equal(calls, 1);
   release();
   await Promise.all([first, second]);
   assert.equal(calls, 1);
-  assert.match(status.textContent, /更新1\/1只/);
+  assert.match(status.textContent, /继续显示原行情/);
+});
+
+test("service data cannot overwrite newer rows or mix invalid references", () => {
+  const { api } = loadApi();
+  const quote = { ...api.normalizeQuote(rawQuote, entry, "2026-08-21"), status: "fresh" };
+  const payload = { schema_version: 1, catalog_fingerprint: "test", status: "fresh", records: [quote] };
+  const config = { catalogFingerprint: "test", entries: [entry] };
+  assert.equal(api.serviceResponse(payload, config, "2026-08-21").size, 1);
+  assert.equal(api.serviceResponse(payload, { ...config, entries: [{ ...entry, updatedAt: "2026-08-22T01:00:00Z" }] }, "2026-08-21").size, 0);
+  assert.equal(api.serviceResponse({ ...payload, status: "cached_stale" }, config, "2026-08-21").size, 0);
+  assert.equal(api.serviceResponse({ ...payload, records: [quote, quote] }, config, "2026-08-21").size, 0);
+  assert.equal(api.serviceResponse({ ...payload, records: [{ ...quote, referenceValueCny: 0 }] }, config, "2026-08-21").size, 0);
+  assert.throws(() => api.serviceResponse({ ...payload, catalog_fingerprint: "changed" }, config, "2026-08-21"));
+});
+
+test("connection failures and catalog mismatches have actionable messages", async () => {
+  const { api } = loadApi();
+  const config = { serviceUrl: "https://example.test", catalogFingerprint: "test" };
+  await assert.rejects(api.requestService(config, async () => { throw new Error("Failed to fetch"); }), /无法连接行情服务/);
+  await assert.rejects(api.requestService(config, async () => ({ ok: false, json: async () => ({ error: "CATALOG_MISMATCH", request_id: "abc" }) })), /重新加载页面/);
 });

@@ -1,6 +1,15 @@
 {
   "version": "2.0",
   "envId": "run-cool-d2gy0iw957219659c",
+  "functionRoot": "functions",
+  "functions": [{
+    "name": "qdii-premium-api",
+    "runtime": "Nodejs20.19",
+    "timeout": 35,
+    "memorySize": 256,
+    "envVariables": { "GATEWAY_CORS": "1" },
+    "description": "Validated listed-QDII quotes with private cache and refresh lock"
+  }],
   "app": {
     "serviceName": "qdii-ranking-web",
     "framework": "static",

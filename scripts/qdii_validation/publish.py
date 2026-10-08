@@ -88,6 +88,10 @@ def validate_local_artifacts(
     validate_exclusion_summary(payload.get("exclusion_summary"))
     validate_benchmark(payload.get("benchmark"), parse_date(expected_date))
     validate_exchange_premium(payload.get("exchange_premium"), parse_date(expected_date))
+    if payload["exchange_premium"].get("refresh_service_version") == 1:
+        from qdii_ranking.premium_service import validate_snapshot
+        validate_snapshot(publish_dir / "premium-snapshot.json", payload)
+        validate_snapshot(output_dir / "premium-snapshot.json", payload)
     global_section = payload.get("global_supplement")
     require(isinstance(global_section, dict), "global_supplement must be an object")
     require(

@@ -1,0 +1,13 @@
+{
+  "domain": "*",
+  "routes": [{
+    "path": "/premium/v1/quotes",
+    "upstreamResourceName": "qdii-premium-api",
+    "upstreamResourceType": "WEB_SCF",
+    "enable": true,
+    "enableAuth": false,
+    "enableSafeDomain": true,
+    "enablePathTransmission": true,
+    "qpsPolicy": { "qpsTotal": 20, "qpsPerClient": { "limitBy": "ClientIP", "limitValue": 2 } }
+  }]
+}

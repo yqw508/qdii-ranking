@@ -443,6 +443,8 @@ def scan_exchange_premium(
             resources.etf_holding_cost_cache,
         )
         attach_exchange_premium_holding_costs(snapshot, costs)
+        snapshot["catalog"] = entries
+        snapshot["refresh_service_version"] = 1
     warnings.extend(cost_warnings)
     warnings.extend(snapshot_warnings)
     return PremiumStage(snapshot, tuple(warnings))

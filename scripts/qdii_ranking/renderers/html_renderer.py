@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Any
 
 from ..atomic import atomic_write_text
-from ..config import ETF_MARKET_LIST_PAGE_SIZE
 from .common import summarize_periods
 from .html_components import (
     format_quote_time,
@@ -80,29 +79,16 @@ def render_html(path: Path, payload: dict[str, Any]) -> None:
         "unavailable": "日报快照暂不可用",
     }
     premium_status_text = premium_status_labels.get(premium["status"], "行情状态未知")
-    premium_config = {
-        "refreshUrl": premium["refresh_url"],
-        "refreshMode": "paged" if any(item.get("category") == "qdii" for item in premium_records) else "single",
-        "refreshPageSize": ETF_MARKET_LIST_PAGE_SIZE,
-        "entries": [
-            {
-                "code": item["code"],
-                "name": item["name"],
-                "benchmarkGroup": item["benchmark_group"],
-                "category": item.get("category"),
-                "referenceType": item.get("reference_value_type"),
-                "referenceValueCny": item.get("reference_value_cny"),
-                "referenceDate": item.get("reference_value_date"),
-            }
-            for item in premium_records
-        ],
-    }
+    from ..premium_service import service_config
+    premium_config = service_config(premium)
     premium_config_json = json.dumps(
         premium_config, ensure_ascii=False, separators=(",", ":")
     ).replace("</", "<\\/")
     browser_script = ((Path(__file__).resolve().parents[2] / "premium_refresh.js")).read_text(
         encoding="utf-8"
     )
+    shared_script = (Path(__file__).resolve().parents[3] / "functions/qdii-premium-api/premium_quotes.js").read_text(encoding="utf-8")
+    browser_script = shared_script + "\n" + browser_script
 
     warning_section = ""
     if payload["warnings"]:

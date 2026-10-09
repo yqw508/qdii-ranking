@@ -183,7 +183,11 @@ jobs:
         id: premium_service
         shell: bash
         run: |
-          tcb fn deploy qdii-premium-api --env-id run-cool-d2gy0iw957219659c --httpFn --dir tmp/premium-function --force --json
+          # fn deploy --force loses deployMode when overwriting an existing function.
+          # Code update preserves direct ZIP upload without scf:GetTempCosInfo.
+          # installDependency in cloudbaserc.json keeps node_modules out of the ZIP.
+          tcb config update fn qdii-premium-api --env-id run-cool-d2gy0iw957219659c --yes --json
+          tcb fn code update qdii-premium-api --env-id run-cool-d2gy0iw957219659c --dir tmp/premium-function --deployMode zip --yes --json
           tcb routes edit --env-id run-cool-d2gy0iw957219659c --data "$(cat references/premium-route.json)" --yes --json
           tcb permission get collection:qdii_premium_cache --env-id run-cool-d2gy0iw957219659c --json > /tmp/premium-permission.json
           python -c 'import json; p=json.load(open("/tmp/premium-permission.json")); assert p["data"]["PermissionList"][0]["Permission"] == "ADMINONLY"'

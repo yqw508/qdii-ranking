@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "run_date": "2026-10-08",
+  "run_date": "2026-10-09",
   "holder_report_date": "2026-06-30",
   "candidate_codes": [
     "000041",
@@ -282,14 +282,14 @@
       "ranking_list": "global_supplement"
     },
     {
-      "code": "100055",
-      "name": "富国全球科技互联网股票(QDII)A",
+      "code": "040021",
+      "name": "华安大中华升级股票(QDII)A",
       "rank": 4,
       "ranking_list": "global_supplement"
     },
     {
-      "code": "040021",
-      "name": "华安大中华升级股票(QDII)A",
+      "code": "100055",
+      "name": "富国全球科技互联网股票(QDII)A",
       "rank": 5,
       "ranking_list": "global_supplement"
     },

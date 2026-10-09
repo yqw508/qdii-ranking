@@ -222,6 +222,13 @@ an incompatible legacy service URL. The gateway supplies CORS headers once, and 
 origins other than the ranking site. No browser database permissions or credentials are provided.
 Only GET/OPTIONS and the catalog parameter are accepted. Deploy and verify the backend (including a
 validated upstream response) before publishing the frontend; otherwise retain the existing page.
+For the established HTTP function, use `tcb config update fn` followed by
+`tcb fn code update --deployMode zip`, with explicit `installDependency: true` in `cloudbaserc.json`.
+The CLI excludes locally verified `node_modules` from the upload and installs the locked dependencies
+in CloudBase. This keeps the direct ZIP below its 1.5 MiB limit and avoids the COS upload path's
+additional `scf:GetTempCosInfo` permission. CLI 3.7.3's `fn deploy --force` drops `deployMode` when
+overwriting an existing function, so it is not used for daily updates. A missing function, deployment
+failure, or live-check failure still blocks publication.
 
 JSON schema 15 is the structured source of truth. `records` contains the US main list,
 `global_supplement.records` contains the supplement, and `exclusion_summary` records reason counts and

@@ -229,6 +229,13 @@ in CloudBase. This keeps the direct ZIP below its 1.5 MiB limit and avoids the C
 additional `scf:GetTempCosInfo` permission. CLI 3.7.3's `fn deploy --force` drops `deployMode` when
 overwriting an existing function, so it is not used for daily updates. A missing function, deployment
 failure, or live-check failure still blocks publication.
+Production Actions runs check the authenticated AppID/owner, HTTP function identity and private-cache
+permissions before fetching ranking sources. Sanitized identity/check evidence is archived for 90 days;
+function code, environment variables and credentials are not printed. The supplementary CAM policy in
+`cloudbase-ci-function-policy.json` grants only GetFunction, UpdateFunctionConfiguration and
+UpdateFunctionCode on this one function. Attach it to the CI principal identified by the same run,
+preserving existing CloudBase permissions. Read checks never imply write authorization: recovery must
+complete the production Actions deployment, live gate, static verification and notification.
 
 JSON schema 15 is the structured source of truth. `records` contains the US main list,
 `global_supplement.records` contains the supplement, and `exclusion_summary` records reason counts and

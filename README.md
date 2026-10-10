@@ -150,6 +150,23 @@ Repository Secrets：
 - `QQ_MAIL_TO`：可选，多个收件地址用英文逗号或分号分隔；默认发给发件人。
 - `TCB_SECRET_ID`、`TCB_SECRET_KEY`：用于 CloudBase CI 的腾讯云 CAM 密钥。
 
+生产运行在生成榜单前执行 `scripts/check_deployment_access.py`，核对 AppID `1432808015`、
+OwnerUin `100048848339`、`qdii-premium-api` 的 HTTP 类型以及缓存集合 `qdii_premium_cache`
+的 `ADMINONLY` 权限。日志和诊断只记录账号标识、检查结果和错误码，不输出密钥、函数代码或
+环境变量；诊断随 Actions artifacts 保存 90 天。`verify_only` 不登录 CloudBase，也不部署或发邮件。
+
+CI 子账号需要保留现有 CloudBase 发布权限，并附加专项策略
+`references/cloudbase-ci-function-policy.json`（建议策略名 `qdii-ranking-premium-function-update-v1`）。
+策略只允许 `scf:GetFunction`、`scf:UpdateFunctionConfiguration`、`scf:UpdateFunctionCode`，
+资源严格限定到上海环境的 `qdii-premium-api`。由具有 CAM 管理权限的管理员在腾讯云控制台
+根据 Actions 预检查输出的 `Uin` 定位子账号，再创建并关联该策略；不得关联到本地登录账号
+或改用全账号 SCF 权限，不需要更换 GitHub Secrets。
+
+函数更新使用 `tcb config update fn` 和 `tcb fn code update --deployMode zip`，显式启用云端
+依赖安装。不要改回 COS 上传或 `fn deploy --force`。只读预检查不能证明写权限完整：授权后
+必须以 `verify_only=false` 完整重跑 Actions，确认函数更新、全目录行情验证、静态发布、线上
+页面验证和邮件通知均成功，才能认定恢复。本地发布成功不能替代 CI 凭据的验证。
+
 
 候选发现与更新追溯：完整基金目录决定候选范围，持有人明细缺失不会让基金静默消失。
 符合其他资格但机构持仓缺失会阻断发布。每日任务从 Git 加载已验证基线，成功和失败均保存

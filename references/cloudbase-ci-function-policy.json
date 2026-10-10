@@ -1,0 +1,16 @@
+{
+  "version": "2.0",
+  "statement": [
+    {
+      "effect": "allow",
+      "action": [
+        "scf:GetFunction",
+        "scf:UpdateFunctionConfiguration",
+        "scf:UpdateFunctionCode"
+      ],
+      "resource": [
+        "qcs::scf:sh:uin/100048848339:namespace/run-cool-d2gy0iw957219659c/function/qdii-premium-api"
+      ]
+    }
+  ]
+}

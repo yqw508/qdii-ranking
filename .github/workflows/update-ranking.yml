@@ -74,6 +74,25 @@ jobs:
             exit 1
           fi
 
+      - name: Install CloudBase CLI
+        if: ${{ inputs.verify_only != true }}
+        id: cloudbase_cli
+        run: npm install --global @cloudbase/cli@3.7.3
+
+      - name: Log in to CloudBase
+        if: ${{ inputs.verify_only != true }}
+        id: cloudbase_login
+        shell: bash
+        env:
+          TCB_SECRET_ID: ${{ secrets.TCB_SECRET_ID }}
+          TCB_SECRET_KEY: ${{ secrets.TCB_SECRET_KEY }}
+        run: tcb login --apiKeyId "$TCB_SECRET_ID" --apiKey "$TCB_SECRET_KEY"
+
+      - name: Check deployment identity and read access
+        if: ${{ inputs.verify_only != true }}
+        id: deployment_access
+        run: python scripts/check_deployment_access.py
+
       - name: Restore ranking cache
         uses: actions/cache@v6
         with:
@@ -151,28 +170,6 @@ jobs:
           node --test tests/js/test_premium_refresh.mjs
           node --test tests/js/test_premium_service.mjs
           node --test tests/js/test_valuation_page.mjs
-
-      - name: Install CloudBase CLI
-        if: ${{ inputs.verify_only != true }}
-        id: cloudbase_cli
-        run: npm install --global @cloudbase/cli@3.7.3
-
-      - name: Log in to CloudBase
-        if: ${{ inputs.verify_only != true }}
-        id: cloudbase_login
-        shell: bash
-        env:
-          TCB_SECRET_ID: ${{ secrets.TCB_SECRET_ID }}
-          TCB_SECRET_KEY: ${{ secrets.TCB_SECRET_KEY }}
-        run: |
-          tcb login --apiKeyId "$TCB_SECRET_ID" --apiKey "$TCB_SECRET_KEY"
-          account_output=$(tcb api cam GetUserAppId --api-version 2019-01-16 --json 2>&1)
-          account_app_id=$(printf '%s' "$account_output" | python -c 'import json, sys; text=sys.stdin.read(); start=text.find("{"); data=json.JSONDecoder().raw_decode(text[start:])[0]; print(data["data"]["AppId"])')
-          if [[ "$account_app_id" != "$TCB_OWNER_APP_ID" ]]; then
-            echo "::error::TCB credentials belong to AppID ${account_app_id}; expected ${TCB_OWNER_APP_ID} for run-cool-d2gy0iw957219659c"
-            exit 1
-          fi
-          echo "Verified CloudBase account AppID ${account_app_id}"
 
       - name: Prepare premium service package
         if: ${{ inputs.verify_only != true }}
@@ -323,25 +320,27 @@ jobs:
           GIT_OUTCOME: ${{ steps.git_publish.outcome }}
           CLI_OUTCOME: ${{ steps.cloudbase_cli.outcome }}
           LOGIN_OUTCOME: ${{ steps.cloudbase_login.outcome }}
+          ACCESS_OUTCOME: ${{ steps.deployment_access.outcome }}
           DEPLOY_OUTCOME: ${{ steps.deployment.outcome }}
           PREMIUM_OUTCOME: ${{ steps.premium_service.outcome }}
           REMOTE_OUTCOME: ${{ steps.deployed_validation.outcome }}
           SUCCESS_MAIL_OUTCOME: ${{ steps.success_notification.outcome }}
         run: |
-          outcomes="configuration=${CONFIGURATION_OUTCOME}, dependencies=${DEPENDENCIES_OUTCOME}, update=${UPDATE_OUTCOME}, valuation=${VALUATION_UPDATE_OUTCOME}, date=${DATE_OUTCOME}, validation=${VALIDATION_OUTCOME}, tests=${TESTS_OUTCOME}, git=${GIT_OUTCOME}, cli=${CLI_OUTCOME}, login=${LOGIN_OUTCOME}, deploy=${DEPLOY_OUTCOME}, remote=${REMOTE_OUTCOME}, success_email=${SUCCESS_MAIL_OUTCOME}"
+          outcomes="configuration=${CONFIGURATION_OUTCOME}, cli=${CLI_OUTCOME}, login=${LOGIN_OUTCOME}, deployment_access=${ACCESS_OUTCOME}, dependencies=${DEPENDENCIES_OUTCOME}, update=${UPDATE_OUTCOME}, valuation=${VALUATION_UPDATE_OUTCOME}, date=${DATE_OUTCOME}, validation=${VALIDATION_OUTCOME}, tests=${TESTS_OUTCOME}, premium=${PREMIUM_OUTCOME}, git=${GIT_OUTCOME}, deploy=${DEPLOY_OUTCOME}, remote=${REMOTE_OUTCOME}, success_email=${SUCCESS_MAIL_OUTCOME}"
           stage="unknown"
           for item in \
             "configuration:${CONFIGURATION_OUTCOME}" \
+            "cloudbase-cli:${CLI_OUTCOME}" \
+            "cloudbase-login:${LOGIN_OUTCOME}" \
+            "deployment-access:${ACCESS_OUTCOME}" \
             "dependencies:${DEPENDENCIES_OUTCOME}" \
             "refresh:${UPDATE_OUTCOME}" \
             "valuation-refresh:${VALUATION_UPDATE_OUTCOME}" \
             "ranking-date:${DATE_OUTCOME}" \
             "validation:${VALIDATION_OUTCOME}" \
             "tests:${TESTS_OUTCOME}" \
-            "git-push:${GIT_OUTCOME}" \
-            "cloudbase-cli:${CLI_OUTCOME}" \
-            "cloudbase-login:${LOGIN_OUTCOME}" \
             "premium-service:${PREMIUM_OUTCOME}" \
+            "git-push:${GIT_OUTCOME}" \
             "deployment:${DEPLOY_OUTCOME}" \
             "remote-validation:${REMOTE_OUTCOME}" \
             "success-email:${SUCCESS_MAIL_OUTCOME}"; do
@@ -380,6 +379,7 @@ jobs:
           retention-days: 90
           if-no-files-found: warn
           path: |
+            output/qdii-ranking/deployment-access-check.json
             output/qdii-ranking/candidate-audit.json
             output/qdii-ranking/premium-snapshot.json
             output/qdii-ranking/premium-service-check.json

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "run_date": "2026-10-09",
+  "run_date": "2026-10-10",
   "holder_report_date": "2026-06-30",
   "candidate_codes": [
     "000041",
@@ -294,32 +294,32 @@
       "ranking_list": "global_supplement"
     },
     {
-      "code": "006282",
-      "name": "摩根欧洲动力策略股票(QDII)A",
-      "rank": 6,
-      "ranking_list": "global_supplement"
-    },
-    {
       "code": "016664",
       "name": "天弘全球高端制造混合(QDII)A",
-      "rank": 7,
+      "rank": 6,
       "ranking_list": "global_supplement"
     },
     {
       "code": "012060",
       "name": "富国全球消费精选混合(QDII)人民币A",
-      "rank": 8,
-      "ranking_list": "global_supplement"
-    },
-    {
-      "code": "007280",
-      "name": "摩根日本精选股票(QDII)A",
-      "rank": 9,
+      "rank": 7,
       "ranking_list": "global_supplement"
     },
     {
       "code": "005698",
       "name": "华夏全球科技先锋混合(QDII)A(人民币)",
+      "rank": 8,
+      "ranking_list": "global_supplement"
+    },
+    {
+      "code": "164212",
+      "name": "天弘全球新能源汽车股票(QDII-LOF)A",
+      "rank": 9,
+      "ranking_list": "global_supplement"
+    },
+    {
+      "code": "019155",
+      "name": "易方达全球配置混合(QDII)A(人民币)",
       "rank": 10,
       "ranking_list": "global_supplement"
     }

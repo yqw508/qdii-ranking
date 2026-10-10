@@ -209,6 +209,10 @@ NAV reference fetch. Entire records are retained on failure, including their ori
 time. Monotonicity checks cover quote timestamps, quote dates and NAV reference dates. These quotes do
 not use the ranking's seven-publication-day rule. A successful retrieval can still carry a prior market
 date (for example during holidays), which remains visible.
+Explicit unlisted/suspended status exceptions also require a successful source fetch in this round.
+Their `observed_at` records that fetch, while `source_updated_at` preserves Tencent's status timestamp,
+which may remain on the last trading day over a weekend. A missing/unknown status or future source
+timestamp cannot explain a missing quote. Cached status exceptions never replace source revalidation.
 
 An ADMINONLY CloudBase collection stores records keyed by code inside each catalog state and a
 transactional 35-second refresh lease. Complete refreshes are shared for 60 seconds; failures and partial

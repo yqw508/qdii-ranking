@@ -79,8 +79,10 @@ async function refresh(catalog, { fetchImpl = fetch, now = Date.now, budgetMs = 
         // Include content failures (notably older server snapshots), not just transport errors.
         const parsed = tencent.parseTencent(await getJson(url, fetchImpl, deadline, now, "text", 1), batch);
         rows.push(...parsed.rows); errors.push(...parsed.errors.map(e => ({ ...e, source: provider })));
-        unavailable.push(...parsed.unavailable.filter(u => Date.parse(u.observed_at) <= now() &&
-          shanghaiDate(new Date(u.observed_at)) === asOf));
+        // A freshly fetched status may retain the last trading day's source time.
+        // Keep that timestamp separately from this round's actual observation.
+        unavailable.push(...parsed.unavailable.filter(u => Date.parse(u.source_updated_at) <= now())
+          .map(u => ({ ...u, observed_at: new Date(now()).toISOString() })));
         return;
       }
       const result = await getJson(`${HOST}?${params}`, fetchImpl, deadline, now);

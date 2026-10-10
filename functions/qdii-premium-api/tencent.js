@@ -26,7 +26,7 @@ function parseTencent(text, catalog) {
       const reason = { U: "NOT_LISTED", D: "DELISTED", S: "SUSPENDED", Z: "LISTING_SUSPENDED" }[f[40]];
       if (reason && num(3) === 0 && num(57) === 0) {
         unavailable.push({ code: entry.code, reason, source: "tencent", source_status: f[40],
-          source_url: `https://gu.qq.com/${symbol}`, observed_at: new Date(iso).toISOString() });
+          source_url: `https://gu.qq.com/${symbol}`, source_updated_at: new Date(iso).toISOString() });
         continue;
       }
       if (f[61] === "ETF" && !(num(78) > 0)) throw new Error("MISSING_ETF_IOPV");

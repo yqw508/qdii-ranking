@@ -47,6 +47,7 @@ def main():
         assert item['reason'] == {'U': 'NOT_LISTED', 'D': 'DELISTED', 'S': 'SUSPENDED', 'Z': 'LISTING_SUSPENDED'}.get(item['source_status'])
         assert item['source_url'].startswith('https://gu.qq.com/')
         assert datetime.fromisoformat(item['observed_at'].replace('Z', '+00:00')) <= datetime.now(timezone.utc)
+        assert datetime.fromisoformat(item['source_updated_at'].replace('Z', '+00:00')) <= datetime.fromisoformat(item['observed_at'].replace('Z', '+00:00'))
         assert datetime.fromisoformat(item['observed_at'].replace('Z', '+00:00')).astimezone(ZoneInfo('Asia/Shanghai')).date() == datetime.fromisoformat(payload['requested_at'].replace('Z', '+00:00')).astimezone(ZoneInfo('Asia/Shanghai')).date()
     for record in records:
         assert record['status'] in {'fresh', 'cached_stale'}

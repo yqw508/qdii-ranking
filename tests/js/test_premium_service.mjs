@@ -181,6 +181,33 @@ test("Tencent duplicates, shifted fields, missing IOPV and impossible dates fail
   assert.equal(dup.rows.length, 0); assert.match(dup.errors[0].reason, /DUPLICATE/);
 });
 
+test("a status fetched on a weekend keeps its prior source time and current observation", async () => {
+  const row = structuredClone(fixture.records.find(r => r.fields[40] === "U"));
+  row.symbol = "sh599999"; row.fields[2] = "599999"; row.fields[30] = "20261009090000";
+  const catalog = [{ code: "599999", name: "fixture LOF", market_id: 1 }];
+  const checked = Date.parse("2026-10-10T02:00:00Z");
+  let calls = 0;
+  const result = await refresh(catalog, { now: () => checked, providers: ["tencent"],
+    fetchImpl: async () => { calls++; return textResponse(sampleText([row])); } });
+  assert.equal(calls, 1); assert.deepEqual(result.quotes, {}); assert.deepEqual(result.errors, []);
+  assert.equal(result.unavailable[0].source_updated_at, "2026-10-09T01:00:00.000Z");
+  assert.equal(result.unavailable[0].observed_at, "2026-10-10T02:00:00.000Z");
+  assert.equal(result.unavailable[0].source_status, "U");
+});
+
+test("missing, unknown or future status never explains an absent quote", async () => {
+  const base = fixture.records.find(r => r.fields[40] === "U");
+  for (const mutate of [r => { r.fields[40] = ""; }, r => { r.fields[40] = "X"; },
+      r => { r.fields[30] = "20991009090000"; }, r => { r.empty = true; }]) {
+    const row = structuredClone(base); mutate(row);
+    const catalog = sampleCatalog.filter(e => e.code === row.fields[2]);
+    const result = await refresh(catalog, { now: () => fixtureNow, providers: ["tencent"],
+      fetchImpl: async () => textResponse(row.empty ? "" : sampleText([row])) });
+    assert.deepEqual(result.unavailable, []); assert.deepEqual(result.quotes, {});
+    assert.ok(result.errors.length);
+  }
+});
+
 test("only failed products fall back, using a whole independent quote", async () => {
   const records = structuredClone(fixture.records.slice(0,2)); records[1].fields[78] = "";
   const calls = [];

@@ -13,7 +13,7 @@ class DeploymentAccessTests(unittest.TestCase):
         return [
             {"AppId": 1432808015, "OwnerUin": 100048848339, "Uin": 100000000001},
             {"FunctionName": access.FUNCTION, "Type": "HTTP", "Environment": {"secret": "do-not-print"}},
-            {"PermissionList": [{"Resource": access.COLLECTION, "ResourceType": "collection", "Permission": "ADMINONLY"}]},
+            {"Data": {"PermissionList": [{"Resource": access.COLLECTION, "ResourceType": "collection", "Permission": "ADMINONLY"}]}},
         ]
 
     def run_check(self, responses):
@@ -30,6 +30,10 @@ class DeploymentAccessTests(unittest.TestCase):
         body = json.loads(command[command.index("--body") + 1])
         self.assertEqual("FALSE", body["ShowCode"])
         self.assertEqual(access.ENV_ID, body["Namespace"])
+        command = run.call_args_list[2].args[0]
+        self.assertEqual(["api", "tcb", "DescribeResourcePermission"], command[:3])
+        body = json.loads(command[command.index("--body") + 1])
+        self.assertEqual([access.COLLECTION], body["Resources"])
         self.assertNotIn("do-not-print", output + json.dumps(result))
 
     def test_wrong_app_or_owner_stops_before_reading_function(self):
@@ -59,11 +63,18 @@ class DeploymentAccessTests(unittest.TestCase):
     def test_public_missing_duplicate_or_other_collection_permission_blocks(self):
         for entries in [[], [{"Resource": access.COLLECTION, "ResourceType": "collection", "Permission": "READONLY"}],
                         [{"Resource": "other", "ResourceType": "collection", "Permission": "ADMINONLY"}],
-                        self.responses()[2]["PermissionList"] * 2]:
+                        self.responses()[2]["Data"]["PermissionList"] * 2]:
             responses = self.responses()
-            responses[2] = {"PermissionList": entries}
+            responses[2] = {"Data": {"PermissionList": entries}}
             result, _, _ = self.run_check(responses)
             self.assertEqual("CACHE_PERMISSION_MISMATCH", result["error_code"])
+
+    def test_missing_permission_response_blocks(self):
+        for permission_response in [{}, {"Data": None}, {"Data": {}}]:
+            responses = self.responses()
+            responses[2] = permission_response
+            result, _, _ = self.run_check(responses)
+            self.assertEqual("INVALID_PERMISSION_RESPONSE", result["error_code"])
 
     def test_cli_failure_reports_only_safe_error_code(self):
         response = subprocess.CompletedProcess([], 1, stdout=json.dumps({"error": {

@@ -154,6 +154,8 @@ Repository Secrets：
 OwnerUin `100048848339`、`qdii-premium-api` 的 HTTP 类型以及缓存集合 `qdii_premium_cache`
 的 `ADMINONLY` 权限。日志和诊断只记录账号标识、检查结果和错误码，不输出密钥、函数代码或
 环境变量；诊断随 Actions artifacts 保存 90 天。`verify_only` 不登录 CloudBase，也不部署或发邮件。
+缓存权限通过只读 `tcb api tcb DescribeResourcePermission` 核对；CLI 3.7.3 已停用
+`permission get`，不得把该命令的零退出码当作权限验证成功，也不迁移缓存授权机制。
 
 CI 子账号需要保留现有 CloudBase 发布权限，并附加专项策略
 `references/cloudbase-ci-function-policy.json`（建议策略名 `qdii-ranking-premium-function-update-v1`）。

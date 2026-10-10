@@ -186,8 +186,7 @@ jobs:
           tcb config update fn qdii-premium-api --env-id run-cool-d2gy0iw957219659c --yes --json
           tcb fn code update qdii-premium-api --env-id run-cool-d2gy0iw957219659c --dir tmp/premium-function --deployMode zip --yes --json
           tcb routes edit --env-id run-cool-d2gy0iw957219659c --data "$(cat references/premium-route.json)" --yes --json
-          tcb permission get collection:qdii_premium_cache --env-id run-cool-d2gy0iw957219659c --json > /tmp/premium-permission.json
-          python -c 'import json; p=json.load(open("/tmp/premium-permission.json")); assert p["data"]["PermissionList"][0]["Permission"] == "ADMINONLY"'
+          python scripts/check_deployment_access.py --output output/qdii-ranking/premium-deployment-access-check.json
           python scripts/validate_premium_service.py --require-live --output output/qdii-ranking/premium-service-check.json
 
       - name: Promote validated ranking baseline
@@ -380,6 +379,7 @@ jobs:
           if-no-files-found: warn
           path: |
             output/qdii-ranking/deployment-access-check.json
+            output/qdii-ranking/premium-deployment-access-check.json
             output/qdii-ranking/candidate-audit.json
             output/qdii-ranking/premium-snapshot.json
             output/qdii-ranking/premium-service-check.json

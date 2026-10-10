@@ -95,8 +95,14 @@ def check_access(run=cli_json, emit=print) -> dict:
         emit(f"Verified HTTP function {FUNCTION}")
 
         stage = "cache_permission"
-        permissions = run(["permission", "get", "collection:" + COLLECTION, "--env-id", ENV_ID])
-        entries = permissions.get("PermissionList")
+        permissions = run([
+            "api", "tcb", "DescribeResourcePermission", "--api-version", "2018-06-08",
+            "--env-id", ENV_ID, "--body", json.dumps({
+                "EnvId": ENV_ID, "ResourceType": "collection", "Resources": [COLLECTION],
+            }),
+        ])
+        permission_data = permissions.get("Data")
+        entries = permission_data.get("PermissionList") if isinstance(permission_data, dict) else None
         if not isinstance(entries, list):
             raise AccessError("INVALID_PERMISSION_RESPONSE")
         matching = [item for item in entries if isinstance(item, dict)

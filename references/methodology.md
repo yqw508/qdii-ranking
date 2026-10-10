@@ -231,6 +231,9 @@ overwriting an existing function, so it is not used for daily updates. A missing
 failure, or live-check failure still blocks publication.
 Production Actions runs check the authenticated AppID/owner, HTTP function identity and private-cache
 permissions before fetching ranking sources. Sanitized identity/check evidence is archived for 90 days;
+cache permissions are read via DescribeResourcePermission because CLI 3.7.3's retired permission get
+command exits successfully without making a request. The same checks run after function deployment;
+no authorization-engine migration is performed.
 function code, environment variables and credentials are not printed. The supplementary CAM policy in
 `cloudbase-ci-function-policy.json` grants only GetFunction, UpdateFunctionConfiguration and
 UpdateFunctionCode on this one function. Attach it to the CI principal identified by the same run,

@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-10-10T10:57:02+08:00",
-  "run_date": "2026-10-10",
+  "generated_at": "2026-10-11T09:54:48+08:00",
+  "run_date": "2026-10-11",
   "catalog_fingerprint": "dba76def9774ae2551e5fe6eb5ceed7fe8e2d2448c7241bc3fc9e88fb421187d",
   "catalog": [
     {
@@ -1233,7 +1233,7 @@
       "source_status": "U",
       "source_url": "https://gu.qq.com/sh501226",
       "source_updated_at": "2026-10-09T01:00:00.000Z",
-      "observed_at": "2026-10-10T02:56:28.712Z"
+      "observed_at": "2026-10-11T01:53:13.985Z"
     }
   ],
   "adapter_version": "multi-source-1",

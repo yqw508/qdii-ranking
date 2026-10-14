@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "run_date": "2026-10-13",
+  "run_date": "2026-10-14",
   "holder_report_date": "2026-06-30",
   "candidate_codes": [
     "000041",
@@ -288,26 +288,26 @@
       "ranking_list": "global_supplement"
     },
     {
-      "code": "100055",
-      "name": "富国全球科技互联网股票(QDII)A",
+      "code": "006282",
+      "name": "摩根欧洲动力策略股票(QDII)A",
       "rank": 5,
       "ranking_list": "global_supplement"
     },
     {
-      "code": "006282",
-      "name": "摩根欧洲动力策略股票(QDII)A",
+      "code": "100055",
+      "name": "富国全球科技互联网股票(QDII)A",
       "rank": 6,
-      "ranking_list": "global_supplement"
-    },
-    {
-      "code": "016664",
-      "name": "天弘全球高端制造混合(QDII)A",
-      "rank": 7,
       "ranking_list": "global_supplement"
     },
     {
       "code": "012060",
       "name": "富国全球消费精选混合(QDII)人民币A",
+      "rank": 7,
+      "ranking_list": "global_supplement"
+    },
+    {
+      "code": "016664",
+      "name": "天弘全球高端制造混合(QDII)A",
       "rank": 8,
       "ranking_list": "global_supplement"
     },

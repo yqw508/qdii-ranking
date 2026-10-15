@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "run_date": "2026-10-14",
+  "run_date": "2026-10-15",
   "holder_report_date": "2026-06-30",
   "candidate_codes": [
     "000041",
@@ -276,14 +276,14 @@
       "ranking_list": "global_supplement"
     },
     {
-      "code": "040021",
-      "name": "华安大中华升级股票(QDII)A",
+      "code": "270023",
+      "name": "广发全球精选股票(QDII)人民币A",
       "rank": 3,
       "ranking_list": "global_supplement"
     },
     {
-      "code": "270023",
-      "name": "广发全球精选股票(QDII)人民币A",
+      "code": "040021",
+      "name": "华安大中华升级股票(QDII)A",
       "rank": 4,
       "ranking_list": "global_supplement"
     },

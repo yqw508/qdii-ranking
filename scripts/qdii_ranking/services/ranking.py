@@ -273,7 +273,7 @@ def scan_documents(
         try:
             result = _evaluate_documents(args, client, as_of, resources, fund)
             args._audit.event(fund["code"], "documents", "evaluated", "documents_resolved", "合同、持仓与额度评估完成",
-                              values={"exposure": result["exposure"], "quota": result["quota"], "quota_error": result["quota_error"]},
+                              values={"exposure": result["exposure"], "quota": result["quota"], "quota_error": result["quota_error"], "quota_warnings": result["quota_warnings"]},
                               thresholds={"min_us_equity_pct": args.min_us_equity_pct, "min_direct_limit_cny": args.min_direct_limit_cny},
                               sources=[result["exposure"].get("source_url", "")])
             return result

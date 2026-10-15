@@ -19,12 +19,15 @@ AGENCY_CHANNEL_PATTERN = r"非直销销售机构|代销机构|代销渠道"
 
 
 def normalize_notice_text(text: str) -> str:
+    # A bare page footer between amount rows must not become an extra share cell.
+    text = re.sub(r"(?m)^[ \t]*\d{1,3}[ \t]*\r?\n(?=[ \t]*下[ \t]*属)", "", text)
     text = text.replace("\u3000", " ").replace("\xa0", " ")
     text = re.sub(r"\s+", " ", text).strip()
     # Some announcement PDFs extract every Chinese character and numeric
     # punctuation as separate text runs. Rejoin those runs before matching.
     text = re.sub(r"(?<=[\u4e00-\u9fff])\s+(?=[\u4e00-\u9fff])", "", text)
-    return re.sub(r"(?<=\d)\s*([,.])\s*(?=\d)", r"\1", text)
+    text = re.sub(r"(?<=\d)\s*([，,.])\s*(?=\d)", lambda m: m.group(1).replace("，", ","), text)
+    return re.sub(r"[（(]单位\s*[：:]\s*人民\s*([\d.,\s-]+)\s*币元[）)]", r"（单位：人民币元）\1", text)
 
 
 def parse_cny_amount(value: str, unit: str) -> int:
@@ -50,7 +53,7 @@ def extract_channel_amount(text: str, channel_pattern: str) -> int | None:
         clause = re.split(r"[。；]", text[channel_match.end() :], maxsplit=1)[0]
         explicit = re.search(
             r"(?:不得超过|不超过|高于|超过|限额(?:调整)?为)\s*"
-            r"([\d][\d,.]*)\s*(万元|元)",
+            r"(?:人民币\s*)?([\d][\d,.]*)\s*(?:人民币\s*)?(万元|元)",
             clause,
         )
         if explicit:
@@ -98,6 +101,7 @@ def extract_global_amount(text: str) -> int | None:
 
 def extract_effective_date(text: str, published: date) -> date:
     patterns = [
+        r"恢复\s*申购\s*日\s*(\d{4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日",
         r"(?:调整|暂停|恢复)[^。；]{0,30}?起始日\s*(\d{4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日",
         r"自\s*(\d{4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日(?:起|（含)",
     ]
@@ -158,10 +162,87 @@ def extract_future_transitions(
     return transitions
 
 
+def _share_table_events(text: str, published: date, source_url: str) -> list[dict[str, Any]] | None:
+    """Keep every disclosed share in the document cache; select the fund later."""
+    codes_match = re.search(r"交易代码\s*((?:\d{6}\s*)+)", text)
+    if not codes_match:
+        return None
+    codes = re.findall(r"\d{6}", codes_match.group(1))
+    tail = text[codes_match.end():]
+    compact = re.sub(r"\s+", "", tail)
+    amounts_match = re.search(r"限制申购金额(.*?)(?:限制定期|2\s*其他|注[：:]|$)", tail, re.S)
+    restored_match = re.search(r"是否恢复上述业务([是否\-－—]+)", compact)
+    if amounts_match:
+        amount_text = amounts_match.group(1)
+        row = re.match(r"\s*(?:[（(][^）)]{0,40}[）)]\s*)?"
+                       r"((?:(?:[\d][\d,.]*|[-－—])\s*(?:元人民币|人民币元|美元|港币元|港元|元)?\s*)+)", amount_text)
+        cells = re.findall(r"([\d][\d,.]*|[-－—])\s*(元人民币|人民币元|美元|港币元|港元|元)?", row.group(1)) if row else []
+        amounts = [cell[0] for cell in cells]
+        units_match = re.search(r"金额单位((?:(?:人民币元|美元|港币元|港元))+)", compact)
+        units = [{"元人民币": "人民币元", "元": "人民币元"}.get(cell[1], cell[1]) for cell in cells]
+        if units_match:
+            units = re.findall(r"人民币元|美元|港币元|港元", units_match.group(1))
+        elif not any(units) and re.search(r"单位\s*[：:]\s*(?:人民币\s*)?元", amount_text):
+            units = ["人民币元"] * len(codes)
+        header = text[:codes_match.start()].rsplit("基金简称", 1)[-1]
+        header_units = re.findall(r"人民币|美元|港币", header)
+        if len(header_units) == len(codes):
+            units = [{"人民币": "人民币元", "美元": "美元", "港币": "港币元"}[u] for u in header_units]
+        if len(amounts) != len(codes) or len(units) != len(codes):
+            raise DataError("Share quota table amounts/currencies do not match its trading codes")
+        if any(not unit and amount not in ("-", "－", "—") for amount, unit in zip(amounts, units)):
+            raise DataError("Share quota table currency is unresolved")
+        rows = [(code, "limited", float(amount.replace(',', '')), unit)
+                for code, amount, unit in zip(codes, amounts, units) if amount not in ("-", "－", "—")]
+    elif restored_match:
+        flags = list(restored_match.group(1))
+        if len(flags) != len(codes):
+            raise DataError("Share restoration table does not match its trading codes")
+        rows = [(code, "unchanged", None, None)
+                for code, flag in zip(codes, flags) if flag == "是"]
+    else:
+        return None
+    direct_only = bool(re.search(r"(?:调整|限制|暂停)直销(?:机构|渠道)", text[:180]))
+    direct_override = extract_channel_amount(text, DIRECT_CHANNEL_PATTERN)
+    agency_override = extract_channel_amount(text, AGENCY_CHANNEL_PATTERN)
+    title_class = re.search(r"([ACDE])\s*类基金份额", text.split("公告", 1)[0])
+    header = text[:codes_match.start()].rsplit("基金简称", 1)[-1]
+    classes = [a or b for a, b in re.findall(r"[）)]\s*([ACDE])|(?:人民币|美元(?:现汇|现钞)?)\s*([ACDE])", header)]
+
+    def scoped_override(code: str, pattern: str, amount: int | None) -> int | None:
+        if title_class and len(classes) == len(codes) and classes[codes.index(code)] != title_class.group(1):
+            return None
+        match = re.search(pattern, text)
+        if match:
+            clause = re.split(r"[。；]", text[match.end():], maxsplit=1)[0]
+            scope = re.findall(r"(?<!\d)\d{6}(?!\d)", clause)
+            if scope and code not in scope:
+                return None
+        return amount
+
+    return [{
+        "effective_date": extract_effective_date(text, published),
+        "direct_amount_cny": (int(amount) if direct_only else scoped_override(code, DIRECT_CHANNEL_PATTERN, direct_override)) if unit == "人民币元" else None,
+        "agency_amount_cny": scoped_override(code, AGENCY_CHANNEL_PATTERN, agency_override) if unit == "人民币元" and not direct_only else None,
+        "global_amount_cny": int(amount) if unit == "人民币元" and not direct_only else None,
+        "global_status": status, "subscription_status": "open",
+        "share_codes": [code],
+        "currency": {"人民币元": "CNY", "美元": "USD", "港币元": "HKD", "港元": "HKD"}.get(unit),
+        "source_amount": amount, "source_url": source_url,
+        "published_date": published.isoformat(),
+        "share_aggregation": detect_share_aggregation(text),
+        "all_channels_combined": "全部销售机构累计" in re.sub(r"\s+", "", text),
+        "confidence": "high",
+    } for code, status, amount, unit in rows]
+
+
 def parse_quota_notice(
     text: str, published: date, source_url: str
 ) -> list[dict[str, Any]]:
     normalized = normalize_notice_text(text)
+    table_events = _share_table_events(normalized, published, source_url)
+    if table_events is not None:
+        return table_events
     direct = extract_channel_amount(
         normalized, DIRECT_CHANNEL_PATTERN
     )
@@ -179,6 +260,12 @@ def parse_quota_notice(
             and not future_restore
         ):
             global_status = "unlimited"
+        elif (
+            re.search(r"恢复(?:办理)?(?:人民币份额)?申购", compact)
+            and re.search(r"恢复申购日\d{4}年\d{1,2}月\d{1,2}日|自\d{4}年\d{1,2}月\d{1,2}日起[^。]{0,80}恢复", compact)
+            and not re.search(r"恢复[^。]{0,40}(?:时间|日期)[^。]{0,20}另行公告", compact)
+        ):
+            global_status = "unchanged"
         else:
             return []
     else:
@@ -189,6 +276,7 @@ def parse_quota_notice(
         "agency_amount_cny": agency,
         "global_amount_cny": global_amount,
         "global_status": global_status,
+        "subscription_status": "open" if global_status == "unchanged" else None,
         "source_url": source_url,
         "published_date": published.isoformat(),
         "share_aggregation": detect_share_aggregation(normalized),
@@ -255,9 +343,13 @@ def resolve_quota(
     all_channels_combined = False
     applied_sources: set[str] = set()
     transitions: list[dict[str, Any]] = []
+    evidence: list[dict[str, Any]] = []
+    failures: list[dict[str, Any]] = []
     latest_unparsed_notice_date: date | None = None
     notices = fetch_announcements(client, fund["code"], as_of, snapshot=snapshot)
     for notice in notices:
+        entry = {"announcement_id": str(notice["id"]), "title": notice["title"],
+                 "published_date": notice["published"].isoformat(), "source_url": notice["url"]}
         try:
             if notice_cache is not None:
                 if document_cache is None:
@@ -287,14 +379,22 @@ def resolve_quota(
                 )
             if not parsed_transitions:
                 raise DataError("quota notice produced no effective limit transition")
-            transitions.extend(parsed_transitions)
+            selected = [item for item in parsed_transitions
+                        if not item.get("share_codes") or fund["code"] in item["share_codes"]]
+            if any(item.get("currency") not in (None, "CNY") for item in selected):
+                raise DataError("Selected quota is not denominated in CNY")
+            transitions.extend(selected)
+            entry.update(status="parsed" if selected else "not_applicable", transitions=[
+                {**item, "effective_date": item["effective_date"].isoformat()} for item in selected])
         except DataError as exc:
-            warnings.append(f"{fund['code']} quota notice could not be parsed: {exc}")
+            entry.update(status="unresolved", error=str(exc))
+            failures.append(entry)
             if (
                 latest_unparsed_notice_date is None
                 or notice["published"] > latest_unparsed_notice_date
             ):
                 latest_unparsed_notice_date = notice["published"]
+        evidence.append(entry)
 
     if latest_unparsed_notice_date is not None:
         # A newer unreadable limit notice invalidates page state and older
@@ -307,7 +407,14 @@ def resolve_quota(
             if parse_date(str(item["published_date"])) > latest_unparsed_notice_date
         ]
 
-    transitions.sort(key=lambda item: (item["effective_date"], item["published_date"]))
+    # A restoration of ordinary subscriptions does not remove a monetary ceiling.
+    # Apply same-day general restoration before explicit caps, independent of index order.
+    transitions.sort(key=lambda item: (item["effective_date"], item["published_date"],
+                                       item.get("global_status", "limited") == "limited",
+                                       item["source_url"]))
+    current_subscription = None
+    day_limits: dict[tuple, set[int]] = {}
+    conflicting: set[str] = set()
     for transition in transitions:
         if transition["effective_date"] > as_of:
             continue
@@ -315,10 +422,26 @@ def resolve_quota(
             aggregation = transition["share_aggregation"]
         if transition.get("all_channels_combined"):
             all_channels_combined = True
+        if transition.get("subscription_status"):
+            current_subscription = transition["subscription_status"]
+            applied_sources.add(transition["source_url"])
         global_amount = transition.get("global_amount_cny")
         direct_amount = transition.get("direct_amount_cny")
         agency_amount = transition.get("agency_amount_cny")
         global_status = transition.get("global_status", "limited")
+        for channel, amount in (("direct", direct_amount if direct_amount is not None else global_amount),
+                                ("agency", agency_amount if agency_amount is not None else global_amount)):
+            if amount is not None:
+                key = (transition["effective_date"], transition["published_date"], channel)
+                day_limits.setdefault(key, set()).add(amount)
+                if len(day_limits[key]) > 1:
+                    conflicting.add(channel)
+            # A later fully dated transition can supersede an earlier conflict.
+            if amount is not None or global_status == "unlimited":
+                if not any(k[2] == channel and len(v) > 1 and k[:2] >=
+                           (transition["effective_date"], transition["published_date"])
+                           for k, v in day_limits.items()):
+                    conflicting.discard(channel)
         if direct_amount is not None:
             apply_limit(direct, "limited", direct_amount, transition)
             applied_sources.add(transition["source_url"])
@@ -336,6 +459,19 @@ def resolve_quota(
                 apply_limit(agency, "limited", global_amount, transition)
             applied_sources.add(transition["source_url"])
 
+    for channel in conflicting:
+        state = direct if channel == "direct" else agency
+        state.update(new_limit_state())
+        warnings.append(f"{fund['code']} quota notice could not be parsed: conflicting same-day {channel} ceilings")
+    for failure in failures:
+        superseded = all(state["status"] != "unknown" and state.get("source_url") and
+                         any(item["source_url"] == state["source_url"] and
+                             item["published_date"] > failure["published_date"] for item in transitions)
+                         for state in (direct, agency))
+        failure["status"] = "superseded" if superseded else "unresolved"
+        detail = f"{failure['announcement_id']} {failure['title']} ({failure['source_url']}): {failure['error']}"
+        warnings.append(f"{fund['code']} 历史额度公告解析失败，已被后续明确额度覆盖：{detail}" if superseded else
+                        f"{fund['code']} quota notice could not be parsed: {detail}")
     if direct["status"] == "unknown" or agency["status"] == "unknown":
         warnings.append(
             f"{fund['code']} 的申购额度无法确定；引用前请核对关联公告。"
@@ -365,6 +501,8 @@ def resolve_quota(
             "share_class_rule": aggregation,
             "channel_rule": channel_rule,
             "quota_source_urls": sorted(applied_sources),
+            "subscription_status": current_subscription,
+            "notice_evidence": evidence,
         },
         warnings,
     )

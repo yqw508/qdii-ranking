@@ -110,6 +110,9 @@ def validate_local_artifacts(
     if payload.get("candidate_audit_version") == 1:
         from qdii_ranking.audit import validate_audit
         validate_audit(payload, output_dir / "candidate-audit.json")
+    else:
+        require(not any("历史额度公告解析失败，已被后续明确额度覆盖：" in w for w in payload.get("warnings", [])),
+                "Superseded quota warnings require candidate audit evidence")
     if payload.get("freshness_policy_version") == 1:
         from qdii_ranking.freshness import validate_freshness
         require("freshness" in payload["benchmark"], "Missing benchmark freshness evidence")

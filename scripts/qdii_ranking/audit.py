@@ -128,6 +128,42 @@ def baseline_from_payload(payload, audit):
                         for r in [*payload['records'], *payload['global_supplement']['records']]]}
 
 
+def validate_superseded_quotas(payload, audit):
+    """A reportable historical parse failure needs later effective channel evidence."""
+    for warning in payload.get('warnings', []):
+        match = re.match(r'^(\d{6}) 历史额度公告解析失败，已被后续明确额度覆盖：(\S+) ', warning)
+        if not match:
+            continue
+        code, notice_id = match.groups()
+        records = [r for r in audit['records'] if r['code'] == code]
+        quotas = [e['values'].get('quota') for r in records for e in r['events']
+                  if e['reason'] == 'documents_resolved']
+        if len(quotas) != 1 or not isinstance(quotas[0], dict):
+            raise DataError(f'{code}: superseded quota warning has no audit evidence')
+        quota = quotas[0]
+        evidence = quota.get('notice_evidence', [])
+        failed = [n for n in evidence if n['announcement_id'] == notice_id and n['status'] == 'superseded']
+        if len(failed) != 1:
+            raise DataError(f'{code}: superseded quota notice is missing')
+        failure = failed[0]
+        for channel in ('direct', 'agency'):
+            state = quota[channel + '_limit']
+            proofs = [t for n in evidence if n['status'] == 'parsed' for t in n.get('transitions', [])
+                      if t['source_url'] == state.get('source_url')
+                      and failure['published_date'] < t['published_date'] <= payload['run_date']
+                      and t['effective_date'] <= payload['run_date']
+                      and (not t.get('share_codes') or code in t['share_codes'])
+                      and t.get('currency') in (None, 'CNY')]
+            def establishes(t):
+                amount = t.get(channel + '_amount_cny')
+                if amount is None:
+                    amount = t.get('global_amount_cny')
+                return (state['status'] == 'limited' and amount is not None and amount == state['amount_cny']) or (
+                    state['status'] == 'unlimited' and t.get('global_status') == 'unlimited')
+            if not any(establishes(t) for t in proofs):
+                raise DataError(f'{code}: superseded quota has no effective {channel} replacement')
+
+
 def validate_audit(payload, path):
     try:
         raw = path.read_bytes()
@@ -151,6 +187,7 @@ def validate_audit(payload, path):
             documents_count = sum(any(e["reason"] == "documents_resolved" for e in r["events"]) for r in records)
             if performance_count != payload["filters"]["performance_candidates_scanned"] or documents_count != payload["filters"]["contract_candidates_scanned"]:
                 raise ValueError("audit scan counters disagree")
+        validate_superseded_quotas(payload, audit)
         return audit
     except (OSError, ValueError, KeyError, TypeError) as exc:
         raise DataError(f'Candidate audit validation failed: {exc}') from exc

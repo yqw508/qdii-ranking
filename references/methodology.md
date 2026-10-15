@@ -122,11 +122,20 @@ ranking date. A later transition overrides an earlier one for the same channel.
 - A direct-sale amount updates direct sale only; an agency amount updates agency sale only.
 - A notice without channel distinction updates both. `全部销售机构累计` is one shared ceiling and must
   not be added across channels.
-- A restoration notice sets `unlimited` only when it contains no replacement ceiling. Future automatic
-  restoration is a separate transition.
+- Restoring ordinary subscriptions is a subscription-status transition and does not cancel an existing
+  monetary ceiling. An explicit restoration of large subscriptions sets `unlimited` only when it contains
+  no replacement ceiling. Future automatic restoration is a separate transition.
+- Merge notices by effective date and publication date. A same-day explicit ceiling constrains a general
+  restoration regardless of announcement-index order. Conflicting same-day monetary ceilings remain
+  unresolved unless a later dated transition establishes a new state.
+- Bind share-table amounts and currencies to their disclosed trading codes. Cache all share events by
+  document, then select the requested RMB share; never use another share's or currency's first amount.
 - Unreadable or ambiguous active notices make the affected quota unknown. Never infer a value.
 - A notice selected as quota-relevant by its title must produce at least one effective transition. If
   it does not, mark the quota unresolved instead of retaining an older announcement state.
+- Archive notice IDs, titles, links, selected events and parse failures in the candidate audit. An older
+  failed notice remains visible as superseded only after later effective, readable monetary transitions
+  establish both channel states; a status-only restoration cannot clear that failure.
 
 ## Cache And Output
 

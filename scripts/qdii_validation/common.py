@@ -252,6 +252,8 @@ def is_reportable_warning(warning: str) -> bool:
         return True
     if "quota notice could not be parsed" in warning:
         return True
+    if re.match(r"^\d{6} 历史额度公告解析失败，已被后续明确额度覆盖：", warning):
+        return True
     if warning.startswith(("美国主榜仅 ", "全球补充榜仅 ")):
         return True
     if warning.startswith(("场内溢价告警：", "场内费率告警 ", "场外纳指100告警 ")):

@@ -13,6 +13,157 @@ from qdii_ranking.cache.quota import PARSER_FINGERPRINT
 
 
 class QuotaNoticeTests(unittest.TestCase):
+    def fixture(self, name):
+        return (Path(__file__).resolve().parents[2] / "fixtures" / "quota" / name).read_text(encoding="utf-8")
+
+    def resolve_texts(self, texts, as_of=date(2026, 10, 15)):
+        notices = [{"id": key, "title": "恢复或限制申购公告", "published": published,
+                    "url": f"https://example.test/{key}.pdf"} for key, published, _ in texts]
+        bodies = {key: body for key, _, body in texts}
+        class Cache:
+            def get_text(self, _client, document, _referer):
+                return bodies[document.announcement_id]
+        with patch("qdii_ranking.sources.quota.fetch_announcements", return_value=notices):
+            return ranking.resolve_quota(object(), {
+                "code": "001668", "purchase_status": "limited", "page_agency_limit_cny": 300,
+                "fund_page_url": "https://example.test/001668"}, as_of, Cache())
+
+    def test_real_restore_and_cap_are_order_independent_and_audited(self):
+        notices = [("restore", date(2026, 10, 13), self.fixture("001668-restore.txt")),
+                   ("cap", date(2026, 10, 13), self.fixture("001668-cap.txt"))]
+        for order in (notices, list(reversed(notices))):
+            quota, warnings = self.resolve_texts(order)
+            self.assertEqual([], warnings)
+            self.assertEqual("open", quota["subscription_status"])
+            for channel in ("direct_limit", "agency_limit"):
+                self.assertEqual("limited", quota[channel]["status"])
+                self.assertEqual(300, quota[channel]["amount_cny"])
+                self.assertEqual("2026-10-13", quota[channel]["effective_date"])
+            self.assertEqual(["https://example.test/cap.pdf", "https://example.test/restore.pdf"], quota["quota_source_urls"])
+            self.assertEqual({"restore", "cap"}, {e["announcement_id"] for e in quota["notice_evidence"]})
+            self.assertTrue(all(t["share_codes"] == ["001668"] for e in quota["notice_evidence"] for t in e["transitions"]))
+
+    def test_share_table_keeps_currency_and_amount_bound_to_code(self):
+        events = ranking.parse_quota_notice(self.fixture("001668-cap.txt"), date(2026, 10, 13), "https://example.test/cap")
+        by_code = {e["share_codes"][0]: e for e in events}
+        self.assertEqual({"001668", "015202", "015203", "006426"}, set(by_code))
+        for code in ("001668", "015202", "015203"):
+            self.assertEqual(("CNY", 300), (by_code[code]["currency"], by_code[code]["global_amount_cny"]))
+        self.assertEqual(("USD", 50, None), (by_code["006426"]["currency"], by_code["006426"]["source_amount"], by_code["006426"]["global_amount_cny"]))
+        changed = self.fixture("001668-cap.txt").replace("300.00 300.00 300.00 50.00", "200.00 400.00 600.00 50.00")
+        events = ranking.parse_quota_notice(changed, date(2026, 10, 13), "https://example.test/cap")
+        self.assertEqual([200, 400, 600, None], [e["global_amount_cny"] for e in events])
+
+    def test_restoration_table_excludes_unrestored_usd_share(self):
+        events = ranking.parse_quota_notice(self.fixture("001668-restore.txt"), date(2026, 10, 13), "https://example.test/restore")
+        self.assertEqual(["001668", "015202", "015203"], [e["share_codes"][0] for e in events])
+        self.assertTrue(all(e["global_status"] == "unchanged" for e in events))
+
+    def test_real_channel_overrides_survive_share_table_parsing(self):
+        events = ranking.parse_quota_notice(self.fixture("000043-channel-caps.txt"), date(2025, 11, 4), "https://example.test/harvest")
+        rmb = next(e for e in events if e["share_codes"] == ["000043"])
+        self.assertEqual((100000, 100, 100), (rmb["direct_amount_cny"], rmb["agency_amount_cny"], rmb["global_amount_cny"]))
+        events = ranking.parse_quota_notice(self.fixture("001668-direct-cap.txt"), date(2026, 9, 8), "https://example.test/direct")
+        rmb = next(e for e in events if e["share_codes"] == ["001668"])
+        self.assertEqual((50000, None, None), (rmb["direct_amount_cny"], rmb["agency_amount_cny"], rmb["global_amount_cny"]))
+        quota, warnings = self.resolve_texts([
+            ("old", date(2026, 9, 3), "申购业务限额为1000元"),
+            ("direct", date(2026, 9, 8), self.fixture("001668-direct-cap.txt"))])
+        self.assertEqual([], warnings)
+        self.assertEqual((50000, 1000), (quota["direct_limit"]["amount_cny"], quota["agency_limit"]["amount_cny"]))
+
+    def test_real_document_cache_is_shared_without_losing_share_scope(self):
+        notice = {"id": "cap", "title": "限制大额申购公告", "published": date(2026, 10, 13),
+                  "url": "https://example.test/cap"}
+        documents = Mock()
+        documents.get_text.return_value = self.fixture("001668-cap.txt")
+        with TemporaryDirectory() as directory:
+            cold = ranking.QuotaNoticeParseCache(Path(directory)).get(object(),
+                {"code": "001668", "fund_page_url": "https://example.test/001668"}, notice, documents)
+            warm = ranking.QuotaNoticeParseCache(Path(directory)).get(object(),
+                {"code": "015202", "fund_page_url": "https://example.test/015202"}, notice, documents)
+            self.assertEqual(cold, warm)
+            self.assertEqual(4, len(warm))
+            self.assertEqual(1, documents.get_text.call_count)
+
+    def test_existing_share_table_layouts_keep_rows_and_currencies(self):
+        cases = [("040046", [5, 5]), ("539001", [None, 10, None, 10, 10]),
+                 ("012060", [1000000, None, 1000000, 1000000])]
+        for code, amounts in cases:
+            with self.subTest(code=code):
+                events = ranking.parse_quota_notice(self.fixture(f"{code}-share-table.txt"), date(2026, 10, 15), "https://example.test/table")
+                self.assertEqual(amounts, [e["global_amount_cny"] for e in events])
+        events = ranking.parse_quota_notice(self.fixture("539001-share-table.txt"), date(2026, 10, 15), "https://example.test/table")
+        self.assertEqual(50, next(e for e in events if e["share_codes"] == ["539001"])["direct_amount_cny"])
+        self.assertIsNone(next(e for e in events if e["share_codes"] == ["023422"])["direct_amount_cny"])
+
+    def test_inline_yuan_cells_and_a_c_aggregation(self):
+        text = "交易代码 457001 021662 下属分级基金的限制申购金额 1,000.00 元 1,000.00 元 下属分级基金的限制定期定额投资金额1000元1000元。上述规则针对本基金A 级和C 级合并计算进行限制。"
+        events = ranking.parse_quota_notice(text, date(2026, 8, 4), "https://example.test/table")
+        self.assertEqual([1000, 1000], [e["global_amount_cny"] for e in events])
+        self.assertTrue(all(e["share_aggregation"] == "A/C combined" for e in events))
+
+    def test_pdf_page_marker_fullwidth_comma_and_interleaved_unit(self):
+        cases = [("006555", [1000, 1000]), ("006373", [300000, 300000, None, None]),
+                 ("164212", [100, 1000])]
+        for code, amounts in cases:
+            with self.subTest(code=code):
+                events = ranking.parse_quota_notice(self.fixture(f"{code}-share-table.txt"), date(2026, 10, 15), "https://example.test/table")
+                self.assertEqual(amounts, [e["global_amount_cny"] for e in events])
+        events = ranking.parse_quota_notice(self.fixture("164212-share-table.txt"), date(2026, 10, 15), "https://example.test/table")
+        self.assertIsNone(events[0]["direct_amount_cny"])
+
+    def test_superseded_failure_requires_effective_audit_proof_for_both_channels(self):
+        from qdii_ranking.audit import validate_superseded_quotas
+        quota, warnings = self.resolve_texts([("bad", date(2026, 10, 12), "正文不可读"),
+            ("cap", date(2026, 10, 13), self.fixture("001668-cap.txt"))])
+        payload = {"warnings": warnings, "run_date": "2026-10-15"}
+        audit = {"records": [{"code": "001668", "events": [
+            {"reason": "documents_resolved", "values": {"quota": quota}}]}]}
+        validate_superseded_quotas(payload, audit)
+        quota["agency_limit"]["source_url"] = "https://example.test/unproven"
+        with self.assertRaisesRegex(ranking.DataError, "no effective agency replacement"):
+            validate_superseded_quotas(payload, audit)
+
+    def test_restore_does_not_erase_ceiling_or_invent_unlimited(self):
+        restore = ("restore", date(2026, 10, 13), self.fixture("001668-restore.txt"))
+        quota, _ = self.resolve_texts([restore])
+        self.assertEqual("unknown", quota["direct_limit"]["status"])
+        quota, warnings = self.resolve_texts([("old", date(2026, 10, 12), "申购业务限额为200元"), restore])
+        self.assertEqual([], warnings)
+        self.assertEqual(200, quota["direct_limit"]["amount_cny"])
+
+    def test_future_restore_and_cap_not_applied(self):
+        quota, _ = self.resolve_texts([
+            ("restore", date(2026, 10, 13), self.fixture("001668-restore.txt").replace("10 月 13 日", "10 月 16 日")),
+            ("cap", date(2026, 10, 13), self.fixture("001668-cap.txt").replace("10 月 13 日", "10 月 16 日"))])
+        self.assertIsNone(quota["subscription_status"])
+        self.assertEqual("unknown", quota["direct_limit"]["status"])
+
+    def test_historical_unparsed_notice_can_be_superseded_but_not_by_restore(self):
+        failed = ("bad", date(2026, 10, 12), "公告正文无法提取")
+        restore = ("restore", date(2026, 10, 13), self.fixture("001668-restore.txt"))
+        quota, warnings = self.resolve_texts([failed, restore])
+        self.assertEqual("unknown", quota["direct_limit"]["status"])
+        self.assertTrue(any("quota notice could not be parsed" in w and "bad" in w for w in warnings))
+        quota, warnings = self.resolve_texts([failed, restore,
+            ("cap", date(2026, 10, 13), self.fixture("001668-cap.txt"))])
+        self.assertEqual(300, quota["direct_limit"]["amount_cny"])
+        self.assertFalse(any("quota notice could not be parsed" in w for w in warnings))
+        self.assertEqual("superseded", quota["notice_evidence"][0]["status"])
+
+    def test_conflicting_same_day_caps_remain_unresolved(self):
+        for order in ([200, 300], [300, 200]):
+            quota, warnings = self.resolve_texts([
+                (str(amount), date(2026, 10, 13), f"申购业务限额为{amount}元") for amount in order])
+            self.assertEqual("unknown", quota["direct_limit"]["status"])
+            self.assertTrue(any("conflicting same-day" in w for w in warnings))
+
+    def test_malformed_share_table_never_falls_back_to_first_amount(self):
+        text = self.fixture("001668-cap.txt").replace("300.00 300.00 300.00 50.00", "300.00 50.00")
+        with self.assertRaisesRegex(ranking.DataError, "amounts/currencies"):
+            ranking.parse_quota_notice(text, date(2026, 10, 13), "https://example.test/cap")
+
     def test_business_cap_title_is_selected(self):
         title = "关于调整某基金人民币销售申购、定期定额申购业务上限的公告"
         self.assertIsNotNone(ranking.NOTICE_TITLE_RE.search(title))

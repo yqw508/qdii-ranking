@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-10-17T09:19:36+08:00",
-  "run_date": "2026-10-17",
+  "generated_at": "2026-10-18T09:02:13+08:00",
+  "run_date": "2026-10-18",
   "catalog_fingerprint": "dba76def9774ae2551e5fe6eb5ceed7fe8e2d2448c7241bc3fc9e88fb421187d",
   "catalog": [
     {
@@ -1233,7 +1233,7 @@
       "source_status": "U",
       "source_url": "https://gu.qq.com/sh501226",
       "source_updated_at": "2026-10-16T01:00:00.000Z",
-      "observed_at": "2026-10-17T01:19:08.235Z"
+      "observed_at": "2026-10-18T01:01:38.768Z"
     }
   ],
   "adapter_version": "multi-source-1",
@@ -4553,7 +4553,7 @@
       "adapter_version": "tencent-1",
       "quote_delay_minutes": null,
       "quote_source_url": "https://gu.qq.com/sz160125",
-      "quote_status": "fresh",
+      "quote_status": "stale",
       "holding_cost": {
         "status": "parsed",
         "annualized_pct": 1.44,
@@ -4658,7 +4658,7 @@
       "adapter_version": "tencent-1",
       "quote_delay_minutes": null,
       "quote_source_url": "https://gu.qq.com/sz160644",
-      "quote_status": "fresh",
+      "quote_status": "stale",
       "holding_cost": {
         "status": "parsed",
         "annualized_pct": 1.47,
@@ -5323,7 +5323,7 @@
       "adapter_version": "tencent-1",
       "quote_delay_minutes": null,
       "quote_source_url": "https://gu.qq.com/sz160416",
-      "quote_status": "fresh",
+      "quote_status": "stale",
       "holding_cost": {
         "status": "parsed",
         "annualized_pct": 1.07,

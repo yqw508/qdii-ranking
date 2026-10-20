@@ -17,6 +17,7 @@ TEXT = FIXTURE.read_text(encoding="utf-8")
 NAME = "华泰柏瑞中证韩交所中韩半导体交易型开放式指数证券投资基金（QDII）"
 HEADER = "华泰柏瑞中韩半导体 ETF 发起式联接（QDII）2026 年中期报告\n第 46页 共 56页"
 TAIL = "型开放式\n指数证券\n投资基金\n（QDII）"
+WRAPPED_AMOUNT = (FIXTURE.parent / "019524-wrapped-amount.txt").read_text(encoding="utf-8")
 
 
 def parse(text=TEXT):
@@ -24,6 +25,22 @@ def parse(text=TEXT):
 
 
 class CrossPageHoldingTests(unittest.TestCase):
+    def test_019524_amount_wrapped_before_comma_and_name_across_page(self):
+        rows = parse_fund_investment_rows(clean_report_text(WRAPPED_AMOUNT), "019524")
+        self.assertEqual([
+            {"rank": 1, "fund_name": "华泰柏瑞纳斯达克100交易型开放式指数证券投资基金（QDII）",
+             "weight_pct": 91.04, "reported_category": None}
+        ], rows)
+
+    def test_wrapped_amount_still_requires_valid_grouping_and_explicit_weight(self):
+        for text in (
+            WRAPPED_AMOUNT.replace(",189.04", ",18.04"),
+            WRAPPED_AMOUNT.replace(" 91.04", ""),
+            WRAPPED_AMOUNT.replace(" 91.04", "").replace("7.11 投资组合报告附注", "注：91.04\n7.11 投资组合报告附注"),
+        ):
+            with self.subTest(text=text), self.assertRaises(DataError):
+                parse_fund_investment_rows(clean_report_text(text), "019524")
+
     def test_real_report_preserves_full_name_and_only_one_holding(self):
         self.assertEqual([
             {"rank": 1, "fund_name": NAME, "weight_pct": 94.82, "reported_category": None}

@@ -60,7 +60,9 @@ where the source is ranking-critical; conditional 304 revalidation behavior is u
   A report-title plus numbered-page boundary may separate a Chinese fund-name suffix from its prefix.
   Reassemble only a demonstrable legal-name continuation within the same row, excluding headers,
   managers, following holdings and notes. Ambiguous or missing continuations remain parse failures.
-  Exposure method version 3 rebuilds derived exposure results while retaining independent caches.
+  Comma-grouped holding amounts may wrap immediately before a comma; every three-digit group and
+  the adjacent explicit weight remain mandatory. Exposure method version 4 rebuilds derived
+  exposure results while retaining independent caches.
 - Require confirmed US-equity exposure of at least 50% and no configured geography keyword in the fund
   name. A critical report or table parse failure stops the run. Contract benchmark classification does
   not decide list placement.

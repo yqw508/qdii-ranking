@@ -39,8 +39,9 @@ def parse_index_holding_row(raw: str, rank: int, code: str) -> dict[str, Any] | 
     first_page = pages[0].strip()
     # Only an amount immediately followed by its percentage ends this row.
     # Notes, section numbers and amounts on the following page are not weights.
+    # PDF lines may wrap before a comma, but thousands groups stay three digits.
     values = re.fullmatch(
-        r"(?P<manager>.+?)\s+(?P<amount>(?:\d{1,3}(?:,\d{3})+|\d+)\.\d{2})"
+        r"(?P<manager>.+?)\s+(?P<amount>(?:\d{1,3}(?:\s*,\d{3})+|\d+)\.\d{2})"
         r"\s+(?P<weight>\d{1,3}\.\d{2}|-)\s*",
         first_page[match.end():], re.S,
     )

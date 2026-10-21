@@ -109,6 +109,7 @@ def _write_csv(path: Path, payload: dict[str, Any]) -> None:
         "us_equity_source_url",
         "purchase_status",
         "direct_limit",
+        "institutional_direct_limit",
         "agency_limit",
         "share_class_rule",
         "channel_rule",
@@ -186,6 +187,7 @@ def _write_csv(path: Path, payload: dict[str, Any]) -> None:
                     "us_equity_report_date": exposure.get("report_date"),
                     "us_equity_source_url": exposure.get("source_url"),
                     "direct_limit": format_limit(item["direct_limit"]),
+                    "institutional_direct_limit": format_limit(item.get("institutional_direct_limit", {"status": "unknown", "amount_cny": None})),
                     "agency_limit": format_limit(item["agency_limit"]),
                     "quota_source_urls": " | ".join(item["quota_source_urls"]),
                 }

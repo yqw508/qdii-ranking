@@ -236,7 +236,7 @@ def _share_table_events(text: str, published: date, source_url: str) -> list[dic
     } for code, status, amount, unit in rows]
 
 
-def parse_quota_notice(
+def _parse_single_quota_notice(
     text: str, published: date, source_url: str
 ) -> list[dict[str, Any]]:
     normalized = normalize_notice_text(text)
@@ -293,6 +293,170 @@ def parse_quota_notice(
     return transitions
 
 
+def _investor_events(text: str, published: date, source_url: str, *, strict: bool = False) -> list[dict[str, Any]]:
+    """Keep investor-specific channel clauses out of the generic amount search."""
+    normalized = normalize_notice_text(text)
+    channel_re = re.compile(f"(?:{DIRECT_CHANNEL_PATTERN}|{AGENCY_CHANNEL_PATTERN})")
+    channels = list(channel_re.finditer(normalized))
+    typed = any(re.search(r"个人投资者|机构投资者", normalized[m.end():
+                channels[i + 1].start() if i + 1 < len(channels) else len(normalized)])
+                for i, m in enumerate(channels))
+    investor_types = set(re.findall(r"个人投资者|机构投资者", normalized))
+    if not typed and not strict:
+        events = _parse_single_quota_notice(normalized, published, source_url)
+        kind = "personal" if investor_types == {"个人投资者"} else (
+            "institutional" if investor_types == {"机构投资者"} else "all")
+        return [{**event, "investor_type": kind, "evidence_text": normalized} for event in events]
+
+    effective = extract_effective_date(normalized, published)
+    events: list[dict[str, Any]] = []
+    for i, match in enumerate(channels):
+        end = channels[i + 1].start() if i + 1 < len(channels) else len(normalized)
+        clause = re.split(r"[。；]", normalized[match.end():end], maxsplit=1)[0]
+        # A shared '直销机构和代销机构...100元' cap belongs to both channels.
+        if not find_amounts(clause) and re.fullmatch(r"\s*(?:和|及|、)\s*", clause) and i + 1 < len(channels):
+            next_end = channels[i + 2].start() if i + 2 < len(channels) else len(normalized)
+            clause += re.split(r"[。；]", normalized[channels[i + 1].end():next_end], maxsplit=1)[0]
+        markers = list(re.finditer(r"个人投资者|机构投资者", clause))
+        prefix = re.split(r'[。；，、]', normalized[:match.start()])[-1]
+        prefix_types = re.findall(r'个人投资者|机构投资者', prefix)
+        default_kind = ('personal' if prefix_types[-1] == '个人投资者' else 'institutional') if prefix_types else 'all'
+        pieces = [(default_kind, clause)] if not markers else [
+            ("personal" if marker.group() == "个人投资者" else "institutional",
+             clause[marker.start():markers[j + 1].start() if j + 1 < len(markers) else len(clause)])
+            for j, marker in enumerate(markers)]
+        for kind, piece in pieces:
+            amounts = {value for _, value, _ in find_amounts(piece)}
+            if not amounts:
+                # Titles, channel definitions and repeated references are not
+                # monetary rules; do not borrow amounts from another clause.
+                continue
+            if len(amounts) != 1:
+                raise DataError("Investor-specific quota clause has no unambiguous channel ceiling")
+            amount = amounts.pop()
+            channel = "agency" if re.fullmatch(AGENCY_CHANNEL_PATTERN, match.group()) else "direct"
+            events.append({
+                "effective_date": effective, "direct_amount_cny": None,
+                "agency_amount_cny": None, "global_amount_cny": None,
+                channel + "_amount_cny": amount, "global_status": "limited",
+                "subscription_status": None, "source_url": source_url,
+                "published_date": published.isoformat(), "investor_type": kind,
+                "share_aggregation": detect_share_aggregation(normalized),
+                "all_channels_combined": "全部销售机构累计" in normalized,
+                "confidence": "high", "evidence_text": match.group() + piece,
+            })
+    # Preserve the existing combined channel shape when the scopes agree.
+    merged = {}
+    for event in events:
+        key = (event['effective_date'], event['investor_type'])
+        if key not in merged:
+            merged[key] = event.copy()
+        else:
+            for channel in ('direct', 'agency'):
+                field = channel + '_amount_cny'
+                value = event.get(field)
+                if value is not None:
+                    if merged[key].get(field) not in (None, value):
+                        raise DataError('Conflicting investor-specific channel ceilings')
+                    merged[key][field] = value
+    # A channel without an investor qualifier also applies to personal investors.
+    if set(merged) == {(effective, 'all'), (effective, 'personal')}:
+        general = merged[(effective, 'all')]
+        personal = merged[(effective, 'personal')]
+        if all(personal.get(c + '_amount_cny') is None or general.get(c + '_amount_cny') is None
+               for c in ('direct', 'agency')):
+            # Keep the all-investor event for institutional resolution as well.
+            personal = {**personal}
+            for c in ('direct', 'agency'):
+                if personal.get(c + '_amount_cny') is None:
+                    personal[c + '_amount_cny'] = general.get(c + '_amount_cny')
+            return [personal, general]
+    if not merged:
+        # A dated restoration with no ceiling removes only that channel's cap.
+        restore = re.search(r'恢复(?:办理)?直销机构(?:的)?大额申购', normalized)
+        if restore and not find_amounts(normalized):
+            return [{'effective_date': effective, 'direct_status': 'unlimited', 'global_status': 'unchanged',
+                     'source_url': source_url, 'published_date': published.isoformat(), 'investor_type': 'all',
+                     'evidence_text': normalized, 'confidence': 'high'}]
+        if channels:
+            raise DataError('Quota channel clause produced no effective limit transition')
+    return list(merged.values())
+
+
+def parse_quota_notice(
+    text: str, published: date, source_url: str
+) -> list[dict[str, Any]]:
+    """Parse a whole document once, with monetary rules bound to fund scopes."""
+    # Remove standalone page footers before splitting numbered clauses. Keep line
+    # boundaries here: normalizing first loses both paragraph and page scope.
+    normalized = normalize_notice_text(text)
+    table_events = _share_table_events(normalized, published, source_url)
+    if table_events is not None:
+        return [{**event, 'investor_type': 'all', 'evidence_text': normalized} for event in table_events]
+    raw = text
+    blocks = re.split(r"(?m)^[ \t]*\d{1,2}[.、．][ \t]*", raw)
+    scoped = []
+    for block in blocks:
+        normalized = normalize_notice_text(block)
+        declaration = re.search(r"基金代码\s*[：:]\s*([^）)]{1,160})", normalized)
+        if declaration:
+            codes = re.findall(r"(?<!\d)\d{6}(?!\d)", declaration.group(1))
+            if codes:
+                scoped.append((codes, normalized))
+    multi = len(scoped) > 1 or (bool(scoped) and "旗下部分基金" in normalize_notice_text(blocks[0]))
+    if multi and len(blocks) == 1:
+        raise DataError('Multi-fund quota notice has ambiguous fund boundaries')
+    if not multi:
+        normalized = normalize_notice_text(raw)
+        # Multiple code declarations without demonstrable paragraph boundaries
+        # must never fall through to the whole-document first amount.
+        if len(re.findall(r"基金代码\s*[：:]", normalized)) > 1:
+            raise DataError("Multi-fund quota notice has ambiguous fund boundaries")
+        if '旗下部分基金' in normalized and len(set(re.findall(r'(?<!\d)\d{6}(?!\d)', normalized))) > 1:
+            raise DataError("Multi-fund quota notice has no scoped fund rules")
+        events = _investor_events(raw, published, source_url)
+        codes = scoped[0][0] if len(scoped) == 1 else []
+        if not codes:
+            table_codes = re.search(r'交易代码\s*((?:\d{6}\s*)+)', normalized)
+            if table_codes:
+                codes = re.findall(r'\d{6}', table_codes.group(1))
+            declaration = re.search(r"基金代码\s*[：:]\s*([^）)]{1,160})", normalized)
+            if declaration and not codes:
+                codes = re.findall(r"(?<!\d)\d{6}(?!\d)", declaration.group(1))
+        return [{**event, **({"share_codes": codes} if codes and not event.get("share_codes") else {})}
+                for event in events]
+
+    events = []
+    raw = re.sub(r"(?m)^[ \t]*\d{1,3}[ \t]*$", "", raw)
+    # Rebuild scoped blocks with page footers removed only for narrative notices.
+    blocks = re.split(r"(?m)^[ \t]*\d{1,2}[.、．][ \t]*", raw)
+    scoped = [(re.findall(r"(?<!\d)\d{6}(?!\d)", declaration.group(1)), normalize_notice_text(block))
+              for block in blocks
+              if (declaration := re.search(r"基金代码\s*[：:]\s*([^）)]{1,160})", normalize_notice_text(block)))]
+    for block in blocks[1:]:
+        normalized = normalize_notice_text(block)
+        if find_amounts(normalized) and re.search(r'申购|定期定额', normalized) and not re.search(r'基金代码\s*[：:]', normalized):
+            raise DataError('Multi-fund monetary clause has ambiguous fund ownership')
+    date_re = re.compile(r"自\s*(\d{4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日(?:[（(]含[^）)]*[）)])?起")
+    for codes, block in scoped:
+        dates = list(date_re.finditer(block))
+        if not dates:
+            raise DataError("Multi-fund quota clause has no explicit effective date")
+        for i, match in enumerate(dates):
+            clause = block[match.start():dates[i + 1].start() if i + 1 < len(dates) else len(block)]
+            effective = date(*(int(match.group(j)) for j in (1, 2, 3)))
+            parsed = _investor_events(clause, published, source_url, strict=True)
+            if not parsed and not re.search(f'{DIRECT_CHANNEL_PATTERN}|{AGENCY_CHANNEL_PATTERN}', clause):
+                parsed = _investor_events(clause, published, source_url)
+            if not parsed:
+                raise DataError("Multi-fund quota clause produced no effective limit transition")
+            for event in parsed:
+                events.append({**event, "share_codes": codes, "currency": "CNY",
+                               "multi_fund": True, "effective_date": effective,
+                               "fund_evidence_text": block})
+    return events
+
+
 def new_limit_state(status: str = "unknown", amount: int | None = None) -> dict[str, Any]:
     return {
         "status": status,
@@ -313,8 +477,83 @@ def apply_limit(
             "effective_date": transition["effective_date"].isoformat(),
             "source_url": transition["source_url"],
             "confidence": transition.get("confidence", "medium"),
+            "investor_type": transition.get("investor_type", "all"),
+            "share_codes": transition.get("share_codes", []),
         }
     )
+
+
+def _apply_transitions_for_investor(
+    fund_code: str,
+    transitions: list[dict[str, Any]],
+    as_of: date,
+    investor: str,
+    initial_direct: dict[str, Any],
+    initial_agency: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any], str, bool, str | None, set[str], list[str]]:
+    direct, agency = dict(initial_direct), dict(initial_agency)
+    aggregation = "not applicable"
+    all_channels_combined = False
+    applied_sources: set[str] = set()
+    warnings: list[str] = []
+    applicable = [item for item in transitions if item.get("investor_type", "all") in ("all", investor)]
+    applicable.sort(key=lambda item: (item["effective_date"], item["published_date"],
+                                      item.get("global_status", "limited") == "limited",
+                                      item.get("investor_type", "all") != "all", item["source_url"]))
+    current_subscription = None
+    day_limits: dict[tuple, set[int | str]] = {}
+    state_keys: dict[str, tuple] = {}
+    for transition in applicable:
+        if transition["effective_date"] > as_of:
+            continue
+        if transition.get("share_aggregation"):
+            aggregation = transition["share_aggregation"]
+        if transition.get("all_channels_combined"):
+            all_channels_combined = True
+        if transition.get("subscription_status"):
+            current_subscription = transition["subscription_status"]
+            applied_sources.add(transition["source_url"])
+        global_amount = transition.get("global_amount_cny")
+        direct_amount = transition.get("direct_amount_cny")
+        agency_amount = transition.get("agency_amount_cny")
+        global_status = transition.get("global_status", "limited")
+        for channel, state in (("direct", direct), ("agency", agency)):
+            if transition.get(channel + "_status") == "unlimited":
+                apply_limit(state, "unlimited", None, transition)
+                applied_sources.add(transition["source_url"])
+        for channel, amount in (("direct", direct_amount if direct_amount is not None else global_amount),
+                                ("agency", agency_amount if agency_amount is not None else global_amount)):
+            key = (transition["effective_date"], transition["published_date"], channel,
+                   transition.get("investor_type", "all"))
+            if amount is not None:
+                day_limits.setdefault(key, set()).add(amount)
+                state_keys[channel] = key
+            elif global_status == "unlimited":
+                day_limits.setdefault(key, set()).add("unlimited")
+                state_keys[channel] = key
+        if direct_amount is not None:
+            apply_limit(direct, "limited", direct_amount, transition)
+            applied_sources.add(transition["source_url"])
+        if agency_amount is not None:
+            apply_limit(agency, "limited", agency_amount, transition)
+            applied_sources.add(transition["source_url"])
+        if direct_amount is None and agency_amount is None and global_status == "unlimited":
+            apply_limit(direct, "unlimited", None, transition)
+            apply_limit(agency, "unlimited", None, transition)
+            applied_sources.add(transition["source_url"])
+        elif global_amount is not None:
+            if direct_amount is None:
+                apply_limit(direct, "limited", global_amount, transition)
+            if agency_amount is None:
+                apply_limit(agency, "limited", global_amount, transition)
+            applied_sources.add(transition["source_url"])
+    for channel, key in state_keys.items():
+        if len(day_limits[key]) <= 1:
+            continue
+        state = direct if channel == "direct" else agency
+        state.update(new_limit_state())
+        warnings.append(f"{fund_code} quota notice could not be parsed: conflicting same-day {channel} ceilings")
+    return direct, agency, aggregation, all_channels_combined, current_subscription, applied_sources, warnings
 
 
 def resolve_quota(
@@ -341,7 +580,6 @@ def resolve_quota(
 
     aggregation = "not applicable"
     all_channels_combined = False
-    applied_sources: set[str] = set()
     transitions: list[dict[str, Any]] = []
     evidence: list[dict[str, Any]] = []
     failures: list[dict[str, Any]] = []
@@ -381,6 +619,10 @@ def resolve_quota(
                 raise DataError("quota notice produced no effective limit transition")
             selected = [item for item in parsed_transitions
                         if not item.get("share_codes") or fund["code"] in item["share_codes"]]
+            if any(item.get("multi_fund") and not item.get("share_codes") for item in parsed_transitions):
+                raise DataError("Multi-fund monetary transition has no fund scope")
+            if any(item.get("investor_type", "all") not in ("all", "personal", "institutional") for item in selected):
+                raise DataError("Quota investor scope is invalid")
             if any(item.get("currency") not in (None, "CNY") for item in selected):
                 raise DataError("Selected quota is not denominated in CNY")
             transitions.extend(selected)
@@ -407,67 +649,18 @@ def resolve_quota(
             if parse_date(str(item["published_date"])) > latest_unparsed_notice_date
         ]
 
-    # A restoration of ordinary subscriptions does not remove a monetary ceiling.
-    # Apply same-day general restoration before explicit caps, independent of index order.
-    transitions.sort(key=lambda item: (item["effective_date"], item["published_date"],
-                                       item.get("global_status", "limited") == "limited",
-                                       item["source_url"]))
-    current_subscription = None
-    day_limits: dict[tuple, set[int]] = {}
-    conflicting: set[str] = set()
-    for transition in transitions:
-        if transition["effective_date"] > as_of:
-            continue
-        if transition.get("share_aggregation"):
-            aggregation = transition["share_aggregation"]
-        if transition.get("all_channels_combined"):
-            all_channels_combined = True
-        if transition.get("subscription_status"):
-            current_subscription = transition["subscription_status"]
-            applied_sources.add(transition["source_url"])
-        global_amount = transition.get("global_amount_cny")
-        direct_amount = transition.get("direct_amount_cny")
-        agency_amount = transition.get("agency_amount_cny")
-        global_status = transition.get("global_status", "limited")
-        for channel, amount in (("direct", direct_amount if direct_amount is not None else global_amount),
-                                ("agency", agency_amount if agency_amount is not None else global_amount)):
-            if amount is not None:
-                key = (transition["effective_date"], transition["published_date"], channel)
-                day_limits.setdefault(key, set()).add(amount)
-                if len(day_limits[key]) > 1:
-                    conflicting.add(channel)
-            # A later fully dated transition can supersede an earlier conflict.
-            if amount is not None or global_status == "unlimited":
-                if not any(k[2] == channel and len(v) > 1 and k[:2] >=
-                           (transition["effective_date"], transition["published_date"])
-                           for k, v in day_limits.items()):
-                    conflicting.discard(channel)
-        if direct_amount is not None:
-            apply_limit(direct, "limited", direct_amount, transition)
-            applied_sources.add(transition["source_url"])
-        if agency_amount is not None:
-            apply_limit(agency, "limited", agency_amount, transition)
-            applied_sources.add(transition["source_url"])
-        if direct_amount is None and agency_amount is None and global_status == "unlimited":
-            apply_limit(direct, "unlimited", None, transition)
-            apply_limit(agency, "unlimited", None, transition)
-            applied_sources.add(transition["source_url"])
-        elif global_amount is not None:
-            if direct_amount is None:
-                apply_limit(direct, "limited", global_amount, transition)
-            if agency_amount is None:
-                apply_limit(agency, "limited", global_amount, transition)
-            applied_sources.add(transition["source_url"])
-
-    for channel in conflicting:
-        state = direct if channel == "direct" else agency
-        state.update(new_limit_state())
-        warnings.append(f"{fund['code']} quota notice could not be parsed: conflicting same-day {channel} ceilings")
+    personal = _apply_transitions_for_investor(fund["code"], transitions, as_of, "personal", direct, agency)
+    institutional = _apply_transitions_for_investor(fund["code"], transitions, as_of, "institutional", direct, agency)
+    direct, agency, aggregation, all_channels_combined, current_subscription, applied_sources, personal_warnings = personal
+    warnings.extend(personal_warnings)
+    institutional_direct = institutional[0]
+    applied_sources.update(institutional[5])
+    warnings.extend("机构投资者：" + warning for warning in institutional[6])
     for failure in failures:
         superseded = all(state["status"] != "unknown" and state.get("source_url") and
-                         any(item["source_url"] == state["source_url"] and
+                         any(item["source_url"] == state["source_url"] and item['effective_date'] <= as_of and
                              item["published_date"] > failure["published_date"] for item in transitions)
-                         for state in (direct, agency))
+                         for state in (direct, agency, institutional_direct, institutional[1]))
         failure["status"] = "superseded" if superseded else "unresolved"
         detail = f"{failure['announcement_id']} {failure['title']} ({failure['source_url']}): {failure['error']}"
         warnings.append(f"{fund['code']} 历史额度公告解析失败，已被后续明确额度覆盖：{detail}" if superseded else
@@ -496,7 +689,10 @@ def resolve_quota(
         {
             "quota_status": quota_status,
             "quota_confidence": confidence,
+            "quota_investor_type": "personal",
             "direct_limit": direct,
+            "institutional_direct_limit": institutional_direct,
+            "institutional_agency_limit": institutional[1],
             "agency_limit": agency,
             "share_class_rule": aggregation,
             "channel_rule": channel_rule,
@@ -506,3 +702,4 @@ def resolve_quota(
         },
         warnings,
     )
+

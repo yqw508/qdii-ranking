@@ -49,7 +49,7 @@ def render_markdown(path: Path, payload: dict[str, Any]) -> None:
         f"近三年复权收益 >= {payload['filters']['min_three_year_return_pct']:g}%；"
         f"有完整五年历史时近五年收益 >= {payload['filters']['min_five_year_return_pct_if_available']:g}%；"
         f"有完整十年历史时近十年收益 >= {payload['filters']['min_ten_year_return_pct_if_available']:g}%；"
-        f"直销额度 >= {payload['filters']['min_direct_limit_cny_inclusive']:,} 元；"
+        f"直销额度（个人） >= {payload['filters']['min_direct_limit_cny_inclusive']:,} 元；"
         "业绩基准仅展示、不参与筛选或分榜；"
         f"美国主榜名称排除 {'、'.join(payload['filters']['us_main_exclude_keywords']) or '无'}；"
         "全球补充榜名称地域不限；"
@@ -69,7 +69,7 @@ def render_markdown(path: Path, payload: dict[str, Any]) -> None:
         "",
         "## 美国主榜",
         "",
-        "| 排名 | 基金 | 分流原因 | 近三年 | 近五年 | 近十年 | 持有费率 | 纳指相关性 | Beta | 美股确认区间 | 直销额度 | 代销额度 |",
+        "| 排名 | 基金 | 分流原因 | 近三年 | 近五年 | 近十年 | 持有费率 | 纳指相关性 | Beta | 美股确认区间 | 直销额度（个人） | 代销额度 |",
         "|---:|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for item in payload["records"]:
@@ -98,6 +98,9 @@ def render_markdown(path: Path, payload: dict[str, Any]) -> None:
         )
         if item.get("three_year_boundary_shortfall_days"):
             lines.append(f"  - {format_three_year_boundary(item)}")
+        institution = item.get('institutional_direct_limit', {})
+        if institution.get('status') not in (None, 'unknown') and format_limit(institution) != format_limit(item['direct_limit']):
+            lines.append(f"  - 机构直销：[{format_limit(institution)}]({institution.get('source_url')})；个人额度见表。")
     if not records:
         lines.append("| - | 暂无符合全部条件的基金 | - | - | - | - | - | - | - | - | - | - |")
 
@@ -106,7 +109,7 @@ def render_markdown(path: Path, payload: dict[str, Any]) -> None:
             "",
             "## 全球补充榜",
             "",
-            "| 排名 | 基金 | 分流原因 | 合同基准 | 美股确认区间 | 近三年 | 近五年 | 近十年 | 持有费率 | 收益回撤比 | 直销额度 | 代销额度 |",
+        "| 排名 | 基金 | 分流原因 | 合同基准 | 美股确认区间 | 近三年 | 近五年 | 近十年 | 持有费率 | 收益回撤比 | 直销额度（个人） | 代销额度 |",
             "|---:|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|",
         ]
     )
@@ -128,6 +131,9 @@ def render_markdown(path: Path, payload: dict[str, Any]) -> None:
             f"{format_limit(item['direct_limit'])} | {format_limit(item['agency_limit'])} |"
         )
         lines.append(f"  - 产品标签：{' / '.join(item['product_structure_tags'])}")
+        institution = item.get('institutional_direct_limit', {})
+        if institution.get('status') not in (None, 'unknown') and format_limit(institution) != format_limit(item['direct_limit']):
+            lines.append(f"  - 机构直销：[{format_limit(institution)}]({institution.get('source_url')})；个人额度见表。")
         if item.get("three_year_boundary_shortfall_days"):
             lines.append(f"  - {format_three_year_boundary(item)}")
     if not global_records:

@@ -128,6 +128,49 @@ def baseline_from_payload(payload, audit):
                         for r in [*payload['records'], *payload['global_supplement']['records']]]}
 
 
+def quota_transition_proves(transition, state, code, channel, investor, run_date):
+    """An effective, CNY, fund/investor-scoped rule must prove the final value."""
+    codes = transition.get('share_codes')
+    if (transition.get('multi_fund') and not codes) or (codes and code not in codes):
+        return False
+    if transition.get('investor_type', 'all') not in ('all', investor):
+        return False
+    if (transition.get('currency') not in (None, 'CNY')
+            or transition.get('source_url') != state.get('source_url')
+            or transition.get('effective_date') != state.get('effective_date')
+            or transition.get('published_date', '') > run_date
+            or transition.get('effective_date', '') > run_date):
+        return False
+    amount = transition.get(channel + '_amount_cny')
+    if amount is None:
+        amount = transition.get('global_amount_cny')
+    return ((state['status'] == 'limited' and amount is not None and amount == state['amount_cny'])
+            or (state['status'] == 'unlimited' and (transition.get('global_status') == 'unlimited'
+                                                  or transition.get(channel + '_status') == 'unlimited')))
+
+
+def validate_quota_evidence(payload, audit):
+    public = {r['code']: r for r in [*payload.get('records', []), *payload.get('global_supplement', {}).get('records', [])]}
+    for record in audit['records']:
+        code = record['code']
+        for event in record['events']:
+            quota = event.get('values', {}).get('quota')
+            if event['reason'] != 'documents_resolved' or not quota:
+                continue
+            transitions = [t for n in quota.get('notice_evidence', []) if n['status'] == 'parsed' for t in n.get('transitions', [])]
+            for field, channel, investor in (('direct_limit', 'direct', 'personal'), ('agency_limit', 'agency', 'personal'),
+                                              ('institutional_direct_limit', 'direct', 'institutional'),
+                                              ('institutional_agency_limit', 'agency', 'institutional')):
+                state = quota.get(field)
+                if not state:
+                    continue
+                if code in public and field in public[code] and public[code][field] != state:
+                    raise DataError(f'{code}: public {field} differs from audit')
+                if state.get('effective_date') is not None and state['status'] in ('limited', 'unlimited'):
+                    if not any(quota_transition_proves(t, state, code, channel, investor, payload['run_date']) for t in transitions):
+                        raise DataError(f'{code}: {field} has no effective fund/investor quota proof')
+
+
 def validate_superseded_quotas(payload, audit):
     """A reportable historical parse failure needs later effective channel evidence."""
     for warning in payload.get('warnings', []):
@@ -146,13 +189,18 @@ def validate_superseded_quotas(payload, audit):
         if len(failed) != 1:
             raise DataError(f'{code}: superseded quota notice is missing')
         failure = failed[0]
-        for channel in ('direct', 'agency'):
-            state = quota[channel + '_limit']
+        fields = [('direct_limit', 'direct', 'personal'), ('agency_limit', 'agency', 'personal')]
+        fields += [(field, channel, 'institutional') for field, channel in
+                   [('institutional_direct_limit', 'direct'), ('institutional_agency_limit', 'agency')] if field in quota]
+        for field, channel, investor in fields:
+            state = quota[field]
             proofs = [t for n in evidence if n['status'] == 'parsed' for t in n.get('transitions', [])
                       if t['source_url'] == state.get('source_url')
                       and failure['published_date'] < t['published_date'] <= payload['run_date']
                       and t['effective_date'] <= payload['run_date']
                       and (not t.get('share_codes') or code in t['share_codes'])
+                      and (not t.get('multi_fund') or t.get('share_codes'))
+                      and t.get('investor_type', 'all') in ('all', investor)
                       and t.get('currency') in (None, 'CNY')]
             def establishes(t):
                 amount = t.get(channel + '_amount_cny')
@@ -188,6 +236,7 @@ def validate_audit(payload, path):
             if performance_count != payload["filters"]["performance_candidates_scanned"] or documents_count != payload["filters"]["contract_candidates_scanned"]:
                 raise ValueError("audit scan counters disagree")
         validate_superseded_quotas(payload, audit)
+        validate_quota_evidence(payload, audit)
         return audit
     except (OSError, ValueError, KeyError, TypeError) as exc:
         raise DataError(f'Candidate audit validation failed: {exc}') from exc

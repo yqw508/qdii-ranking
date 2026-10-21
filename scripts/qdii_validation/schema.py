@@ -453,6 +453,9 @@ def _validate_routing(
 
 def _validate_quota(record: dict[str, Any], code: str) -> None:
     validate_limit(record.get("direct_limit"), code, "direct")
+    institutional = record.get("institutional_direct_limit")
+    if institutional is not None:
+        validate_limit(institutional, code, "institutional direct", allow_unknown=True)
     validate_limit(record.get("agency_limit"), code, "agency", allow_unknown=True)
     direct = record["direct_limit"]
     require(
@@ -464,7 +467,9 @@ def _validate_quota(record: dict[str, Any], code: str) -> None:
     require(isinstance(sources, list) and all(isinstance(source, str) and source for source in sources), f"{code} quota source list is invalid")
     if record.get("quota_status") == "limited":
         require(sources, f"{code} limited quota has no announcement source")
-    for channel in ("direct_limit", "agency_limit"):
+    for channel in ("direct_limit", "institutional_direct_limit", "agency_limit"):
+        if not record.get(channel):
+            continue
         source_url = record[channel].get("source_url")
         if source_url and source_url != record.get("fund_page_url"):
             require(source_url in sources, f"{code} {channel} source is absent from quota_source_urls")

@@ -30,6 +30,11 @@ def render_card(item: dict[str, Any], payload: dict[str, Any]) -> str:
     holding_cost = item["holding_cost"]
     exposure = item["us_equity_exposure"]
     direct_text = format_limit(item["direct_limit"])
+    institutional_text = format_limit(item.get("institutional_direct_limit", {"status": "unknown", "amount_cny": None}))
+    institutional = item.get('institutional_direct_limit', {})
+    institutional_detail = ''
+    if institutional.get('status') not in (None, 'unknown') and institutional_text != direct_text:
+        institutional_detail = f'<div><span>直销额度（机构）</span>{html_source_link(institutional_text, institutional.get("source_url"))}</div>'
     agency_text = format_limit(item["agency_limit"])
     direct_link = html_source_link(direct_text, item["direct_limit"].get("source_url"))
     agency_link = html_source_link(agency_text, item["agency_limit"].get("source_url"))
@@ -93,7 +98,7 @@ def render_card(item: dict[str, Any], payload: dict[str, Any]) -> str:
         {primary_metrics}
         <span class="summary-metric positive"><span class="metric-label">近三年</span><span class="metric-value">{format_percentage(item['three_year_return_pct'], show_sign=True)}</span></span>
         <span class="summary-metric"><span class="metric-label">持有费率</span><span class="metric-value quota">{format_holding_cost(holding_cost)}</span></span>
-        <span class="summary-metric"><span class="metric-label">直销</span><span class="metric-value quota">{direct_text}</span></span>
+        <span class="summary-metric"><span class="metric-label">直销（个人）</span><span class="metric-value quota">{direct_text}</span></span>
       </span>
       <span class="chevron" aria-hidden="true"></span>
     </summary>
@@ -118,7 +123,8 @@ def render_card(item: dict[str, Any], payload: dict[str, Any]) -> str:
         <small>解析状态：{html.escape(contract['status'])}；仅作资料展示，不参与准入或分榜。</small>
       </section>
       <div class="quota-grid" aria-label="申购额度">
-        <div><span>直销额度</span>{direct_link}</div>
+        <div><span>直销额度（个人）</span>{direct_link}</div>
+        {institutional_detail}
         <div><span>代销额度</span>{agency_link}</div>
       </div>
       <dl class="rule-grid">

@@ -47,7 +47,9 @@ where the source is ranking-critical; conditional 304 revalidation behavior is u
 7. Apply the configured China, Hong Kong, and pan-Asia geography keywords to US-main routing only.
    A matching fund remains eligible but routes to the global supplement regardless of confirmed US
    exposure. Contract benchmarks never trigger geography routing.
-8. Resolve the manager-level direct-sale quota for every otherwise eligible candidate. Unlimited sale
+8. Resolve the manager-level direct-sale quota for every otherwise eligible candidate. The published
+   direct-sale limit is the personal-investor result; institution-only limits are retained separately
+   for display and never replace the personal threshold. Unlimited sale
    qualifies; a known amount must be at least CNY 200. Unknown direct quota is excluded with a warning.
    Agency quota is displayed but does not affect eligibility.
 
@@ -133,6 +135,16 @@ ranking date. A later transition overrides an earlier one for the same channel.
 - Bind share-table amounts and currencies to their disclosed trading codes. Cache all share events by
   document, then select the requested RMB share; never use another share's or currency's first amount.
 - Unreadable or ambiguous active notices make the affected quota unknown. Never infer a value.
+- Quota parser method 4 binds narrative multi-fund notices by numbered fund clauses, identity codes,
+  effective dates, channel and investor type (`all`, `personal`, `institutional`). Continuations across
+  PDF pages remain in their original clause. The introductory fund list identifies funds only; it
+  never grants monetary rules to every listed code. Ambiguous ownership fails parsing, while a
+  definitely different fund is audited as `not_applicable`. Preserve rule excerpts in the audit.
+- Explicit personal rules override the personal part of general rules for the same dated transition;
+  institution-only limits do not affect personal limits. Same-day conflicts and superseded failures
+  are verified per fund, channel and investor. Validators require effective personal-applicable event
+  evidence, reject unbound multi-fund rules, and compare published limits with candidate audit states.
+  Method/fingerprint changes rebuild only quota results and re-fetch the source PDFs.
 - A notice selected as quota-relevant by its title must produce at least one effective transition. If
   it does not, mark the quota unresolved instead of retaining an older announcement state.
 - Archive notice IDs, titles, links, selected events and parse failures in the candidate audit. An older

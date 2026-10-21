@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "run_date": "2026-10-20",
+  "run_date": "2026-10-21",
   "holder_report_date": "2026-06-30",
   "candidate_codes": [
     "000041",
@@ -240,21 +240,27 @@
       "ranking_list": "us_main"
     },
     {
+      "code": "017144",
+      "name": "华宝海外新能源汽车股票发起式(QDII)A",
+      "rank": 7,
+      "ranking_list": "us_main"
+    },
+    {
       "code": "017653",
       "name": "创金合信全球芯片产业股票发起(QDII)A",
-      "rank": 7,
+      "rank": 8,
       "ranking_list": "us_main"
     },
     {
       "code": "096001",
       "name": "大成标普500等权重指数(QDII)A人民币",
-      "rank": 8,
+      "rank": 9,
       "ranking_list": "us_main"
     },
     {
       "code": "378546",
       "name": "摩根全球天然资源混合(QDII)A",
-      "rank": 9,
+      "rank": 10,
       "ranking_list": "us_main"
     },
     {

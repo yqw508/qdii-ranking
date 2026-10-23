@@ -68,18 +68,8 @@ def amount_to_billion(value: str, unit: str) -> float:
 
 
 
-def parse_fund_page(page: str, code: str) -> dict[str, Any]:
-    scale_match = re.search(
-        r"规模</a>：\s*([\d,.]+)\s*(亿元|万元|元)（(\d{4}-\d{2}-\d{2})）", page
-    )
-    if not scale_match:
-        raise DataError(f"Could not parse scale for fund {code}")
-    inception_match = re.search(
-        r"成\s*立\s*日</span>[：:]\s*(\d{4}-\d{2}-\d{2})", page
-    )
-    if not inception_match:
-        raise DataError(f"Could not parse inception date for fund {code}")
-    scale = amount_to_billion(scale_match.group(1), scale_match.group(2))
+def parse_purchase_details(page: str) -> dict[str, Any]:
+    """Read the independent purchase gate without requiring scale or inception."""
     buy_match = re.search(r'var fundBuyStatus = "([^"]+)"', page)
     sale_match = re.search(r"var fundIsSale = (true|false)", page)
     state_match = re.search(r"交易状态[：:](.{0,2000}?)(?:</div>|购买手续费)", page, re.S)
@@ -100,6 +90,25 @@ def parse_fund_page(page: str, code: str) -> dict[str, Any]:
     page_limit = None
     if page_limit_match:
         page_limit = _parse_cny_amount(page_limit_match.group(1), page_limit_match.group(2))
+    return {
+        "purchase_status": purchase_status,
+        "purchase_status_text": state_text,
+        "page_agency_limit_cny": page_limit,
+    }
+
+
+def parse_fund_page(page: str, code: str) -> dict[str, Any]:
+    scale_match = re.search(
+        r"规模</a>：\s*([\d,.]+)\s*(亿元|万元|元)（(\d{4}-\d{2}-\d{2})）", page
+    )
+    if not scale_match:
+        raise DataError(f"Could not parse scale for fund {code}")
+    inception_match = re.search(
+        r"成\s*立\s*日</span>[：:]\s*(\d{4}-\d{2}-\d{2})", page
+    )
+    if not inception_match:
+        raise DataError(f"Could not parse inception date for fund {code}")
+    scale = amount_to_billion(scale_match.group(1), scale_match.group(2))
     latest_nav_match = re.search(
         r"单位净值</a></span>\s*\(</span>(\d{4}-\d{2}-\d{2})\)</p>"
         r".*?<dd class=\"dataNums\">\s*<span[^>]*>([\d.]+)</span>",
@@ -110,9 +119,7 @@ def parse_fund_page(page: str, code: str) -> dict[str, Any]:
         "inception_date": inception_match.group(1),
         "scale_billion_cny": round(scale, 4),
         "scale_report_date": scale_match.group(3),
-        "purchase_status": purchase_status,
-        "purchase_status_text": state_text,
-        "page_agency_limit_cny": page_limit,
+        **parse_purchase_details(page),
         "latest_nav_date": latest_nav_match.group(1) if latest_nav_match else None,
         "latest_nav_value": (
             float(latest_nav_match.group(2)) if latest_nav_match else None

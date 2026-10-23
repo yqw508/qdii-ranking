@@ -362,6 +362,11 @@ finite valid numeric values; retry the full fetch once on failure. Empty institu
 unknown. Evaluate eligibility first, then block before ranking if an otherwise qualified candidate
 has no institution ratio. Explicit fundraising and foreign-currency pages are diagnosed as excluded;
 unparseable purchase status, missing required source fields, and critical parses block publication.
+Normal-template pages with an explicit suspended purchase state and an explicitly blank inception
+field may fail the purchase gate before scale/inception parsing. Keep the state text, unknown values,
+source URL and `purchase_suspended` exclusion in the audit; do not infer a fundraising status or invent
+scale/inception. Open or unknown purchase states and missing inception labels retain blocking parsing.
+Complete suspended pages retain their details for the independent OTC Nasdaq display list.
 
 `references/ranking-baseline.json` is the last validated continuity snapshot, not proof of deployment.
 It is committed with public pages only after tests and both artifact validators pass. Every previous

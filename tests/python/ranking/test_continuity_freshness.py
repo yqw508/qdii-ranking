@@ -165,6 +165,56 @@ class CandidateContinuityTests(unittest.TestCase):
         self.assertEqual('suspended', parse_fund_page(page, '011420')['purchase_status'])
         self.assertEqual('unknown', parse_fund_page(page.replace('暂停申购', '未知'), '011420')['purchase_status'])
 
+    def test_suspended_placeholder_page_is_audited_without_blocking_discovery(self):
+        # 027395 on 2026-10-23: normal template, no 认购期 label, no scale/date.
+        placeholder = ('规模</a>：--亿元（--）'
+                       '<span class="letterSpace01">成 立 日</span>：--</td>'
+                       '交易状态：</span><span>暂停申购</span><span>暂停赎回</span></div>'
+                       'var fundBuyStatus = "6"; var fundIsSale = true;')
+        complete = ('规模</a>：6.23亿元（2026-06-30）'
+                    '成 立 日</span>：2021-03-03'
+                    '交易状态：</span><span>开放申购</span></div>')
+        new_fund = {**self.fund, 'code': '027395', 'name': '鹏华恒生科技ETF发起式联接A'}
+        suspended = {**self.fund, 'code': '011420'}
+        metadata = {f['code']: f for f in (self.fund, new_fund, suspended)}
+        pages = {'027395': placeholder, '016701': complete,
+                 '011420': complete.replace('开放申购', '暂停申购')}
+        with TemporaryDirectory() as directory:
+            audit = CandidateAudit(date(2026, 10, 23), Path(directory) / 'audit.json')
+            audit.baseline = {'records': []}
+            args = SimpleNamespace(_audit=audit, allow_partial_holder_period=False,
+                                   min_age_years=3, min_scale=None)
+            client = Mock()
+            client.get_text.side_effect = lambda url, **kw: pages[url.rsplit('/', 1)[1][:6]]
+            period = HolderPeriod('2026-06-30', 3, '2026_2')
+            with patch('qdii_ranking.services.ranking.fetch_fund_metadata', return_value=metadata), \
+                 patch('qdii_ranking.services.ranking.fetch_holder_periods', return_value=[period]), \
+                 patch('qdii_ranking.services.ranking.select_holder_period', return_value=(period, [])), \
+                 patch('qdii_ranking.services.ranking.fetch_holder_rows', return_value=[]):
+                result = discover_candidates(args, client, date(2026, 10, 23), RunMetrics())
+                self.assertEqual(['016701'], [f['code'] for f in result.preliminary])
+                self.assertEqual('excluded', audit.items['027395']['status'])
+                self.assertEqual('purchase_suspended', audit.items['027395']['reason'])
+                event = audit.items['027395']['events'][0]
+                self.assertIn('暂停申购', event['values']['purchase_status_text'])
+                self.assertEqual(['https://fund.eastmoney.com/027395.html'], event['source_urls'])
+                self.assertIsNone(event['values']['inception_date'])
+                # Complete suspended pages retain details for the independent OTC list.
+                retained = next(f for f in result.enriched if f['code'] == '011420')
+                self.assertEqual('2021-03-03', retained['inception_date'])
+                self.assertEqual(6.23, retained['scale_billion_cny'])
+                # Missing fields alone, an open/unknown state, or a missing label
+                # must never silently remove a potentially eligible candidate.
+                for invalid in (placeholder.replace('暂停申购', '开放申购'),
+                                placeholder.replace('暂停申购', '未知'),
+                                placeholder.replace('成 立 日', '日期未知'),
+                                placeholder.replace('：--</td>', '：2021-03-03</td>')):
+                    with self.subTest(page=invalid):
+                        pages['027395'] = invalid
+                        with self.assertRaises(DataError):
+                            discover_candidates(args, client, date(2026, 10, 23), RunMetrics())
+                        self.assertEqual('blocked', audit.items['027395']['status'])
+
     def test_added_rerouted_and_ranking_cap_are_traceable(self):
         with TemporaryDirectory() as directory:
             audit = CandidateAudit(date(2026, 10, 8), Path(directory) / 'audit.json')

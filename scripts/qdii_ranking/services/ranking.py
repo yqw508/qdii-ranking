@@ -21,7 +21,7 @@ from ..errors import DataError
 from ..freshness import require_fresh
 from ..runtime import is_older_than_years
 from ..config import FUND_LIST_URL, FUND_PAGE_URL
-from ..sources.fund import parse_fund_page
+from ..sources.fund import parse_fund_page, parse_purchase_details
 from ..ranking import (
     build_holder_candidates,
     calculate_return_drawdown_ratio,
@@ -107,6 +107,15 @@ def discover_candidates(
                     return {**fund, "fund_page_url": url, "_early_exclusion": ("foreign_currency_share", "非人民币份额")}
                 if "认购期：" in page and re.search(r"成\s*立\s*日</span>[：:]\s*--", page):
                     return {**fund, "fund_page_url": url, "_early_exclusion": ("not_incepted", "募集期尚未成立")}
+                # New listings can use the normal page template before inception.
+                # An explicit suspension already fails eligibility; blank dates alone
+                # do not establish fundraising status or justify dropping a candidate.
+                purchase = parse_purchase_details(page)
+                if purchase["purchase_status"] == "suspended" and re.search(
+                    r"成\s*立\s*日</span>[：:]\s*--(?=\s*<)", page
+                ):
+                    return {**fund, **purchase, "fund_page_url": url,
+                            "_early_exclusion": ("purchase_suspended", "暂停申购；来源成立日未披露")}
                 return {**fund, **parse_fund_page(page, fund["code"])}
             except (DataError, OSError, ValueError) as exc:
                 audit.event(fund["code"], "fund_page", "blocked", "fund_page_unresolved", str(exc), sources=[url])
@@ -116,7 +125,7 @@ def discover_candidates(
         for fund in enriched:
             code = fund["code"]
             audit.event(code, "preliminary", "evaluated", "fund_page", "已读取基金资料",
-                        values={k: fund.get(k) for k in ("purchase_status", "inception_date", "institution_holding_ratio_pct", "scale_billion_cny")},
+                        values={k: fund.get(k) for k in ("purchase_status", "purchase_status_text", "inception_date", "institution_holding_ratio_pct", "scale_billion_cny")},
                         thresholds={"min_age_years": args.min_age_years}, sources=[fund["fund_page_url"]], data_date=selected.report_date)
             if fund.get("_early_exclusion"):
                 reason, label = fund["_early_exclusion"]

@@ -17,6 +17,25 @@ from .html_components import (
 )
 
 
+def _premium_status_text(premium: dict[str, Any]) -> str:
+    labels = {"fresh": "日报快照完整", "partial": "部分行情使用缓存",
+              "stale": "当前显示缓存行情", "unavailable": "日报快照暂不可用"}
+    text = labels.get(premium["status"], "行情状态未知")
+    stale_count = int(premium.get("stale_count", premium.get("cache_hit_count", 0)) or 0)
+    fresh_count = int(premium.get("fresh_count", 0) or 0)
+    unavailable_count = int(premium.get("unavailable_count", len(premium.get("unavailable_products", []))) or 0)
+    max_stale = premium.get("max_stale_age") or {}
+    if stale_count or unavailable_count:
+        text += f"；fresh {fresh_count}、缓存 {stale_count}、明确例外 {unavailable_count}"
+        if max_stale:
+            text += f"；最大滞后 {max_stale.get('trading_days', 0)} 个交易日/{max_stale.get('calendar_days', 0)} 个日历日"
+    labels = {'NOT_LISTED': '未上市', 'DELISTED': '已退市', 'SUSPENDED': '停牌', 'LISTING_SUSPENDED': '暂停上市'}
+    if premium.get('unavailable_products'):
+        text += '；目录内无有效报价：' + '、'.join(
+            f"{item['code']} {labels.get(item['reason'], '暂无报价')}" for item in premium['unavailable_products'])
+    return text
+
+
 def render_html(path: Path, payload: dict[str, Any]) -> None:
     us_records = payload["records"]
     global_records = payload["global_supplement"]["records"]
@@ -72,17 +91,7 @@ def render_html(path: Path, payload: dict[str, Any]) -> None:
         render_premium_row(item, premium_product_label, premium_group_label)
         for item in premium_records
     )
-    premium_status_labels = {
-        "fresh": "日报快照完整",
-        "partial": "部分ETF使用旧值",
-        "stale": "当前显示缓存行情",
-        "unavailable": "日报快照暂不可用",
-    }
-    premium_status_text = premium_status_labels.get(premium["status"], "行情状态未知")
-    exception_labels = {'NOT_LISTED': '未上市', 'DELISTED': '已退市', 'SUSPENDED': '停牌', 'LISTING_SUSPENDED': '暂停上市'}
-    if premium.get('unavailable_products'):
-        premium_status_text += '；目录内无有效报价：' + '、'.join(
-            f"{e['code']} {exception_labels.get(e['reason'], '暂无报价')}" for e in premium['unavailable_products'])
+    premium_status_text = _premium_status_text(premium)
     from ..premium_service import service_config
     premium_config = service_config(premium)
     premium_config_json = json.dumps(

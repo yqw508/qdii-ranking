@@ -202,8 +202,13 @@ The complete discovered catalog remains intact even when Tencent explicitly iden
 zero-turnover product as unlisted, delisted or suspended. These current-day source statuses appear in
 `unavailable_products` with source URL and timestamp, and do not become valid price records. Unknown
 zero prices and missing records are errors. No product-code whitelist is used. The live publication gate
-requires every catalog entry to have a fresh validated quote or a current, evidenced exception, including
-live Tencent SH ETF, SZ ETF and LOF samples; a single successful quote cannot open the gate.
+requires every catalog entry to be covered by a fresh validated quote, a current evidenced exception, or
+a fingerprint-matching cached record. Fresh evidence must include Tencent SH ETF, SZ ETF and LOF samples;
+a single successful quote cannot open the gate. Cached records use the same numeric, timestamp,
+provenance, and premium-formula validators and carry `last_success_at`, `last_checked_at`, `stale_age`,
+and the source failure streak. Coverage, cache metadata, and source diagnostics are committed in the
+same transaction, and a catalog-fingerprint mismatch resets the state to the packaged seed. Three completed CN exchange sessions produce a warning; more than seven
+calendar days, an unknown source date, an unaccounted product, or no fresh evidence blocks publication.
 Displayed premium is the negated source discount rate and must agree with `price / reference - 1`
 within the price-tick tolerance. The daily run caches valid records individually; quote or reference
 failure falls back per product with a visible timestamp and reportable warning but never weakens or
@@ -238,7 +243,7 @@ which may remain on the last trading day over a weekend. A missing/unknown statu
 timestamp cannot explain a missing quote. Cached status exceptions never replace source revalidation.
 
 An ADMINONLY CloudBase collection stores records keyed by code inside each catalog state and a
-transactional 35-second refresh lease. Complete refreshes are shared for 60 seconds; failures and partial
+transactional 35-second refresh lease. Complete fresh refreshes are shared for 60 seconds; failures and partial
 refreshes cool down for 30 seconds. Cold starts may initialize only from the validated packaged snapshot,
 marked cached_stale until revalidated. No valid records means unavailable, not fabricated prices. Cache
 reads, source failures and rejected codes carry request IDs and source timestamps.

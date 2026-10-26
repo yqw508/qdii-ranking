@@ -104,13 +104,26 @@ test("cold failure is unavailable and version mismatch never fetches", async () 
   assert.equal((await service.get("wrong")).http_status, 409); assert.equal(calls, 0);
   assert.equal((await service.get(seed.catalog_fingerprint)).status, "unavailable");
 });
+test("persisted state with a mismatched catalog fingerprint is discarded", async () => {
+  const seed = snapshot(), db = fakeDb();
+  db.state.set(seed.catalog_fingerprint, { catalog_fingerprint: "0".repeat(64), records: { [entry.code]: quote },
+    fresh_codes: [entry.code], next_attempt: 0, lock_until: 0, errors: [] });
+  let previous;
+  const service = createService({ snapshot: seed, store: createStore(db), now: () => time, log: () => {},
+    refreshImpl: async (_catalog, options) => { previous = options.previousRecords; return { quotes: {}, errors: [{ reason: "OFFLINE", codes: [entry.code] }] }; } });
+  const result = await service.get(seed.catalog_fingerprint);
+  assert.deepEqual(previous, {});
+  assert.equal(result.status, "unavailable");
+  assert.equal(result.publication_block_reason, "unaccounted_products");
+});
 test("partial refresh retains a whole failed record and lease expires after a crash", async () => {
   const second = { ...entry, code: "159100", market_id: 0 };
   const seed = snapshot([entry, second]), db = fakeDb(), store = createStore(db);
   let now = time;
   const existing = { ...quote, code: second.code, referenceValueCny: 1.0 };
   db.state.set(seed.catalog_fingerprint, { records: { [second.code]: existing }, fresh_codes: [],
-    next_attempt: 0, lock_until: time + 35000, lock_owner: "crashed", checked_at: null, errors: [] });
+    next_attempt: 0, lock_until: time + 35000, lock_owner: "crashed", checked_at: null, errors: [],
+    catalog_fingerprint: seed.catalog_fingerprint });
   let calls = 0;
   const service = createService({ snapshot: seed, store, now: () => now, log: () => {},
     refreshImpl: async () => { calls++; return { quotes: { [entry.code]: quote }, errors: [{ codes: [second.code], reason: "NAV_FAILED" }] }; } });
@@ -121,6 +134,36 @@ test("partial refresh retains a whole failed record and lease expires after a cr
   const retained = result.records.find(r => r.code === second.code);
   assert.equal(retained.updatedAt, existing.updatedAt); assert.equal(retained.referenceValueCny, 1.0);
   assert.equal(retained.status, "cached_stale");
+});
+test("partial coverage reports fresh, stale, and current exceptions separately", async () => {
+  const second = { ...entry, code: "159100", market_id: 0 };
+  const third = { ...entry, code: "501226", market_id: 1 };
+  const seed = snapshot([entry, second, third]);
+  let now = time;
+  let round = 0;
+  const quotes = {
+    [entry.code]: quote,
+    [second.code]: { ...quote, code: second.code, name: second.name },
+    [third.code]: { ...quote, code: third.code, name: third.name },
+  };
+  const service = createService({ snapshot: seed, store: createStore(fakeDb()), now: () => now, log: () => {},
+    refreshImpl: async () => round++ === 0 ? { quotes, errors: [] } : {
+      quotes: { [entry.code]: { ...quote, checkedAt: new Date(now).toISOString() } },
+      errors: [{ source: "tencent", reason: "INVALID_TENCENT_FIELD_78", codes: [second.code] }],
+      unavailable: [{ code: third.code, source: "tencent", source_status: "U", reason: "NOT_LISTED",
+        source_url: "https://gu.qq.com/sz501226", observed_at: new Date(now).toISOString(), source_updated_at: new Date(now).toISOString() }],
+      diagnostics: { systemic_source_degradation: true },
+    } });
+  assert.equal((await service.get(seed.catalog_fingerprint)).status, "fresh");
+  now += 60001;
+  const result = await service.get(seed.catalog_fingerprint);
+  assert.equal(result.status, "partial");
+  assert.equal(result.fresh_count, 1);
+  assert.equal(result.stale_count, 1);
+  assert.equal(result.unavailable_count, 1);
+  assert.equal(result.unaccounted_count, 0);
+  assert.equal(result.publication_decision, "allow_with_stale");
+  assert.equal(result.diagnostics.systemic_source_degradation, true);
 });
 test("upstream requests never exceed concurrency three", async () => {
   const catalog = Array.from({ length: 151 }, (_, i) => ({ ...entry, code: String(100000 + i) }));
@@ -168,6 +211,26 @@ test("Tencent official field mapping covers SH/SZ ETF, LOF and documented unlist
   assert.equal(result.unavailable[0].code, "501226");
   assert.equal(result.unavailable[0].reason, "NOT_LISTED");
   assert.equal(calls.length, 2); assert.ok(calls[0].startsWith("https://qt.gtimg.cn/"));
+});
+
+test("Tencent field 78 degradation is classified at batch level after preflight", async () => {
+  const catalog = Array.from({ length: 12 }, (_, index) => ({
+    code: String(600000 + index), market_id: index % 2, name: `ETF ${index}`, benchmark_group: "QDII",
+  }));
+  const rows = catalog.map((item, index) => {
+    const row = structuredClone(fixture.records[0]);
+    row.symbol = `${item.market_id ? "sh" : "sz"}${item.code}`;
+    row.fields[2] = item.code; row.fields[61] = "ETF"; row.fields[78] = "";
+    row.fields[30] = `2026100812${String(index).padStart(2, "0")}00`;
+    return row;
+  });
+  const result = await refresh(catalog, { providers: ["tencent", "tencent"], now: () => fixtureNow,
+    fetchImpl: async () => textResponse(sampleText(rows)) });
+  assert.equal(Object.keys(result.quotes).length, 0);
+  assert.equal(result.diagnostics.systemic_source_degradation, true);
+  assert.ok(result.diagnostics.tencent_invalid_iopv_count >= catalog.length);
+  assert.ok(result.diagnostics.batch_retry_count >= 1);
+  assert.ok(result.diagnostics.error_summary["tencent:INVALID_TENCENT_FIELD_78"] >= catalog.length);
 });
 
 test("Tencent duplicates, shifted fields, missing IOPV and impossible dates fail closed", () => {

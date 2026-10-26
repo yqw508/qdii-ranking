@@ -138,7 +138,16 @@ def _cache_stats(resources: PipelineResources, premium: PremiumStage) -> dict[st
         "exchange_premium": {
             "fresh": snapshot["fresh_count"],
             "hits": snapshot["cache_hit_count"],
+            "stale": snapshot.get("stale_count", snapshot["cache_hit_count"]),
+            "unavailable": snapshot.get("unavailable_count", 0),
+            "invalid": snapshot.get("invalid_count", 0),
+            "unaccounted": snapshot.get("unaccounted_count", 0),
             "expected": snapshot["expected_count"],
+            "max_stale_age": snapshot.get("max_stale_age", {}),
+            "source_failure_streak": snapshot.get("source_failure_streak", 0),
+            "publication_decision": snapshot.get("publication_decision"),
+            "publication_block_reason": snapshot.get("publication_block_reason"),
+            "diagnostics": snapshot.get("diagnostics", {}),
         },
         "exchange_premium_holding_costs": resources.etf_holding_cost_cache.stats(),
     }

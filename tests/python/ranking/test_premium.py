@@ -359,6 +359,7 @@ class ExchangePremiumTests(unittest.TestCase):
                 cache_path,
                 {
                     "schema_version": ranking.ETF_PREMIUM_CACHE_SCHEMA_VERSION,
+                    "catalog_fingerprint": sample["catalog_fingerprint"],
                     "records": sample["records"],
                 },
             )

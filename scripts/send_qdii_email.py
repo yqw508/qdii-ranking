@@ -128,6 +128,17 @@ def load_payload(path: Path) -> dict[str, Any]:
 
 def material_notes(payload: Mapping[str, Any]) -> list[str]:
     notes: list[str] = []
+    premium = payload.get("exchange_premium") or {}
+    stale_count = int(premium.get("stale_count", premium.get("cache_hit_count", 0)) or 0)
+    unavailable_count = int(premium.get("unavailable_count", len(premium.get("unavailable_products", []))) or 0)
+    if stale_count or unavailable_count:
+        age = premium.get("max_stale_age") or {}
+        notes.append(
+            "场内溢价行情部分使用已验证缓存："
+            f"fresh {premium.get('fresh_count', 0)} 条、缓存 {stale_count} 条、"
+            f"明确例外 {unavailable_count} 条，最大滞后 "
+            f"{age.get('trading_days', 0)} 个交易日/{age.get('calendar_days', 0)} 个日历日。"
+        )
     for warning in payload.get("warnings", []):
         if warning.startswith("跳过未完整披露的持有人报告期") or (
             "美股占比区间" in warning

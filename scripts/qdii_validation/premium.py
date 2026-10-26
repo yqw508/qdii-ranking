@@ -142,7 +142,8 @@ def _validate_premium_reference(
 
 
 def _validate_premium_record(
-    record: dict[str, Any], run_date: date, dynamic: bool, group_order: dict[str, int]
+    record: dict[str, Any], run_date: date, dynamic: bool, group_order: dict[str, int],
+    require_stale_metadata: bool = False,
 ) -> str:
     require(isinstance(record, dict), "ETF premium records must be objects")
     code = record["code"]
@@ -178,6 +179,13 @@ def _validate_premium_record(
     if quote_status == "unavailable":
         require(all(record.get(field) is None for field in value_fields), f"ETF {code} unavailable quote has values")
         return quote_status
+    if quote_status == "stale":
+        stale_age = record.get("stale_age")
+        if require_stale_metadata:
+            require(isinstance(stale_age, dict), f"ETF {code} stale age is missing")
+        if isinstance(stale_age, dict):
+            require(int(stale_age.get("calendar_days", -1)) <= 7, f"ETF {code} stale cache exceeds hard limit")
+            require(int(stale_age.get("calendar_days", -1)) >= 0, f"ETF {code} stale age is invalid")
     price = as_number(record.get("market_price_cny"), f"ETF {code} price")
     reference_type = record.get("reference_value_type")
     require(reference_type in {"iopv", "nav"}, f"ETF {code} reference value type is invalid")
@@ -221,11 +229,16 @@ def validate_exchange_premium(section: Any, run_date: date) -> list[dict[str, An
         require(urllib.parse.urlparse(e['source_url']).hostname == 'gu.qq.com', 'Invalid exception source')
         from zoneinfo import ZoneInfo
         require(datetime.fromisoformat(e['observed_at'].replace('Z', '+00:00')).astimezone(ZoneInfo('Asia/Shanghai')).date() == run_date, 'Stale exception evidence')
-        require(not any(r['code'] == e['code'] and r['quote_status'] == 'fresh' for r in records), 'Unavailable product marked fresh')
+        require(not any(r['code'] == e['code'] for r in records), 'Unavailable product overlaps a quote record')
     quote_statuses = [
-        _validate_premium_record(record, run_date, dynamic, group_order)
+        _validate_premium_record(record, run_date, dynamic, group_order, "stale_count" in section)
         for record in records
     ]
+    if dynamic:
+        catalog_codes = {str(item.get('code')) for item in section.get('catalog', []) if isinstance(item, dict)}
+        require(catalog_codes == set(codes) | set(exception_codes), 'Dynamic premium catalog has unexplained missing products')
+    if 'unaccounted_count' in section:
+        require(section['unaccounted_count'] == 0, 'Premium snapshot has unaccounted products')
     fresh_count = quote_statuses.count("fresh")
     stale_count = quote_statuses.count("stale")
     expected_order = sorted(
@@ -239,11 +252,19 @@ def validate_exchange_premium(section: Any, run_date: date) -> list[dict[str, An
     require(codes == [item["code"] for item in expected_order], "ETF premium record order differs")
     require(section.get("fresh_count") == fresh_count, "ETF premium fresh count differs")
     require(section.get("cache_hit_count") == stale_count, "ETF premium cache-hit count differs")
+    if "stale_count" in section:
+        require(section["stale_count"] == stale_count, "ETF premium stale count differs")
     expected_status = (
         "fresh" if expected_count > 0 and fresh_count == expected_count else
         "partial" if fresh_count else "stale" if stale_count else "unavailable"
     )
     require(status == expected_status, "ETF premium aggregate status differs")
+    if "publication_decision" in section:
+        expected_decision = (
+            "block" if not fresh_count or section.get("unaccounted_count", 0) or status == "unavailable" else
+            "allow_with_stale" if stale_count or exception_codes else "allow_fresh"
+        )
+        require(section["publication_decision"] == expected_decision, "ETF premium publication decision differs")
     return records
 
 

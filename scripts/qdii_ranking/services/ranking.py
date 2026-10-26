@@ -437,7 +437,12 @@ def scan_exchange_premium(
                 )
         from ..sources.premium_live import fetch_live_quotes
         try:
-            previous = _load_exchange_premium_cache(resources.cache_root / "exchange-premium.json", entries, as_of)
+            previous = _load_exchange_premium_cache(
+                resources.cache_root / "exchange-premium.json",
+                entries,
+                as_of,
+                fingerprint,
+            )
             live_result = fetch_live_quotes(entries, list(previous.values()))
         except DataError as exc:
             live_result = {"quotes": {}, "errors": [{"codes": [e["code"] for e in entries], "reason": str(exc)}]}

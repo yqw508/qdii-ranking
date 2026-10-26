@@ -7,8 +7,10 @@ import json
 import math
 import re
 import urllib.parse
+from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -19,6 +21,9 @@ from ..config import (
     ETF_PREMIUM_CATALOG_SCHEMA_VERSION,
     ETF_PREMIUM_DELAY_MINUTES,
     ETF_PREMIUM_GROUP_ORDER,
+    ETF_PREMIUM_FAILURE_STREAK_WARNING,
+    ETF_PREMIUM_STALE_BLOCK_CALENDAR_DAYS,
+    ETF_PREMIUM_STALE_WARNING_TRADING_DAYS,
     ETF_LOF_NAV_API_URL,
     ETF_MARKET_LIST_API_URL,
     ETF_MARKET_LIST_FS,
@@ -29,6 +34,7 @@ from ..config import (
     PERFORMANCE_WORKERS,
 )
 from ..errors import DataError
+from ..freshness import load_calendars
 from ..runtime import HttpClient, SHANGHAI_TZ, parse_date
 from .contracts import (
     fetch_latest_legal_documents,
@@ -507,6 +513,8 @@ def normalize_exchange_premium_quote(
         "quote_source": raw.get("quote_source", "eastmoney"),
         "adapter_version": raw.get("adapter_version", "eastmoney-1"),
         "quote_delay_minutes": raw.get("quote_delay_minutes", 15),
+        "last_success_at": raw.get("checked_at") or updated_at.isoformat(timespec="seconds"),
+        "last_checked_at": raw.get("checked_at"),
         "quote_source_url": raw.get("quote_source_url") or (
             f"https://quote.eastmoney.com/{'sh' if catalog_entry['market_id'] == 1 else 'sz'}{code}.html"
         ),
@@ -561,7 +569,10 @@ def _cached_exchange_quote_valid(
 
 
 def _load_exchange_premium_cache(
-    path: Path, entries: list[dict[str, Any]], as_of: date
+    path: Path,
+    entries: list[dict[str, Any]],
+    as_of: date,
+    catalog_fingerprint: str | None = None,
 ) -> dict[str, dict[str, Any]]:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
@@ -571,6 +582,7 @@ def _load_exchange_premium_cache(
         not isinstance(payload, dict)
         or payload.get("schema_version") != ETF_PREMIUM_CACHE_SCHEMA_VERSION
         or not isinstance(payload.get("records"), list)
+        or (catalog_fingerprint is not None and payload.get("catalog_fingerprint") != catalog_fingerprint)
     ):
         return {}
     entry_by_code = {entry["code"]: entry for entry in entries}
@@ -589,6 +601,44 @@ def _load_exchange_premium_cache(
             normalized.setdefault("quote_delay_minutes", 15)
             cached[code] = normalized
     return cached
+
+
+def _load_exchange_premium_cache_state(path: Path, catalog_fingerprint: str | None = None) -> dict[str, Any]:
+    """Read non-record cache metadata without making it an eligibility source."""
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return {}
+    if not isinstance(payload, dict):
+        return {}
+    if catalog_fingerprint is not None and payload.get("catalog_fingerprint") != catalog_fingerprint:
+        return {}
+    return payload
+
+
+@lru_cache(maxsize=1)
+def _premium_closed_dates() -> frozenset[str]:
+    calendar = load_calendars()["calendars"]["cn_nav"]
+    return frozenset(day for spec in calendar["years"].values() for day in spec["closed_dates"])
+
+
+def _completed_trading_days(start: date, end: date) -> int:
+    """Count completed CN exchange sessions, excluding the current source day."""
+    if end <= start:
+        return 0
+    completed_end = end - timedelta(days=1)
+    return sum(
+        (day := start + timedelta(days=offset)).weekday() < 5 and day.isoformat() not in _premium_closed_dates()
+        for offset in range(1, (completed_end - start).days + 1)
+    )
+
+
+def _premium_stale_age(record: dict[str, Any], as_of: date) -> tuple[int, int] | None:
+    try:
+        observed = parse_date(str(record.get("quote_date", "")))
+    except (TypeError, ValueError):
+        return None
+    return (max(0, (as_of - observed).days), _completed_trading_days(observed, as_of))
 
 
 def _load_cached_qdii_exchange_premium_catalog(
@@ -638,6 +688,101 @@ def exchange_premium_sort_key(record: dict[str, Any]) -> tuple[Any, ...]:
     )
 
 
+def _empty_premium_record(entry: dict[str, Any]) -> dict[str, Any]:
+    return {
+        **entry,
+        "market_price_cny": None,
+        "iopv_cny": None,
+        "reference_value_type": None,
+        "reference_value_cny": None,
+        "reference_value_date": None,
+        "reference_value_source_url": None,
+        "source_discount_pct": None,
+        "premium_pct": None,
+        "change_pct": None,
+        "turnover_cny": None,
+        "quote_date": None,
+        "updated_at": None,
+        "quote_source_url": None,
+        "quote_status": "unavailable",
+    }
+
+
+def _assemble_premium_records(
+    entries: list[dict[str, Any]],
+    fresh: dict[str, dict[str, Any]],
+    cached: dict[str, dict[str, Any]],
+    cache_state: dict[str, Any],
+    as_of: date,
+    dynamic_catalog: bool,
+    unavailable_codes: set[str] | None = None,
+) -> tuple[list[dict[str, Any]], list[tuple[int, int]], list[str]]:
+    records: list[dict[str, Any]] = []
+    stale_ages: list[tuple[int, int]] = []
+    expired_codes: list[str] = []
+    streak = int(cache_state.get("source_failure_streak") or 0)
+    unavailable_codes = unavailable_codes or set()
+    for entry in entries:
+        code = entry["code"]
+        if code in unavailable_codes:
+            record = _empty_premium_record(entry)
+        elif code in fresh:
+            record = {**fresh[code], "quote_status": "fresh",
+                      "stale_age": {"calendar_days": 0, "trading_days": 0},
+                      "source_failure_streak": 0}
+        elif code in cached:
+            age = _premium_stale_age(cached[code], as_of)
+            if age is None or age[0] > ETF_PREMIUM_STALE_BLOCK_CALENDAR_DAYS:
+                expired_codes.append(code)
+                record = _empty_premium_record(entry)
+            else:
+                stale_ages.append(age)
+                record = {**entry, **cached[code], "quote_status": "stale",
+                          "stale_age": {"calendar_days": age[0], "trading_days": age[1]},
+                          "source_failure_streak": streak}
+        else:
+            record = _empty_premium_record(entry)
+        records.append(record)
+    records.sort(key=exchange_premium_sort_key)
+    if dynamic_catalog:
+        records = [record for record in records if record["quote_status"] != "unavailable"]
+    return records, stale_ages, expired_codes
+
+
+def _premium_publication_metadata(
+    entries: list[dict[str, Any]],
+    records: list[dict[str, Any]],
+    stale_ages: list[tuple[int, int]],
+    expired_codes: list[str],
+    cache_state: dict[str, Any],
+    live_result: dict[str, Any] | None,
+    warnings: list[str],
+) -> dict[str, Any]:
+    stale_count = sum(record["quote_status"] == "stale" for record in records)
+    fresh_count = sum(record["quote_status"] == "fresh" for record in records)
+    unavailable_codes = {item["code"] for item in (live_result or {}).get("unavailable", [])}
+    unavailable_overlap = {record["code"] for record in records} & unavailable_codes
+    accounted_codes = {record["code"] for record in records if record["quote_status"] in {"fresh", "stale"}} | unavailable_codes
+    unaccounted_count = max(0, len(entries) - len(accounted_codes))
+    max_calendar = max((age[0] for age in stale_ages), default=0)
+    max_trading = max((age[1] for age in stale_ages), default=0)
+    if stale_count and max_trading >= ETF_PREMIUM_STALE_WARNING_TRADING_DAYS:
+        warnings.append(f"场内溢价告警：{stale_count} 条行情使用缓存，最大滞后 {max_trading} 个交易日/{max_calendar} 个日历日。")
+    if expired_codes:
+        warnings.append("场内溢价告警：行情缓存超过硬时效，无法作为覆盖证据：" + ", ".join(expired_codes))
+    previous_streak = int(cache_state.get("source_failure_streak") or 0)
+    has_source_errors = bool((live_result or {}).get("errors"))
+    streak = previous_streak + 1 if has_source_errors else 0
+    if streak >= ETF_PREMIUM_FAILURE_STREAK_WARNING:
+        warnings.append(f"场内溢价告警：行情源已连续 {streak} 次部分或失败刷新。")
+    decision = "block" if unaccounted_count or expired_codes or unavailable_overlap or not fresh_count else "allow_with_stale" if stale_count or unavailable_codes else "allow_fresh"
+    return {"fresh_count": fresh_count, "stale_count": stale_count,
+            "unavailable_codes": unavailable_codes, "unaccounted_count": unaccounted_count,
+            "max_stale_age": {"calendar_days": max_calendar, "trading_days": max_trading},
+            "source_failure_streak": streak, "publication_decision": decision,
+            "publication_block_reason": ("unavailable_overlap" if unavailable_overlap else "unaccounted_products" if unaccounted_count else "stale_cache_expired" if expired_codes else "no_fresh_evidence" if not fresh_count else None)}
+
+
 def build_exchange_premium_snapshot(
     client: HttpClient,
     catalog_path: Path,
@@ -659,7 +804,10 @@ def build_exchange_premium_snapshot(
                 entries, ensure_ascii=False, sort_keys=True, separators=(",", ":")
             ).encode("utf-8")
         ).hexdigest()
-    cached = _load_exchange_premium_cache(cache_path, entries, as_of)
+    cache_state = _load_exchange_premium_cache_state(cache_path, catalog_fingerprint)
+    cached = _load_exchange_premium_cache(
+        cache_path, entries, as_of, catalog_fingerprint
+    )
     dynamic_catalog = any(entry.get("category") == "qdii" for entry in entries)
     entry_by_code = {entry["code"]: entry for entry in entries}
     warnings: list[str] = []
@@ -669,8 +817,14 @@ def build_exchange_premium_snapshot(
         if live_result is not None:
             from .premium_live import quote_rows_from_live
             quote_rows = quote_rows_from_live(live_result)
-            for error in live_result["errors"]:
-                warnings.append(f"场内溢价告警：行情源 {error.get('source', 'combined')} {','.join(error['codes'])}：{error['reason']}")
+            grouped_errors: dict[tuple[str, str], list[str]] = defaultdict(list)
+            for error in live_result.get("errors", []):
+                grouped_errors[(error.get("source", "combined"), error.get("reason", "UNKNOWN"))].extend(error.get("codes", []))
+            for (source, reason), codes in grouped_errors.items():
+                unique_codes = list(dict.fromkeys(codes))
+                sample = ",".join(unique_codes[:8])
+                suffix = f"（示例 {sample}）" if sample else ""
+                warnings.append(f"场内溢价告警：行情源 {source} {reason} 共 {len(unique_codes)} 条{suffix}")
             for item in live_result.get("unavailable", []):
                 warnings.append(f"场内溢价告警：行情例外 {item['code']}：{item['reason']}（腾讯状态 {item['source_status']}，{item['observed_at']}）")
         if quote_rows is None:
@@ -728,45 +882,30 @@ def build_exchange_premium_snapshot(
         explained = {e['code'] for e in (live_result or {}).get('unavailable', [])}
         missing = [entry["code"] for entry in entries if entry["code"] not in seen_response and entry['code'] not in explained]
         if missing:
-            invalid.append("missing " + ", ".join(missing))
+            invalid.append(f"missing {len(missing)} products: " + ", ".join(missing[:8]))
         if invalid:
             warnings.append("场内溢价告警：部分行情未更新：" + "；".join(invalid))
     except (DataError, OSError, ValueError) as exc:
         warnings.append(f"场内溢价告警：行情刷新失败，使用缓存或空值：{exc}")
 
-    records: list[dict[str, Any]] = []
-    for entry in entries:
-        code = entry["code"]
-        if code in fresh:
-            record = {**fresh[code], "quote_status": "fresh"}
-        elif code in cached:
-            record = {**entry, **cached[code], "quote_status": "stale"}
-        else:
-            record = {
-                **entry,
-                "market_price_cny": None,
-                "iopv_cny": None,
-                "reference_value_type": None,
-                "reference_value_cny": None,
-                "reference_value_date": None,
-                "reference_value_source_url": None,
-                "source_discount_pct": None,
-                "premium_pct": None,
-                "change_pct": None,
-                "turnover_cny": None,
-                "quote_date": None,
-                "updated_at": None,
-                "quote_source_url": None,
-                "quote_status": "unavailable",
-            }
-        records.append(record)
-    records.sort(key=exchange_premium_sort_key)
-    discovered_count = len(records)
-    if dynamic_catalog:
-        records = [record for record in records if record["quote_status"] != "unavailable"]
+    unavailable_codes = {item["code"] for item in (live_result or {}).get("unavailable", [])}
+    records, stale_ages, expired_codes = _assemble_premium_records(
+        entries, fresh, cached, cache_state, as_of, dynamic_catalog, unavailable_codes
+    )
+    discovered_count = len(entries)
     filtered_unavailable_count = discovered_count - len(records)
-    fresh_count = sum(record["quote_status"] == "fresh" for record in records)
-    stale_count = sum(record["quote_status"] == "stale" for record in records)
+    metadata = _premium_publication_metadata(
+        entries, records, stale_ages, expired_codes, cache_state, live_result, warnings
+    )
+    fresh_count = metadata["fresh_count"]
+    stale_count = metadata["stale_count"]
+    unavailable_codes = metadata["unavailable_codes"]
+    unaccounted_count = metadata["unaccounted_count"]
+    max_stale_calendar_days = metadata["max_stale_age"]["calendar_days"]
+    max_stale_trading_days = metadata["max_stale_age"]["trading_days"]
+    source_failure_streak = metadata["source_failure_streak"]
+    publication_decision = metadata["publication_decision"]
+    diagnostics = (live_result or {}).get("diagnostics", {})
 
     if records and fresh_count == len(records):
         status = "fresh"
@@ -792,6 +931,10 @@ def build_exchange_premium_snapshot(
                 "saved_at": requested_at,
                 "catalog": entries,
                 "records": cache_records,
+                "source_failure_streak": source_failure_streak,
+                "last_success_at": requested_at if fresh else cache_state.get("last_success_at"),
+                "last_checked_at": requested_at,
+                "diagnostics": diagnostics,
             }, ensure_ascii=False, indent=2),
         )
     except OSError as exc:
@@ -809,6 +952,22 @@ def build_exchange_premium_snapshot(
             "expected_count": len(records),
             "fresh_count": fresh_count,
             "cache_hit_count": stale_count,
+            "stale_count": stale_count,
+            "unavailable_count": len(unavailable_codes),
+            "invalid_count": 0,
+            "unaccounted_count": unaccounted_count,
+            "max_stale_age": {
+                "calendar_days": max_stale_calendar_days,
+                "trading_days": max_stale_trading_days,
+            },
+            "source_failure_streak": source_failure_streak,
+            "publication_decision": publication_decision,
+            "publication_block_reason": metadata["publication_block_reason"],
+            "diagnostics": diagnostics,
+            "batch_retry_count": diagnostics.get("batch_retry_count", 0),
+            "tencent_invalid_iopv_count": diagnostics.get("tencent_invalid_iopv_count", 0),
+            "eastmoney_fallback_count": diagnostics.get("eastmoney_fallback_count", 0),
+            "systemic_source_degradation": bool(diagnostics.get("systemic_source_degradation", False)),
             "catalog_fingerprint": catalog_fingerprint,
             "group_order": group_order,
             "source_name": "腾讯行情（东方财富备用）" if live_result is not None else "东方财富场内基金行情",

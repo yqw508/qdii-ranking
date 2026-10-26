@@ -62,12 +62,43 @@ async function refresh(catalog, { fetchImpl = fetch, now = Date.now, budgetMs = 
   const deadline = now() + budgetMs;
   const asOf = shanghaiDate(new Date(now()));
   const quotes = {}, errors = [], unavailable = [], navRequests = new Map();
+  const diagnostics = {
+    catalog_count: catalog.length, batch_retry_count: 0, tencent_invalid_iopv_count: 0,
+    eastmoney_fallback_count: 0, systemic_source_degradation: false, provider_attempts: {},
+  };
+  const preflightCodes = catalog.length >= 10 ? [
+    catalog.find(item => item.market_id === 1 && /ETF/i.test(item.name || "")),
+    catalog.find(item => item.market_id === 0 && /ETF/i.test(item.name || "")),
+    catalog.find(item => /LOF/i.test(item.name || "") || item.reference_type === "nav"),
+  ].filter(Boolean).filter((item, index, all) => all.findIndex(other => other.code === item.code) === index) : [];
+  const addTencentResult = (parsed, batch, targetRows) => {
+    targetRows.push(...parsed.rows);
+    errors.push(...parsed.errors.map(e => ({ ...e, source: "tencent" })));
+    const invalidIopv = parsed.errors.filter(e => ["INVALID_TENCENT_FIELD_78", "MISSING_ETF_IOPV"].includes(e.reason)).length;
+    diagnostics.tencent_invalid_iopv_count += invalidIopv;
+    if (invalidIopv >= Math.max(3, Math.ceil(batch.length * 0.5)))
+      diagnostics.systemic_source_degradation = true;
+    unavailable.push(...parsed.unavailable.filter(u => Date.parse(u.source_updated_at) <= now())
+      .map(u => ({ ...u, observed_at: new Date(now()).toISOString() })));
+  };
   for (const provider of providers) {
+  diagnostics.provider_attempts[provider] = (diagnostics.provider_attempts[provider] || 0) + 1;
+  if (provider === "tencent" && diagnostics.provider_attempts[provider] > 1) diagnostics.batch_retry_count++;
   const remaining = catalog.filter(e => !quotes[e.code] && !unavailable.some(u => u.code === e.code));
   if (!remaining.length || now() >= deadline) break;
   const rows = [];
   const batches = [];
-  for (let i = 0; i < remaining.length; i += 50) batches.push(remaining.slice(i, i + 50));
+  if (provider === "tencent" && diagnostics.provider_attempts[provider] === 1 && preflightCodes.length) {
+    const batch = preflightCodes.filter(item => remaining.some(candidate => candidate.code === item.code));
+    if (batch.length) {
+      try {
+        const url = tencent.HOST + batch.map(e => `${e.market_id === 1 ? "sh" : "sz"}${e.code}`).join(",") + `&r=${now()}`;
+        addTencentResult(tencent.parseTencent(await getJson(url, fetchImpl, deadline, now, "text", 1), batch), batch, rows);
+      } catch (exc) { errors.push({ codes: batch.map(e => e.code), source: provider, reason: exc.message }); }
+    }
+  }
+  const remainingAfterPreflight = catalog.filter(e => !quotes[e.code] && !unavailable.some(u => u.code === e.code));
+  for (let i = 0; i < remainingAfterPreflight.length; i += 50) batches.push(remainingAfterPreflight.slice(i, i + 50));
   await mapLimit(batches, async (batch) => {
     const params = new URLSearchParams({ fltt: "2", invt: "2", fields: FIELDS,
       ut: "bd1d9ddb04089700cf9c27f6f7426281",
@@ -77,12 +108,7 @@ async function refresh(catalog, { fetchImpl = fetch, now = Date.now, budgetMs = 
         const url = tencent.HOST + batch.map(e => `${e.market_id === 1 ? "sh" : "sz"}${e.code}`).join(",") + `&r=${now()}`;
         // The second Tencent pass is its single retry, for failed products only.
         // Include content failures (notably older server snapshots), not just transport errors.
-        const parsed = tencent.parseTencent(await getJson(url, fetchImpl, deadline, now, "text", 1), batch);
-        rows.push(...parsed.rows); errors.push(...parsed.errors.map(e => ({ ...e, source: provider })));
-        // A freshly fetched status may retain the last trading day's source time.
-        // Keep that timestamp separately from this round's actual observation.
-        unavailable.push(...parsed.unavailable.filter(u => Date.parse(u.source_updated_at) <= now())
-          .map(u => ({ ...u, observed_at: new Date(now()).toISOString() })));
+        addTencentResult(tencent.parseTencent(await getJson(url, fetchImpl, deadline, now, "text", 1), batch), batch, rows);
         return;
       }
       const result = await getJson(`${HOST}?${params}`, fetchImpl, deadline, now);
@@ -121,11 +147,20 @@ async function refresh(catalog, { fetchImpl = fetch, now = Date.now, budgetMs = 
           (quote.referenceType === "nav" && previous.referenceType === "nav" && quote.referenceDate < previous.referenceDate)))
         throw new Error("OLDER_QUOTE");
       quotes[item.code] = { ...quote, checkedAt: new Date(now()).toISOString() };
+      if (provider === "eastmoney") diagnostics.eastmoney_fallback_count++;
     } catch (exc) { errors.push({ codes: [item.code], source: provider, reason: exc.message }); }
   });
   }
   for (const item of catalog.filter(e => !quotes[e.code] && !unavailable.some(u => u.code === e.code)))
     errors.push({ codes: [item.code], reason: now() >= deadline ? "ROUND_TIMEOUT" : "NO_VALID_QUOTE" });
-  return { quotes, errors, unavailable };
+  diagnostics.fresh_count = Object.keys(quotes).length;
+  diagnostics.unavailable_count = unavailable.length;
+  diagnostics.unaccounted_count = Math.max(0, catalog.length - diagnostics.fresh_count - diagnostics.unavailable_count);
+  diagnostics.error_summary = {};
+  for (const error of errors) {
+    const key = `${error.source || "combined"}:${error.reason || "UNKNOWN"}`;
+    diagnostics.error_summary[key] = (diagnostics.error_summary[key] || 0) + Math.max(1, error.codes?.length || 1);
+  }
+  return { quotes, errors, unavailable, diagnostics };
 }
 module.exports = { refresh, seedQuote, parseNav, getJson, mapLimit };

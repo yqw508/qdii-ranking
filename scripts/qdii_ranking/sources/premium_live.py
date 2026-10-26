@@ -36,6 +36,7 @@ def quote_rows_from_live(payload):
                       "f124": datetime.fromisoformat(q["updatedAt"].replace("Z", "+00:00")).timestamp(),
                       "quote_source": q["quoteSource"], "adapter_version": q["adapterVersion"],
                       "quote_source_url": q["quoteSourceUrl"], "quote_delay_minutes": q["quoteDelayMinutes"],
+                      "checked_at": q.get("checkedAt"),
                       "_reference": {"reference_value_type": q["referenceType"],
                                      "reference_value_cny": q["referenceValueCny"],
                                      "reference_value_date": q["referenceDate"],

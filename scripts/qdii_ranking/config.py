@@ -68,6 +68,12 @@ ETF_PREMIUM_CATALOG_SCHEMA_VERSION = 1
 ETF_HOLDING_COST_CACHE_SCHEMA_VERSION = 1
 ETF_HOLDING_COST_METHOD_VERSION = 1
 ETF_PREMIUM_DELAY_MINUTES = 15
+# Premium quote cache freshness is intentionally independent from the ranking
+# publication-workday policy.  A short upstream outage may publish a validated
+# last-known quote, while a prolonged outage blocks coverage.
+ETF_PREMIUM_STALE_WARNING_TRADING_DAYS = 3
+ETF_PREMIUM_STALE_BLOCK_CALENDAR_DAYS = 7
+ETF_PREMIUM_FAILURE_STREAK_WARNING = 3
 ETF_PREMIUM_GROUP_ORDER = ("标普500", "纳指100", "美国50", "道琼斯", "行业主题")
 
 ROUTING_REASON_CONFIRMED_US = "confirmed_us_exposure"

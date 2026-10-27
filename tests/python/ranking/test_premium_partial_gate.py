@@ -7,7 +7,7 @@ from scripts.validate_premium_service import validate_payload
 
 
 ROOT = Path(__file__).resolve().parents[3]
-FIXTURE = ROOT / "tmp/diag40252543707/ranking-diagnostics-40252543707-1/qdii-ranking"
+FIXTURE = ROOT / "tests/fixtures/premium_partial_gate"
 
 
 class PremiumPartialGateTests(unittest.TestCase):

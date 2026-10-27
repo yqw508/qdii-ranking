@@ -1,0 +1,6236 @@
+{
+  "schema_version": 1,
+  "catalog_fingerprint": "dba76def9774ae2551e5fe6eb5ceed7fe8e2d2448c7241bc3fc9e88fb421187d",
+  "request_id": "0b2205eb-7ac5-43d5-886c-9f22860b579e",
+  "status": "partial",
+  "cache_hit": false,
+  "checked_at": "2026-10-26T01:12:30.257Z",
+  "requested_at": "2026-10-26T01:12:30.454Z",
+  "quote_delay_minutes": null,
+  "adapter_version": "multi-source-1",
+  "expected_count": 122,
+  "fresh_count": 34,
+  "retry_after_seconds": 30,
+  "unavailable_products": [
+    {
+      "code": "501226",
+      "reason": "NOT_LISTED",
+      "source": "tencent",
+      "source_status": "U",
+      "source_url": "https://gu.qq.com/sh501226",
+      "source_updated_at": "2026-10-26T01:00:00.000Z",
+      "observed_at": "2026-10-26T01:12:29.288Z"
+    }
+  ],
+  "errors": [
+    {
+      "codes": [
+        "510900"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513000"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513010"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513030"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513050"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513060"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513080"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513100"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513110"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513120"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513130"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513140"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513170"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513180"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513210"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513220"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513260"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513280"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513290"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513300"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513310"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513330"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513350"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513360"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513380"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513390"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513400"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "158042"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159100"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159202"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159303"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159329"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159501"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159502"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159509"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159513"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159518"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159519"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159529"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159557"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159561"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159577"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159605"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159607"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159612"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159615"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159632"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159655"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159659"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159660"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159687"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159688"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159696"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159699"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159740"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159741"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159742"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159747"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159750"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159822"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159850"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159866"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159892"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159920"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159941"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513500"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513520"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513530"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513580"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513650"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513730"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513800"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513810"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513850"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513870"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513880"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513890"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513950"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513970"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "520500"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "520520"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "520570"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "520580"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "520590"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "520830"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "520870"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "520920"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "158042"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159100"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159202"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159303"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159329"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159501"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159502"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159509"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159513"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159518"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159519"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159529"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159557"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159561"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159577"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159605"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159607"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159612"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159615"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159632"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159655"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159659"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159660"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159687"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159688"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159696"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159699"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159740"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159741"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159742"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159747"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159750"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159822"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159850"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159866"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159892"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159920"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159941"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "510900"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513000"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513010"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513030"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513050"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513060"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513080"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513100"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513110"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513120"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513130"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513140"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513170"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513180"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513210"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513220"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513260"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513280"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513290"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513300"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513310"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513330"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513350"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513360"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513380"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513390"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513400"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513500"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513520"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513530"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513580"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513650"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513730"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513800"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513810"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513850"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513870"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513880"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513890"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513950"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513970"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "520500"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "520520"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "520570"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "520580"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "520590"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "520830"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "520870"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "520920"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "158042"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159100"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159202"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159303"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159329"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159501"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159502"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159509"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159513"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159518"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159519"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159529"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159557"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159561"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159577"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159605"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159607"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159612"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159615"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159632"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159655"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159659"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159660"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159687"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159688"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159696"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159699"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159740"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159741"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159742"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159747"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159750"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159822"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159850"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159866"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159892"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159920"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "159941"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "510900"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513000"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513010"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513030"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513050"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513060"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513080"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513100"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513110"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513120"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513130"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513140"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513170"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513180"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513210"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513220"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513260"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513280"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513290"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513300"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513310"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513330"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513350"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513360"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513380"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513390"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513400"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513500"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513520"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513530"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513580"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513650"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513730"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513800"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513810"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513850"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513870"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513880"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513890"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513950"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "513970"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "520500"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "520520"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "520570"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "520580"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "520590"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "520830"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "520870"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "520920"
+      ],
+      "reason": "INVALID_TENCENT_FIELD_78",
+      "source": "tencent"
+    },
+    {
+      "codes": [
+        "158042"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159100"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159202"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159303"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159329"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159501"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159502"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159509"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159513"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159518"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159519"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159529"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159557"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159561"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159577"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159605"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159607"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159612"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159615"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159632"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159655"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159659"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159660"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159687"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159688"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159696"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159699"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159740"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159741"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159742"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159747"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159750"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159822"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159850"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159866"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159892"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159920"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159941"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "510900"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513000"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513010"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513030"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513050"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513060"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513080"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513100"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513110"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513120"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513130"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513140"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513170"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513180"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513210"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513220"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513260"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513280"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513290"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513300"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513310"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513330"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513350"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513360"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513380"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513390"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513400"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513500"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513520"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513530"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513580"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513650"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513730"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513800"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513810"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513850"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513870"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513880"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513890"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513950"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513970"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "520500"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "520520"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "520570"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "520580"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "520590"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "520830"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "520870"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "520920"
+      ],
+      "source": "tencent",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "158042",
+        "159100",
+        "159202",
+        "159303",
+        "159329",
+        "159501",
+        "159502",
+        "159509",
+        "159513",
+        "159518",
+        "159519",
+        "159529",
+        "159557",
+        "159561",
+        "159577",
+        "159605",
+        "159607",
+        "159612",
+        "159615",
+        "159632",
+        "159655",
+        "159659",
+        "159660",
+        "159687",
+        "159688",
+        "159696",
+        "159699",
+        "159740",
+        "159741",
+        "159742",
+        "159747",
+        "159750",
+        "159822",
+        "159850",
+        "159866",
+        "159892",
+        "159920",
+        "159941",
+        "510900",
+        "513000",
+        "513010",
+        "513030",
+        "513050",
+        "513060",
+        "513080",
+        "513100",
+        "513110",
+        "513120",
+        "513130",
+        "513140"
+      ],
+      "source": "eastmoney",
+      "reason": "UPSTREAM_FAILURE: fetch failed UND_ERR_SOCKET other side closed"
+    },
+    {
+      "codes": [
+        "513170",
+        "513180",
+        "513210",
+        "513220",
+        "513260",
+        "513280",
+        "513290",
+        "513300",
+        "513310",
+        "513330",
+        "513350",
+        "513360",
+        "513380",
+        "513390",
+        "513400",
+        "513500",
+        "513520",
+        "513530",
+        "513580",
+        "513650",
+        "513730",
+        "513800",
+        "513810",
+        "513850",
+        "513870",
+        "513880",
+        "513890",
+        "513950",
+        "513970",
+        "520500",
+        "520520",
+        "520570",
+        "520580",
+        "520590",
+        "520830",
+        "520870",
+        "520920"
+      ],
+      "source": "eastmoney",
+      "reason": "UPSTREAM_FAILURE: fetch failed UND_ERR_SOCKET other side closed"
+    },
+    {
+      "codes": [
+        "158042"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159100"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159202"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159303"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159329"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159501"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159502"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159509"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159513"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159518"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159519"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159529"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159557"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159561"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159577"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159605"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159607"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159612"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159615"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159632"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159655"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159659"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159660"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159687"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159688"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159696"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159699"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159740"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159741"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159742"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159747"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159750"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159822"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159850"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159866"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159892"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159920"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "159941"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "510900"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513000"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513010"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513030"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513050"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513060"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513080"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513100"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513110"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513120"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513130"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513140"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513170"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513180"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513210"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513220"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513260"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513280"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513290"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513300"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513310"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513330"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513350"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513360"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513380"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513390"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513400"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513500"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513520"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513530"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513580"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513650"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513730"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513800"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513810"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513850"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513870"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513880"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513890"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513950"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "513970"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "520500"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "520520"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "520570"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "520580"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "520590"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "520830"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "520870"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "520920"
+      ],
+      "source": "eastmoney",
+      "reason": "MISSING_QUOTE"
+    },
+    {
+      "codes": [
+        "158042"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159100"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159202"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159303"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159329"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159501"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159502"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159509"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159513"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159518"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159519"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159529"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159557"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159561"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159577"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159605"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159607"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159612"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159615"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159632"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159655"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159659"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159660"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159687"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159688"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159696"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159699"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159740"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159741"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159742"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159747"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159750"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159822"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159850"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159866"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159892"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159920"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "159941"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "510900"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513000"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513010"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513030"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513050"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513060"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513080"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513100"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513110"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513120"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513130"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513140"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513170"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513180"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513210"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513220"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513260"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513280"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513290"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513300"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513310"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513330"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513350"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513360"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513380"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513390"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513400"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513500"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513520"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513530"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513580"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513650"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513730"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513800"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513810"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513850"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513870"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513880"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513890"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513950"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "513970"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "520500"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "520520"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "520570"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "520580"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "520590"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "520830"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "520870"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    },
+    {
+      "codes": [
+        "520920"
+      ],
+      "reason": "NO_VALID_QUOTE"
+    }
+  ],
+  "records": [
+    {
+      "code": "158042",
+      "name": "恒生科技ETF富国",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.878,
+      "referenceType": "iopv",
+      "referenceValueCny": 0.8797,
+      "referenceDate": null,
+      "premiumPct": -0.19,
+      "changePct": 2.33,
+      "turnoverCny": 28246825,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:30.000Z",
+      "updatedText": "2026-10-23 16:14:30",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz158042",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.574Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159100",
+      "name": "巴西ETF华夏",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.299,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.2901,
+      "referenceDate": null,
+      "premiumPct": 0.69,
+      "changePct": -1.14,
+      "turnoverCny": 42203238,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:54.000Z",
+      "updatedText": "2026-10-23 16:14:54",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159100",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.575Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159202",
+      "name": "恒生互联网ETF万家",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.688,
+      "referenceType": "iopv",
+      "referenceValueCny": 0.6879,
+      "referenceDate": null,
+      "premiumPct": 0.01,
+      "changePct": 2.69,
+      "turnoverCny": 146316239,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:45.000Z",
+      "updatedText": "2026-10-23 16:14:45",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159202",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.575Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159303",
+      "name": "恒生医疗ETF大成",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.476,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.4813,
+      "referenceDate": null,
+      "premiumPct": -0.36,
+      "changePct": 1.58,
+      "turnoverCny": 100529733,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:15:00.000Z",
+      "updatedText": "2026-10-23 16:15:00",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159303",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.575Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159329",
+      "name": "沙特ETF南方",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.804,
+      "referenceType": "iopv",
+      "referenceValueCny": 0.8023,
+      "referenceDate": null,
+      "premiumPct": 0.21,
+      "changePct": -1.71,
+      "turnoverCny": 48620477,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:33.000Z",
+      "updatedText": "2026-10-23 16:14:33",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159329",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.575Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159501",
+      "name": "纳指ETF嘉实",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 2.142,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.8209,
+      "referenceDate": null,
+      "premiumPct": 17.63,
+      "changePct": -0.19,
+      "turnoverCny": 153293489,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:15:00.000Z",
+      "updatedText": "2026-10-23 16:15:00",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159501",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.575Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159502",
+      "name": "标普生物科技ETF嘉实",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.568,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.5037,
+      "referenceDate": null,
+      "premiumPct": 4.28,
+      "changePct": 1.49,
+      "turnoverCny": 324828147,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:27.000Z",
+      "updatedText": "2026-10-23 16:14:27",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159502",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.575Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159509",
+      "name": "纳指科技ETF景顺",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 2.95,
+      "referenceType": "iopv",
+      "referenceValueCny": 2.2058,
+      "referenceDate": null,
+      "premiumPct": 33.74,
+      "changePct": 0.24,
+      "turnoverCny": 2508243366,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:33.000Z",
+      "updatedText": "2026-10-23 16:14:33",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159509",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.575Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159513",
+      "name": "纳斯达克100ETF大成",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.774,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.6144,
+      "referenceDate": null,
+      "premiumPct": 9.89,
+      "changePct": -1.66,
+      "turnoverCny": 568281772,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:15.000Z",
+      "updatedText": "2026-10-23 16:14:15",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159513",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.579Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159518",
+      "name": "标普油气ETF嘉实",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.357,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.3206,
+      "referenceDate": null,
+      "premiumPct": 2.76,
+      "changePct": -1.81,
+      "turnoverCny": 1087685051,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:39.000Z",
+      "updatedText": "2026-10-23 16:14:39",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159518",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.580Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159519",
+      "name": "港股国企ETF国泰",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.673,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.6772,
+      "referenceDate": null,
+      "premiumPct": -0.25,
+      "changePct": 0.3,
+      "turnoverCny": 36734922,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:42.000Z",
+      "updatedText": "2026-10-23 16:14:42",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159519",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.580Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159529",
+      "name": "标普消费ETF景顺",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.369,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.2957,
+      "referenceDate": null,
+      "premiumPct": 5.66,
+      "changePct": 1.33,
+      "turnoverCny": 722255048,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:30.000Z",
+      "updatedText": "2026-10-23 16:14:30",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159529",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.580Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159557",
+      "name": "恒生医疗ETF嘉实",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.347,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.3587,
+      "referenceDate": null,
+      "premiumPct": -0.86,
+      "changePct": 1.66,
+      "turnoverCny": 166334096,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:30.000Z",
+      "updatedText": "2026-10-23 16:14:30",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159557",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.580Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159561",
+      "name": "德国ETF嘉实",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.272,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.2742,
+      "referenceDate": null,
+      "premiumPct": -0.17,
+      "changePct": -0.47,
+      "turnoverCny": 123838311,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:30.000Z",
+      "updatedText": "2026-10-23 16:14:30",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159561",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.580Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159577",
+      "name": "美国50ETF汇添富",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.664,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.5528,
+      "referenceDate": null,
+      "premiumPct": 7.16,
+      "changePct": -0.83,
+      "turnoverCny": 133168580,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:27.000Z",
+      "updatedText": "2026-10-23 16:14:27",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159577",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.580Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159605",
+      "name": "中概互联ETF广发",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.713,
+      "referenceType": "iopv",
+      "referenceValueCny": 0.7049,
+      "referenceDate": null,
+      "premiumPct": 1.15,
+      "changePct": 2,
+      "turnoverCny": 308737588,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:21.000Z",
+      "updatedText": "2026-10-23 16:14:21",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159605",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.580Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159607",
+      "name": "中概互联网ETF嘉实",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.709,
+      "referenceType": "iopv",
+      "referenceValueCny": 0.7036,
+      "referenceDate": null,
+      "premiumPct": 0.77,
+      "changePct": 2.01,
+      "turnoverCny": 186267835,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:45.000Z",
+      "updatedText": "2026-10-23 16:14:45",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159607",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.580Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159612",
+      "name": "标普500ETF国泰",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 2.038,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.9116,
+      "referenceDate": null,
+      "premiumPct": 6.61,
+      "changePct": -0.78,
+      "turnoverCny": 40829452,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:30.000Z",
+      "updatedText": "2026-10-23 16:14:30",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159612",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.580Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159615",
+      "name": "恒生生物科技ETF南方",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.052,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.0544,
+      "referenceDate": null,
+      "premiumPct": -0.23,
+      "changePct": 2.24,
+      "turnoverCny": 125830738,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:39.000Z",
+      "updatedText": "2026-10-23 16:14:39",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159615",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.580Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159632",
+      "name": "纳斯达克ETF华安",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 2.431,
+      "referenceType": "iopv",
+      "referenceValueCny": 2.2024,
+      "referenceDate": null,
+      "premiumPct": 10.38,
+      "changePct": -1.5,
+      "turnoverCny": 476429707,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:51.000Z",
+      "updatedText": "2026-10-23 16:14:51",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159632",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.581Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159655",
+      "name": "标普500ETF华夏",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.972,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.8624,
+      "referenceDate": null,
+      "premiumPct": 5.88,
+      "changePct": -1.2,
+      "turnoverCny": 193612831,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:45.000Z",
+      "updatedText": "2026-10-23 16:14:45",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159655",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.581Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159659",
+      "name": "纳斯达克100ETF招商",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 2.37,
+      "referenceType": "iopv",
+      "referenceValueCny": 2.095,
+      "referenceDate": null,
+      "premiumPct": 13.13,
+      "changePct": -0.84,
+      "turnoverCny": 216283594,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:51.000Z",
+      "updatedText": "2026-10-23 16:14:51",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159659",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.581Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159660",
+      "name": "纳指ETF汇添富",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 2.376,
+      "referenceType": "iopv",
+      "referenceValueCny": 2.1181,
+      "referenceDate": null,
+      "premiumPct": 12.18,
+      "changePct": -0.96,
+      "turnoverCny": 173222057,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:06.000Z",
+      "updatedText": "2026-10-23 16:14:06",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159660",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.581Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159687",
+      "name": "亚太精选ETF南方",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.702,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.7161,
+      "referenceDate": null,
+      "premiumPct": -0.82,
+      "changePct": -0.47,
+      "turnoverCny": 167276695,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:30.000Z",
+      "updatedText": "2026-10-23 16:14:30",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159687",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.581Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159688",
+      "name": "恒生互联网ETF华安",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.65,
+      "referenceType": "iopv",
+      "referenceValueCny": 0.6494,
+      "referenceDate": null,
+      "premiumPct": 0.09,
+      "changePct": 2.85,
+      "turnoverCny": 157742786,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:45.000Z",
+      "updatedText": "2026-10-23 16:14:45",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159688",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.581Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159696",
+      "name": "纳指ETF易方达",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 2.08,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.8052,
+      "referenceDate": null,
+      "premiumPct": 15.22,
+      "changePct": -0.95,
+      "turnoverCny": 115593900,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:15.000Z",
+      "updatedText": "2026-10-23 16:14:15",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159696",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.581Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159699",
+      "name": "恒生消费ETF广发",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.824,
+      "referenceType": "iopv",
+      "referenceValueCny": 0.8269,
+      "referenceDate": null,
+      "premiumPct": -0.35,
+      "changePct": 1.98,
+      "turnoverCny": 19473821,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:42.000Z",
+      "updatedText": "2026-10-23 16:14:42",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159699",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.581Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159740",
+      "name": "恒生科技ETF大成",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.48,
+      "referenceType": "iopv",
+      "referenceValueCny": 0.4802,
+      "referenceDate": null,
+      "premiumPct": -0.04,
+      "changePct": 2.78,
+      "turnoverCny": 1462972945,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:15:00.000Z",
+      "updatedText": "2026-10-23 16:15:00",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159740",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.582Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159741",
+      "name": "恒生科技ETF嘉实",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.482,
+      "referenceType": "iopv",
+      "referenceValueCny": 0.4856,
+      "referenceDate": null,
+      "premiumPct": -0.74,
+      "changePct": 2.55,
+      "turnoverCny": 145287176,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:45.000Z",
+      "updatedText": "2026-10-23 16:14:45",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159741",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.582Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159742",
+      "name": "恒生科技ETF博时",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.493,
+      "referenceType": "iopv",
+      "referenceValueCny": 0.4928,
+      "referenceDate": null,
+      "premiumPct": 0.04,
+      "changePct": 2.71,
+      "turnoverCny": 200821500,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:39.000Z",
+      "updatedText": "2026-10-23 16:14:39",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159742",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.582Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159747",
+      "name": "香港科技ETF南方",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.994,
+      "referenceType": "iopv",
+      "referenceValueCny": 0.9931,
+      "referenceDate": null,
+      "premiumPct": 0.09,
+      "changePct": 2.58,
+      "turnoverCny": 54722163,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:45.000Z",
+      "updatedText": "2026-10-23 16:14:45",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159747",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.582Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159750",
+      "name": "港股科技50ETF招商",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.735,
+      "referenceType": "iopv",
+      "referenceValueCny": 0.7372,
+      "referenceDate": null,
+      "premiumPct": -0.3,
+      "changePct": 2.23,
+      "turnoverCny": 63191204,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:15:00.000Z",
+      "updatedText": "2026-10-23 16:15:00",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159750",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.582Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159822",
+      "name": "新经济ETF银华",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.531,
+      "referenceType": "iopv",
+      "referenceValueCny": 0.5244,
+      "referenceDate": null,
+      "premiumPct": 1.26,
+      "changePct": 1.53,
+      "turnoverCny": 5434353,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:45.000Z",
+      "updatedText": "2026-10-23 16:14:45",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159822",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.582Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159850",
+      "name": "恒生国企ETF华夏",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.748,
+      "referenceType": "iopv",
+      "referenceValueCny": 0.75,
+      "referenceDate": null,
+      "premiumPct": -0.27,
+      "changePct": 1.22,
+      "turnoverCny": 16377607,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:54.000Z",
+      "updatedText": "2026-10-23 16:14:54",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159850",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.583Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159866",
+      "name": "日经ETF工银",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.608,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.5696,
+      "referenceDate": null,
+      "premiumPct": 2.45,
+      "changePct": -0.12,
+      "turnoverCny": 391731219,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:15.000Z",
+      "updatedText": "2026-10-23 16:14:15",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159866",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.583Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159892",
+      "name": "恒生医药ETF华夏",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.735,
+      "referenceType": "iopv",
+      "referenceValueCny": 0.7359,
+      "referenceDate": null,
+      "premiumPct": -0.12,
+      "changePct": 1.94,
+      "turnoverCny": 790342531,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:45.000Z",
+      "updatedText": "2026-10-23 16:14:45",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159892",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.583Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159920",
+      "name": "恒生ETF华夏",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.36,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.3578,
+      "referenceDate": null,
+      "premiumPct": 0.16,
+      "changePct": 1.12,
+      "turnoverCny": 261203298,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:24.000Z",
+      "updatedText": "2026-10-23 16:14:24",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159920",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.583Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "159941",
+      "name": "纳指ETF广发",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.668,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.45,
+      "referenceDate": null,
+      "premiumPct": 15.03,
+      "changePct": -0.83,
+      "turnoverCny": 1244971938,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:18.000Z",
+      "updatedText": "2026-10-23 16:14:18",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz159941",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:25.583Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "160125",
+      "name": "南方香港LOF",
+      "benchmarkGroup": "QDII-普通股票",
+      "marketPriceCny": 1.386,
+      "referenceType": "nav",
+      "referenceValueCny": 1.3811,
+      "referenceDate": "2026-10-22",
+      "premiumPct": 0.35,
+      "changePct": 0,
+      "turnoverCny": 0,
+      "quoteDate": "2026-10-26",
+      "updatedAt": "2026-10-26T01:12:18.000Z",
+      "updatedText": "2026-10-26 09:12:18",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz160125",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-26T01:12:29.665Z",
+      "status": "fresh"
+    },
+    {
+      "code": "160140",
+      "name": "美国REIT精选LOF",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.362,
+      "referenceType": "nav",
+      "referenceValueCny": 1.3721,
+      "referenceDate": "2026-10-22",
+      "premiumPct": -0.74,
+      "changePct": 0,
+      "turnoverCny": 0,
+      "quoteDate": "2026-10-26",
+      "updatedAt": "2026-10-26T01:12:15.000Z",
+      "updatedText": "2026-10-26 09:12:15",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz160140",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-26T01:12:29.660Z",
+      "status": "fresh"
+    },
+    {
+      "code": "160216",
+      "name": "国泰商品LOF",
+      "benchmarkGroup": "QDII-商品",
+      "marketPriceCny": 0.603,
+      "referenceType": "nav",
+      "referenceValueCny": 0.595,
+      "referenceDate": "2026-10-22",
+      "premiumPct": 1.34,
+      "changePct": 0,
+      "turnoverCny": 0,
+      "quoteDate": "2026-10-26",
+      "updatedAt": "2026-10-26T01:11:51.000Z",
+      "updatedText": "2026-10-26 09:11:51",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz160216",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-26T01:12:29.752Z",
+      "status": "fresh"
+    },
+    {
+      "code": "160416",
+      "name": "石油基金LOF",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 2.305,
+      "referenceType": "nav",
+      "referenceValueCny": 2.3055,
+      "referenceDate": "2026-10-22",
+      "premiumPct": -0.02,
+      "changePct": 0,
+      "turnoverCny": 0,
+      "quoteDate": "2026-10-26",
+      "updatedAt": "2026-10-26T01:12:27.000Z",
+      "updatedText": "2026-10-26 09:12:27",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz160416",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-26T01:12:29.952Z",
+      "status": "fresh"
+    },
+    {
+      "code": "160644",
+      "name": "港美互联网LOF",
+      "benchmarkGroup": "QDII-普通股票",
+      "marketPriceCny": 1.628,
+      "referenceType": "nav",
+      "referenceValueCny": 1.625,
+      "referenceDate": "2026-10-22",
+      "premiumPct": 0.18,
+      "changePct": 0,
+      "turnoverCny": 0,
+      "quoteDate": "2026-10-26",
+      "updatedAt": "2026-10-26T01:11:48.000Z",
+      "updatedText": "2026-10-26 09:11:48",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz160644",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-26T01:12:29.949Z",
+      "status": "fresh"
+    },
+    {
+      "code": "160717",
+      "name": "H股LOF",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.666,
+      "referenceType": "nav",
+      "referenceValueCny": 0.6658,
+      "referenceDate": "2026-10-23",
+      "premiumPct": 0.03,
+      "changePct": 0,
+      "turnoverCny": 0,
+      "quoteDate": "2026-10-26",
+      "updatedAt": "2026-10-26T01:11:54.000Z",
+      "updatedText": "2026-10-26 09:11:54",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz160717",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-26T01:12:29.762Z",
+      "status": "fresh"
+    },
+    {
+      "code": "160719",
+      "name": "嘉实黄金LOF",
+      "benchmarkGroup": "QDII-商品",
+      "marketPriceCny": 1.77,
+      "referenceType": "nav",
+      "referenceValueCny": 1.779,
+      "referenceDate": "2026-10-22",
+      "premiumPct": -0.51,
+      "changePct": 0,
+      "turnoverCny": 0,
+      "quoteDate": "2026-10-26",
+      "updatedAt": "2026-10-26T01:12:06.000Z",
+      "updatedText": "2026-10-26 09:12:06",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz160719",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-26T01:12:29.849Z",
+      "status": "fresh"
+    },
+    {
+      "code": "160723",
+      "name": "嘉实原油LOF",
+      "benchmarkGroup": "QDII-商品",
+      "marketPriceCny": 2.574,
+      "referenceType": "nav",
+      "referenceValueCny": 2.5139,
+      "referenceDate": "2026-10-22",
+      "premiumPct": 2.39,
+      "changePct": 0,
+      "turnoverCny": 0,
+      "quoteDate": "2026-10-26",
+      "updatedAt": "2026-10-26T01:11:51.000Z",
+      "updatedText": "2026-10-26 09:11:51",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz160723",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-26T01:12:29.948Z",
+      "status": "fresh"
+    },
+    {
+      "code": "160924",
+      "name": "恒生指数LOF",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.915,
+      "referenceType": "nav",
+      "referenceValueCny": 0.9112,
+      "referenceDate": "2026-10-23",
+      "premiumPct": 0.42,
+      "changePct": 0,
+      "turnoverCny": 0,
+      "quoteDate": "2026-10-26",
+      "updatedAt": "2026-10-26T01:12:12.000Z",
+      "updatedText": "2026-10-26 09:12:12",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz160924",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-26T01:12:29.958Z",
+      "status": "fresh"
+    },
+    {
+      "code": "161116",
+      "name": "黄金主题LOF",
+      "benchmarkGroup": "QDII-商品",
+      "marketPriceCny": 1.467,
+      "referenceType": "nav",
+      "referenceValueCny": 1.4763,
+      "referenceDate": "2026-10-22",
+      "premiumPct": -0.63,
+      "changePct": 0,
+      "turnoverCny": 0,
+      "quoteDate": "2026-10-26",
+      "updatedAt": "2026-10-26T01:12:09.000Z",
+      "updatedText": "2026-10-26 09:12:09",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz161116",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-26T01:12:29.963Z",
+      "status": "fresh"
+    },
+    {
+      "code": "161124",
+      "name": "港股小盘LOF",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.801,
+      "referenceType": "nav",
+      "referenceValueCny": 0.8059,
+      "referenceDate": "2026-10-23",
+      "premiumPct": -0.61,
+      "changePct": 0,
+      "turnoverCny": 0,
+      "quoteDate": "2026-10-26",
+      "updatedAt": "2026-10-26T01:11:42.000Z",
+      "updatedText": "2026-10-26 09:11:42",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz161124",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-26T01:12:30.049Z",
+      "status": "fresh"
+    },
+    {
+      "code": "161125",
+      "name": "标普500LOF",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 3.25,
+      "referenceType": "nav",
+      "referenceValueCny": 3.1208,
+      "referenceDate": "2026-10-22",
+      "premiumPct": 4.14,
+      "changePct": 0,
+      "turnoverCny": 0,
+      "quoteDate": "2026-10-26",
+      "updatedAt": "2026-10-26T01:11:30.000Z",
+      "updatedText": "2026-10-26 09:11:30",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz161125",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-26T01:12:29.966Z",
+      "status": "fresh"
+    },
+    {
+      "code": "161126",
+      "name": "标普医疗保健LOF",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 2.312,
+      "referenceType": "nav",
+      "referenceValueCny": 2.2701,
+      "referenceDate": "2026-10-22",
+      "premiumPct": 1.85,
+      "changePct": 0,
+      "turnoverCny": 0,
+      "quoteDate": "2026-10-26",
+      "updatedAt": "2026-10-26T01:11:45.000Z",
+      "updatedText": "2026-10-26 09:11:45",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz161126",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-26T01:12:29.972Z",
+      "status": "fresh"
+    },
+    {
+      "code": "161127",
+      "name": "标普生物科技LOF",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.983,
+      "referenceType": "nav",
+      "referenceValueCny": 1.9898,
+      "referenceDate": "2026-10-22",
+      "premiumPct": -0.34,
+      "changePct": 0,
+      "turnoverCny": 0,
+      "quoteDate": "2026-10-26",
+      "updatedAt": "2026-10-26T01:12:18.000Z",
+      "updatedText": "2026-10-26 09:12:18",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz161127",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-26T01:12:29.976Z",
+      "status": "fresh"
+    },
+    {
+      "code": "161128",
+      "name": "标普信息科技LOF",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 7.259,
+      "referenceType": "nav",
+      "referenceValueCny": 6.6235,
+      "referenceDate": "2026-10-22",
+      "premiumPct": 9.59,
+      "changePct": 0,
+      "turnoverCny": 0,
+      "quoteDate": "2026-10-26",
+      "updatedAt": "2026-10-26T01:11:39.000Z",
+      "updatedText": "2026-10-26 09:11:39",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz161128",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-26T01:12:29.982Z",
+      "status": "fresh"
+    },
+    {
+      "code": "161129",
+      "name": "原油LOF易方达",
+      "benchmarkGroup": "QDII-商品",
+      "marketPriceCny": 2.146,
+      "referenceType": "nav",
+      "referenceValueCny": 2.1055,
+      "referenceDate": "2026-10-22",
+      "premiumPct": 1.92,
+      "changePct": 0,
+      "turnoverCny": 0,
+      "quoteDate": "2026-10-26",
+      "updatedAt": "2026-10-26T01:11:42.000Z",
+      "updatedText": "2026-10-26 09:11:42",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz161129",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-26T01:12:30.048Z",
+      "status": "fresh"
+    },
+    {
+      "code": "161130",
+      "name": "纳斯达克100LOF",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 4.649,
+      "referenceType": "nav",
+      "referenceValueCny": 4.336,
+      "referenceDate": "2026-10-22",
+      "premiumPct": 7.22,
+      "changePct": 0,
+      "turnoverCny": 0,
+      "quoteDate": "2026-10-26",
+      "updatedAt": "2026-10-26T01:11:48.000Z",
+      "updatedText": "2026-10-26 09:11:48",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz161130",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-26T01:12:30.056Z",
+      "status": "fresh"
+    },
+    {
+      "code": "161229",
+      "name": "国投中国价值LOF",
+      "benchmarkGroup": "QDII-普通股票",
+      "marketPriceCny": 1.334,
+      "referenceType": "nav",
+      "referenceValueCny": 1.338,
+      "referenceDate": "2026-10-22",
+      "premiumPct": -0.3,
+      "changePct": 0,
+      "turnoverCny": 0,
+      "quoteDate": "2026-10-26",
+      "updatedAt": "2026-10-26T01:11:36.000Z",
+      "updatedText": "2026-10-26 09:11:36",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz161229",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-26T01:12:30.057Z",
+      "status": "fresh"
+    },
+    {
+      "code": "161815",
+      "name": "抗通胀LOF",
+      "benchmarkGroup": "QDII-商品",
+      "marketPriceCny": 1.14,
+      "referenceType": "nav",
+      "referenceValueCny": 1.145,
+      "referenceDate": "2026-10-22",
+      "premiumPct": -0.44,
+      "changePct": 0,
+      "turnoverCny": 0,
+      "quoteDate": "2026-10-26",
+      "updatedAt": "2026-10-26T01:11:33.000Z",
+      "updatedText": "2026-10-26 09:11:33",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz161815",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-26T01:12:30.059Z",
+      "status": "fresh"
+    },
+    {
+      "code": "161831",
+      "name": "恒生国企LOF",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.662,
+      "referenceType": "nav",
+      "referenceValueCny": 0.6595,
+      "referenceDate": "2026-10-23",
+      "premiumPct": 0.38,
+      "changePct": 0,
+      "turnoverCny": 0,
+      "quoteDate": "2026-10-26",
+      "updatedAt": "2026-10-26T01:11:36.000Z",
+      "updatedText": "2026-10-26 09:11:36",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz161831",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-26T01:12:30.066Z",
+      "status": "fresh"
+    },
+    {
+      "code": "162411",
+      "name": "华宝油气LOF",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.025,
+      "referenceType": "nav",
+      "referenceValueCny": 1.0195,
+      "referenceDate": "2026-10-22",
+      "premiumPct": 0.54,
+      "changePct": 0,
+      "turnoverCny": 0,
+      "quoteDate": "2026-10-26",
+      "updatedAt": "2026-10-26T01:12:00.000Z",
+      "updatedText": "2026-10-26 09:12:00",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz162411",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-26T01:12:30.065Z",
+      "status": "fresh"
+    },
+    {
+      "code": "162415",
+      "name": "美国消费LOF",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 2.782,
+      "referenceType": "nav",
+      "referenceValueCny": 2.797,
+      "referenceDate": "2026-10-22",
+      "premiumPct": -0.54,
+      "changePct": 0,
+      "turnoverCny": 0,
+      "quoteDate": "2026-10-26",
+      "updatedAt": "2026-10-26T01:11:51.000Z",
+      "updatedText": "2026-10-26 09:11:51",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz162415",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-26T01:12:30.076Z",
+      "status": "fresh"
+    },
+    {
+      "code": "162719",
+      "name": "石油LOF",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 3.315,
+      "referenceType": "nav",
+      "referenceValueCny": 3.295,
+      "referenceDate": "2026-10-22",
+      "premiumPct": 0.61,
+      "changePct": 0,
+      "turnoverCny": 0,
+      "quoteDate": "2026-10-26",
+      "updatedAt": "2026-10-26T01:12:12.000Z",
+      "updatedText": "2026-10-26 09:12:12",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz162719",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-26T01:12:30.075Z",
+      "status": "fresh"
+    },
+    {
+      "code": "163208",
+      "name": "全球油气能源LOF",
+      "benchmarkGroup": "QDII-普通股票",
+      "marketPriceCny": 1.492,
+      "referenceType": "nav",
+      "referenceValueCny": 1.498,
+      "referenceDate": "2026-10-22",
+      "premiumPct": -0.4,
+      "changePct": 0,
+      "turnoverCny": 0,
+      "quoteDate": "2026-10-26",
+      "updatedAt": "2026-10-26T01:11:57.000Z",
+      "updatedText": "2026-10-26 09:11:57",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz163208",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-26T01:12:30.084Z",
+      "status": "fresh"
+    },
+    {
+      "code": "164212",
+      "name": "全球新能源车LOF",
+      "benchmarkGroup": "QDII-普通股票",
+      "marketPriceCny": 1,
+      "referenceType": "nav",
+      "referenceValueCny": 1.4807,
+      "referenceDate": "2026-10-22",
+      "premiumPct": -32.46,
+      "changePct": 0,
+      "turnoverCny": 0,
+      "quoteDate": "2026-10-26",
+      "updatedAt": "2026-10-26T01:00:00.000Z",
+      "updatedText": "2026-10-26 09:00:00",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz164212",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-26T01:12:30.091Z",
+      "status": "fresh"
+    },
+    {
+      "code": "164701",
+      "name": "黄金LOF",
+      "benchmarkGroup": "QDII-商品",
+      "marketPriceCny": 1.55,
+      "referenceType": "nav",
+      "referenceValueCny": 1.546,
+      "referenceDate": "2026-10-22",
+      "premiumPct": 0.26,
+      "changePct": 0,
+      "turnoverCny": 0,
+      "quoteDate": "2026-10-26",
+      "updatedAt": "2026-10-26T01:11:39.000Z",
+      "updatedText": "2026-10-26 09:11:39",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz164701",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-26T01:12:30.086Z",
+      "status": "fresh"
+    },
+    {
+      "code": "164705",
+      "name": "恒生LOF",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.045,
+      "referenceType": "nav",
+      "referenceValueCny": 1.033,
+      "referenceDate": "2026-10-23",
+      "premiumPct": 1.16,
+      "changePct": 0,
+      "turnoverCny": 0,
+      "quoteDate": "2026-10-26",
+      "updatedAt": "2026-10-26T01:11:30.000Z",
+      "updatedText": "2026-10-26 09:11:30",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz164705",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-26T01:12:30.100Z",
+      "status": "fresh"
+    },
+    {
+      "code": "164824",
+      "name": "印度基金LOF",
+      "benchmarkGroup": "QDII-混合偏股",
+      "marketPriceCny": 1.21,
+      "referenceType": "nav",
+      "referenceValueCny": 1.2366,
+      "referenceDate": "2026-10-22",
+      "premiumPct": -2.15,
+      "changePct": 0,
+      "turnoverCny": 0,
+      "quoteDate": "2026-10-26",
+      "updatedAt": "2026-10-26T01:12:18.000Z",
+      "updatedText": "2026-10-26 09:12:18",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz164824",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-26T01:12:30.099Z",
+      "status": "fresh"
+    },
+    {
+      "code": "164906",
+      "name": "中概互联网LOF",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.835,
+      "referenceType": "nav",
+      "referenceValueCny": 0.821,
+      "referenceDate": "2026-10-22",
+      "premiumPct": 1.71,
+      "changePct": 0,
+      "turnoverCny": 0,
+      "quoteDate": "2026-10-26",
+      "updatedAt": "2026-10-26T01:12:15.000Z",
+      "updatedText": "2026-10-26 09:12:15",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz164906",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-26T01:12:30.102Z",
+      "status": "fresh"
+    },
+    {
+      "code": "165513",
+      "name": "中信保诚商品LOF",
+      "benchmarkGroup": "QDII-商品",
+      "marketPriceCny": 0.925,
+      "referenceType": "nav",
+      "referenceValueCny": 0.9257,
+      "referenceDate": "2026-10-22",
+      "premiumPct": -0.08,
+      "changePct": 0,
+      "turnoverCny": 0,
+      "quoteDate": "2026-10-26",
+      "updatedAt": "2026-10-26T01:11:42.000Z",
+      "updatedText": "2026-10-26 09:11:42",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sz165513",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-26T01:12:30.113Z",
+      "status": "fresh"
+    },
+    {
+      "code": "501018",
+      "name": "南方原油LOF",
+      "benchmarkGroup": "QDII-商品",
+      "marketPriceCny": 2.27,
+      "referenceType": "nav",
+      "referenceValueCny": 2.2176,
+      "referenceDate": "2026-10-22",
+      "premiumPct": 2.36,
+      "changePct": 0,
+      "turnoverCny": 0,
+      "quoteDate": "2026-10-26",
+      "updatedAt": "2026-10-26T01:12:10.000Z",
+      "updatedText": "2026-10-26 09:12:10",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh501018",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-26T01:12:30.109Z",
+      "status": "fresh"
+    },
+    {
+      "code": "501225",
+      "name": "全球芯片LOF",
+      "benchmarkGroup": "QDII-普通股票",
+      "marketPriceCny": 3.518,
+      "referenceType": "nav",
+      "referenceValueCny": 2.6173,
+      "referenceDate": "2026-10-22",
+      "premiumPct": 34.41,
+      "changePct": 0,
+      "turnoverCny": 0,
+      "quoteDate": "2026-10-26",
+      "updatedAt": "2026-10-26T01:12:22.000Z",
+      "updatedText": "2026-10-26 09:12:22",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh501225",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-26T01:12:30.110Z",
+      "status": "fresh"
+    },
+    {
+      "code": "501300",
+      "name": "美元债LOF",
+      "benchmarkGroup": "QDII-纯债",
+      "marketPriceCny": 0.925,
+      "referenceType": "nav",
+      "referenceValueCny": 0.9226,
+      "referenceDate": "2026-10-22",
+      "premiumPct": 0.26,
+      "changePct": 0,
+      "turnoverCny": 0,
+      "quoteDate": "2026-10-26",
+      "updatedAt": "2026-10-26T01:12:24.000Z",
+      "updatedText": "2026-10-26 09:12:24",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh501300",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-26T01:12:30.147Z",
+      "status": "fresh"
+    },
+    {
+      "code": "501312",
+      "name": "海外科技LOF",
+      "benchmarkGroup": "QDII-普通股票",
+      "marketPriceCny": 2.301,
+      "referenceType": "nav",
+      "referenceValueCny": 2.2798,
+      "referenceDate": "2026-10-22",
+      "premiumPct": 0.93,
+      "changePct": 0,
+      "turnoverCny": 0,
+      "quoteDate": "2026-10-26",
+      "updatedAt": "2026-10-26T01:12:20.000Z",
+      "updatedText": "2026-10-26 09:12:20",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh501312",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-26T01:12:30.147Z",
+      "status": "fresh"
+    },
+    {
+      "code": "510900",
+      "name": "恒生中国企业ETF易方达",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.958,
+      "referenceType": "iopv",
+      "referenceValueCny": 0.9554,
+      "referenceDate": null,
+      "premiumPct": 0.27,
+      "changePct": 1.38,
+      "turnoverCny": 77228678,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:57.000Z",
+      "updatedText": "2026-10-23 16:14:57",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh510900",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.269Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513000",
+      "name": "日经225ETF易方达",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 2.177,
+      "referenceType": "iopv",
+      "referenceValueCny": 2.1147,
+      "referenceDate": null,
+      "premiumPct": 2.95,
+      "changePct": -0.23,
+      "turnoverCny": 178008237.99999997,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:45.000Z",
+      "updatedText": "2026-10-23 16:14:45",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513000",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.269Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513010",
+      "name": "恒生科技ETF易方达",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.501,
+      "referenceType": "iopv",
+      "referenceValueCny": 0.5005,
+      "referenceDate": null,
+      "premiumPct": 0.1,
+      "changePct": 2.24,
+      "turnoverCny": 1475545633,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:48.000Z",
+      "updatedText": "2026-10-23 16:14:48",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513010",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.269Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513030",
+      "name": "德国ETF华安",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.752,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.74,
+      "referenceDate": null,
+      "premiumPct": 0.69,
+      "changePct": -0.17,
+      "turnoverCny": 116675152.99999999,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:51.000Z",
+      "updatedText": "2026-10-23 16:14:51",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513030",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.269Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513050",
+      "name": "中概互联网ETF易方达",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.949,
+      "referenceType": "iopv",
+      "referenceValueCny": 0.9402,
+      "referenceDate": null,
+      "premiumPct": 0.94,
+      "changePct": 2.04,
+      "turnoverCny": 2720081757,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:50.000Z",
+      "updatedText": "2026-10-23 16:14:50",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513050",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.269Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513060",
+      "name": "恒生医疗ETF博时",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.531,
+      "referenceType": "iopv",
+      "referenceValueCny": 0.5302,
+      "referenceDate": null,
+      "premiumPct": 0.15,
+      "changePct": 1.72,
+      "turnoverCny": 715542150,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:53.000Z",
+      "updatedText": "2026-10-23 16:14:53",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513060",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.269Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513080",
+      "name": "法国ETF华安",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.602,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.5795,
+      "referenceDate": null,
+      "premiumPct": 1.42,
+      "changePct": -0.68,
+      "turnoverCny": 46425006,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:59.000Z",
+      "updatedText": "2026-10-23 16:14:59",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513080",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.269Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513100",
+      "name": "纳指ETF国泰",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 2.243,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.9377,
+      "referenceDate": null,
+      "premiumPct": 15.76,
+      "changePct": -0.84,
+      "turnoverCny": 611209383,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:51.000Z",
+      "updatedText": "2026-10-23 16:14:51",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513100",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.270Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513110",
+      "name": "纳指ETF华泰柏瑞",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 2.447,
+      "referenceType": "iopv",
+      "referenceValueCny": 2.2254,
+      "referenceDate": null,
+      "premiumPct": 9.96,
+      "changePct": -1.49,
+      "turnoverCny": 275840125,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:54.000Z",
+      "updatedText": "2026-10-23 16:14:54",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513110",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.270Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513120",
+      "name": "港股创新药ETF广发",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.206,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.2025,
+      "referenceDate": null,
+      "premiumPct": 0.29,
+      "changePct": 2.38,
+      "turnoverCny": 9864557800,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:54.000Z",
+      "updatedText": "2026-10-23 16:14:54",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513120",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.270Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513130",
+      "name": "恒生科技ETF华泰柏瑞",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.479,
+      "referenceType": "iopv",
+      "referenceValueCny": 0.4777,
+      "referenceDate": null,
+      "premiumPct": 0.27,
+      "changePct": 2.35,
+      "turnoverCny": 3390080796,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:51.000Z",
+      "updatedText": "2026-10-23 16:14:51",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513130",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.270Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513140",
+      "name": "港股通金融ETF华泰柏瑞",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.621,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.6211,
+      "referenceDate": null,
+      "premiumPct": -0.01,
+      "changePct": -0.12,
+      "turnoverCny": 60852335.99999999,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:51.000Z",
+      "updatedText": "2026-10-23 16:14:51",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513140",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.270Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513170",
+      "name": "恒生央企ETF鹏华",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.481,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.4803,
+      "referenceDate": null,
+      "premiumPct": 0.05,
+      "changePct": 0.61,
+      "turnoverCny": 7551411.000000001,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:57.000Z",
+      "updatedText": "2026-10-23 16:14:57",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513170",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.270Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513180",
+      "name": "恒生科技ETF华夏",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.487,
+      "referenceType": "iopv",
+      "referenceValueCny": 0.4846,
+      "referenceDate": null,
+      "premiumPct": 0.5,
+      "changePct": 2.53,
+      "turnoverCny": 3149469626.0000005,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:15:00.000Z",
+      "updatedText": "2026-10-23 16:15:00",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513180",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.270Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513210",
+      "name": "恒生ETF易方达",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.369,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.3658,
+      "referenceDate": null,
+      "premiumPct": 0.23,
+      "changePct": 1.03,
+      "turnoverCny": 2912125,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:54.000Z",
+      "updatedText": "2026-10-23 16:14:54",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513210",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.270Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513220",
+      "name": "中概互联ETF招商",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.844,
+      "referenceType": "iopv",
+      "referenceValueCny": 0.8335,
+      "referenceDate": null,
+      "premiumPct": 1.26,
+      "changePct": 2.43,
+      "turnoverCny": 46257398.99999999,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:54.000Z",
+      "updatedText": "2026-10-23 16:14:54",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513220",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.270Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513260",
+      "name": "恒生科技ETF汇添富",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.935,
+      "referenceType": "iopv",
+      "referenceValueCny": 0.9327,
+      "referenceDate": null,
+      "premiumPct": 0.25,
+      "changePct": 2.52,
+      "turnoverCny": 433516072,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:58.000Z",
+      "updatedText": "2026-10-23 16:14:58",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513260",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.270Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513280",
+      "name": "恒生生物科技ETF汇添富",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.037,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.0373,
+      "referenceDate": null,
+      "premiumPct": -0.03,
+      "changePct": 1.87,
+      "turnoverCny": 139216548,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:57.000Z",
+      "updatedText": "2026-10-23 16:14:57",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513280",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.270Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513290",
+      "name": "纳指生物科技ETF汇添富",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.786,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.6999,
+      "referenceDate": null,
+      "premiumPct": 5.07,
+      "changePct": 0.62,
+      "turnoverCny": 356831015,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:15:00.000Z",
+      "updatedText": "2026-10-23 16:15:00",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513290",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.270Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513300",
+      "name": "纳斯达克ETF华夏",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 2.69,
+      "referenceType": "iopv",
+      "referenceValueCny": 2.4045,
+      "referenceDate": null,
+      "premiumPct": 11.87,
+      "changePct": -1.9,
+      "turnoverCny": 815204418,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:15:00.000Z",
+      "updatedText": "2026-10-23 16:15:00",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513300",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.271Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513310",
+      "name": "中韩半导体ETF华泰柏瑞",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 3.752,
+      "referenceType": "iopv",
+      "referenceValueCny": 3.6561,
+      "referenceDate": null,
+      "premiumPct": 2.62,
+      "changePct": 2.1,
+      "turnoverCny": 17407330263,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:57.000Z",
+      "updatedText": "2026-10-23 16:14:57",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513310",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.271Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513330",
+      "name": "恒生互联网ETF华夏",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.32,
+      "referenceType": "iopv",
+      "referenceValueCny": 0.3186,
+      "referenceDate": null,
+      "premiumPct": 0.44,
+      "changePct": 1.91,
+      "turnoverCny": 2619450428,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:52.000Z",
+      "updatedText": "2026-10-23 16:14:52",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513330",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.271Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513350",
+      "name": "标普油气ETF富国",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.439,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.3854,
+      "referenceDate": null,
+      "premiumPct": 3.87,
+      "changePct": -3.16,
+      "turnoverCny": 2863736493,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:57.000Z",
+      "updatedText": "2026-10-23 16:14:57",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513350",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.272Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513360",
+      "name": "教育ETF博时",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.435,
+      "referenceType": "iopv",
+      "referenceValueCny": 0.4291,
+      "referenceDate": null,
+      "premiumPct": 1.37,
+      "changePct": 1.64,
+      "turnoverCny": 96810913,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:46.000Z",
+      "updatedText": "2026-10-23 16:14:46",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513360",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.272Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513380",
+      "name": "恒生科技ETF广发",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.439,
+      "referenceType": "iopv",
+      "referenceValueCny": 0.4389,
+      "referenceDate": null,
+      "premiumPct": 0.02,
+      "changePct": 2.33,
+      "turnoverCny": 436139516,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:15:00.000Z",
+      "updatedText": "2026-10-23 16:15:00",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513380",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.272Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513390",
+      "name": "纳指100ETF博时",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 2.397,
+      "referenceType": "iopv",
+      "referenceValueCny": 2.1753,
+      "referenceDate": null,
+      "premiumPct": 10.19,
+      "changePct": -1.64,
+      "turnoverCny": 484342501,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:52.000Z",
+      "updatedText": "2026-10-23 16:14:52",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513390",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.272Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513400",
+      "name": "道琼斯ETF鹏华",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.318,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.2922,
+      "referenceDate": null,
+      "premiumPct": 2,
+      "changePct": 0.53,
+      "turnoverCny": 366922656,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:55.000Z",
+      "updatedText": "2026-10-23 16:14:55",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513400",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.272Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513500",
+      "name": "标普500ETF博时",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 2.605,
+      "referenceType": "iopv",
+      "referenceValueCny": 2.4366,
+      "referenceDate": null,
+      "premiumPct": 6.91,
+      "changePct": -1.1,
+      "turnoverCny": 569999875,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:15:00.000Z",
+      "updatedText": "2026-10-23 16:15:00",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513500",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.272Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513520",
+      "name": "日经ETF华夏",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 2.18,
+      "referenceType": "iopv",
+      "referenceValueCny": 2.0947,
+      "referenceDate": null,
+      "premiumPct": 4.07,
+      "changePct": -0.14,
+      "turnoverCny": 301479459,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:15:00.000Z",
+      "updatedText": "2026-10-23 16:15:00",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513520",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.272Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513530",
+      "name": "港股通红利ETF华泰柏瑞",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.491,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.4838,
+      "referenceDate": null,
+      "premiumPct": 0.49,
+      "changePct": 0.2,
+      "turnoverCny": 332652270.99999994,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:55.000Z",
+      "updatedText": "2026-10-23 16:14:55",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513530",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.272Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513580",
+      "name": "恒生科技ETF华安",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.484,
+      "referenceType": "iopv",
+      "referenceValueCny": 0.4861,
+      "referenceDate": null,
+      "premiumPct": -0.43,
+      "changePct": 2.54,
+      "turnoverCny": 149052317,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:43.000Z",
+      "updatedText": "2026-10-23 16:14:43",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513580",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.272Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513650",
+      "name": "标普500ETF南方",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.959,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.8553,
+      "referenceDate": null,
+      "premiumPct": 5.59,
+      "changePct": -1.16,
+      "turnoverCny": 742799751,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:59.000Z",
+      "updatedText": "2026-10-23 16:14:59",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513650",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.272Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513730",
+      "name": "东南亚科技ETF华泰柏瑞",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.024,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.0325,
+      "referenceDate": null,
+      "premiumPct": -0.82,
+      "changePct": 0.59,
+      "turnoverCny": 10856020,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:43.000Z",
+      "updatedText": "2026-10-23 16:14:43",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513730",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.272Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513800",
+      "name": "日本东证指数ETF南方",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.837,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.836,
+      "referenceDate": null,
+      "premiumPct": 0.05,
+      "changePct": -0.97,
+      "turnoverCny": 94859143,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:56.000Z",
+      "updatedText": "2026-10-23 16:14:56",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513800",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.272Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513810",
+      "name": "港股国企ETF华夏",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.64,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.642,
+      "referenceDate": null,
+      "premiumPct": -0.12,
+      "changePct": 0.12,
+      "turnoverCny": 21602612,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:59.000Z",
+      "updatedText": "2026-10-23 16:14:59",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513810",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.273Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513850",
+      "name": "美国50ETF易方达",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.859,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.7283,
+      "referenceDate": null,
+      "premiumPct": 7.56,
+      "changePct": -1.12,
+      "turnoverCny": 205514134,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:42.000Z",
+      "updatedText": "2026-10-23 16:14:42",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513850",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.273Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513870",
+      "name": "纳指ETF富国",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 2.08,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.8458,
+      "referenceDate": null,
+      "premiumPct": 12.69,
+      "changePct": -0.76,
+      "turnoverCny": 128288628.00000001,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:41.000Z",
+      "updatedText": "2026-10-23 16:14:41",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513870",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.273Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513880",
+      "name": "日经225ETF华安",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 2.055,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.965,
+      "referenceDate": null,
+      "premiumPct": 4.58,
+      "changePct": -0.05,
+      "turnoverCny": 202947242,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:44.000Z",
+      "updatedText": "2026-10-23 16:14:44",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513880",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.273Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513890",
+      "name": "恒生科技ETF摩根",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.744,
+      "referenceType": "iopv",
+      "referenceValueCny": 0.7424,
+      "referenceDate": null,
+      "premiumPct": 0.22,
+      "changePct": 2.62,
+      "turnoverCny": 37413696,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:47.000Z",
+      "updatedText": "2026-10-23 16:14:47",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513890",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.273Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513950",
+      "name": "恒生红利ETF富国",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.174,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.1724,
+      "referenceDate": null,
+      "premiumPct": 0.14,
+      "changePct": 0.26,
+      "turnoverCny": 54776998.99999999,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:42.000Z",
+      "updatedText": "2026-10-23 16:14:42",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513950",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.273Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "513970",
+      "name": "恒生消费ETF景顺",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.761,
+      "referenceType": "iopv",
+      "referenceValueCny": 0.7602,
+      "referenceDate": null,
+      "premiumPct": 0.11,
+      "changePct": 2.28,
+      "turnoverCny": 45986110,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:42.000Z",
+      "updatedText": "2026-10-23 16:14:42",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh513970",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.273Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "520500",
+      "name": "恒生创新药ETF华泰柏瑞",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.278,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.2745,
+      "referenceDate": null,
+      "premiumPct": 0.27,
+      "changePct": 2.16,
+      "turnoverCny": 1388102714,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:59.000Z",
+      "updatedText": "2026-10-23 16:14:59",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh520500",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.273Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "520520",
+      "name": "恒生消费ETF华泰柏瑞",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.88,
+      "referenceType": "iopv",
+      "referenceValueCny": 0.8833,
+      "referenceDate": null,
+      "premiumPct": -0.37,
+      "changePct": 2.09,
+      "turnoverCny": 1106080,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:39.000Z",
+      "updatedText": "2026-10-23 16:14:39",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh520520",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.273Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "520570",
+      "name": "恒生科技ETF南方",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.613,
+      "referenceType": "iopv",
+      "referenceValueCny": 0.6119,
+      "referenceDate": null,
+      "premiumPct": 0.18,
+      "changePct": 2.34,
+      "turnoverCny": 200146212,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:59.000Z",
+      "updatedText": "2026-10-23 16:14:59",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh520570",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.273Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "520580",
+      "name": "新兴亚洲ETF招商",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.881,
+      "referenceType": "iopv",
+      "referenceValueCny": 0.8899,
+      "referenceDate": null,
+      "premiumPct": -1,
+      "changePct": -0.34,
+      "turnoverCny": 8030711,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:58.000Z",
+      "updatedText": "2026-10-23 16:14:58",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh520580",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.273Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "520590",
+      "name": "恒生科技ETF鹏华",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.657,
+      "referenceType": "iopv",
+      "referenceValueCny": 0.6565,
+      "referenceDate": null,
+      "premiumPct": 0.08,
+      "changePct": 2.5,
+      "turnoverCny": 16607381,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:58.000Z",
+      "updatedText": "2026-10-23 16:14:58",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh520590",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.273Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "520830",
+      "name": "沙特ETF华泰柏瑞",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.801,
+      "referenceType": "iopv",
+      "referenceValueCny": 0.7919,
+      "referenceDate": null,
+      "premiumPct": 1.15,
+      "changePct": -1.6,
+      "turnoverCny": 28650850,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:38.000Z",
+      "updatedText": "2026-10-23 16:14:38",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh520830",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.274Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "520870",
+      "name": "巴西ETF易方达",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 1.298,
+      "referenceType": "iopv",
+      "referenceValueCny": 1.2843,
+      "referenceDate": null,
+      "premiumPct": 1.07,
+      "changePct": -0.99,
+      "turnoverCny": 72264687,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:44.000Z",
+      "updatedText": "2026-10-23 16:14:44",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh520870",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.274Z",
+      "status": "cached_stale"
+    },
+    {
+      "code": "520920",
+      "name": "恒生科技ETF天弘",
+      "benchmarkGroup": "指数型-海外股票",
+      "marketPriceCny": 0.57,
+      "referenceType": "iopv",
+      "referenceValueCny": 0.5706,
+      "referenceDate": null,
+      "premiumPct": -0.11,
+      "changePct": 2.52,
+      "turnoverCny": 364477912,
+      "quoteDate": "2026-10-23",
+      "updatedAt": "2026-10-23T08:14:59.000Z",
+      "updatedText": "2026-10-23 16:14:59",
+      "quoteSource": "tencent",
+      "adapterVersion": "tencent-1",
+      "quoteSourceUrl": "https://gu.qq.com/sh520920",
+      "quoteDelayMinutes": null,
+      "checkedAt": "2026-10-25T01:10:26.274Z",
+      "status": "cached_stale"
+    }
+  ]
+}

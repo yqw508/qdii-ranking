@@ -1,0 +1,426 @@
+{
+  "schema_version": 1,
+  "comparison_id": "2026-q2-vs-q3",
+  "title": "2026年二季度 vs 三季度",
+  "generated_at": "2026-10-28T10:21:48+08:00",
+  "funds": {
+    "519981": {
+      "name": "长信标普100等权重指数人民币",
+      "primary_share_label": "人民币",
+      "return_window_label": "人民币份额",
+      "sectors_title": "行业配置：指数投资部分",
+      "sectors_section": "§5.3.1",
+      "holdings_title": "指数投资前十大持仓（完整十个名次）",
+      "holdings_section": "§5.4.1",
+      "holding_changes_title": "指数投资：同一公司权重与名次变化",
+      "holdings_scope_note": "本表仅为指数投资部分前十名，不是全基金合并前十大。指数投资与积极投资可能持有同一公司；报告没有披露全部积极持仓，本页不把前十名与前五名拼成全组合排名。",
+      "benchmark_note": "报告注明：基准为美元计价的标准普尔100等权重指数总收益率，不包含人民币汇率变动效应。这里的相对基准仅复述报告两种计价口径收益之差，不是剔除汇率影响后的增强收益；不另行估算汇率贡献。",
+      "insights": [
+        "人民币份额单季收益由二季度 +14.30% 转为三季度 -1.44%；同期美元计价基准分别为 +12.55%、+0.39%，披露收益差由 +1.75 转为 -1.83 个百分点，含计价币种差异。",
+        "美国股票占净资产由 85.95% 升至 89.06%。按总资产口径，权益 82.68% → 88.02%，债券 12.69% → 4.97%，银行存款及结算备付金 3.25% → 6.64%。",
+        "指数投资股票合计 76.22% → 80.85%，积极投资股票合计 9.74% → 8.21%（均占净资产）。指数部分信息技术 15.97% → 20.92%，积极部分信息技术 7.72% → 5.20%，需分开理解。",
+        "指数部分首位由应用材料变为赛默飞世尔，AMD 由第 6 升至第 3；积极投资前五名由 Marvell 领衔转为 Meta、Palantir、Intel。进入或退出某一部分的披露名单不代表全基金买入或清仓。",
+        "人民币及美元份额并表资产净值 17.1402 → 25.9431 亿元，增长约 51.36%；这是规模变化，不能当作投资收益或净申购金额。"
+      ],
+      "notes": [
+        "基金未采用 A/C 类命名。519981 为人民币份额，另有美元份额 011706，两者并表披露。人民币单位净值 2.574 → 2.537 元；美元单位净值 0.378 → 0.377 美元，美元收益不能用人民币份额收益替代。",
+        "§3.1 期末资产净值为全基金人民币口径，并非 519981 人民币份额单独规模。期末人民币份额 645,641,373.38 → 994,947,739.04 份，美元份额 20,355,947.41 → 27,830,307.79 份。",
+        "§5.3、§5.4 分别披露指数投资与积极投资，行业和持仓均以全基金资产净值为分母。两部分可持有同一公司；指数投资前十名不代表全基金前十名，积极投资只披露前五名。",
+        "两期业绩比较基准均为美元计价的标普100等权重指数总收益率，不包含人民币汇率变动效应；收益差不是纯粹选股增强收益。三季度运作分析提及的等权指数约 -0.1% 与业绩表总收益基准 +0.39% 属不同表述，本页收益表采用 §3.2.1 的 +0.39%。",
+        "两期持仓及行业是期末快照，等权指数再平衡、价格和汇率、申赎及主动调整均可能影响权重；无法仅凭名次变化推断交易数量或收益贡献。"
+      ],
+      "periods": [
+        {
+          "label": "2026年二季度报告",
+          "report_date": "2026-06-30",
+          "published_date": "2026-07-21",
+          "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202607211827192115_1.pdf",
+          "pdf_sha256": "4b0774774a637c283bb0e31e5d811c37f778fd4348c11f769f6dc701778d0feb",
+          "pages": {
+            "financial": 3,
+            "performance": 4,
+            "strategy": 6,
+            "assets": 6,
+            "regions": 7,
+            "sectors": 7,
+            "holdings": 8,
+            "active_sectors": 8,
+            "active_holdings": 9
+          },
+          "classes": [
+            {
+              "label": "人民币",
+              "display_label": "人民币份额",
+              "nav": "2.574",
+              "net_assets_label": "全基金并表资产净值（亿元）",
+              "net_assets_cny": "1714015019.87",
+              "return_pct": "14.30"
+            }
+          ],
+          "benchmark_pct": "12.55",
+          "primary_return_windows": {
+            "过去三个月": {
+              "return_pct": "14.30",
+              "benchmark_pct": "12.55"
+            },
+            "过去六个月": {
+              "return_pct": "10.05",
+              "benchmark_pct": "10.33"
+            },
+            "过去一年": {
+              "return_pct": "14.81",
+              "benchmark_pct": "19.73"
+            },
+            "过去三年": {
+              "return_pct": "47.59",
+              "benchmark_pct": "69.01"
+            },
+            "过去五年": {
+              "return_pct": "57.05",
+              "benchmark_pct": "79.02"
+            },
+            "过去十年": {
+              "return_pct": "172.58",
+              "benchmark_pct": "282.32"
+            }
+          },
+          "assets": {
+            "权益投资": "82.68",
+            "基金投资": null,
+            "固定收益投资": "12.69",
+            "买入返售金融资产": null,
+            "银行存款和结算备付金": "3.25",
+            "其他资产": "1.38"
+          },
+          "regions": {
+            "美国": "85.95"
+          },
+          "sectors": {
+            "原材料": "0.78",
+            "非日常生活消费品": "7.09",
+            "日常消费品": "6.67",
+            "能源": "2.03",
+            "金融": "12.00",
+            "医疗保健": "11.92",
+            "工业": "10.14",
+            "信息技术": "15.97",
+            "通信服务": "5.80",
+            "公用事业": "2.35",
+            "房地产": "1.46"
+          },
+          "sectors_total_pct": "76.22",
+          "holdings": [
+            {
+              "rank": 1,
+              "issuer_id": "AMAT",
+              "name": "应用材料 Applied Materials (AMAT)",
+              "weight_pct": "1.12"
+            },
+            {
+              "rank": 2,
+              "issuer_id": "GEV",
+              "name": "通用电气 Vernova GE Vernova (GEV)",
+              "weight_pct": "1.04"
+            },
+            {
+              "rank": 3,
+              "issuer_id": "LRCX",
+              "name": "泛林集团 Lam Research (LRCX)",
+              "weight_pct": "1.03"
+            },
+            {
+              "rank": 4,
+              "issuer_id": "INTC",
+              "name": "英特尔 Intel (INTC)",
+              "weight_pct": "1.00"
+            },
+            {
+              "rank": 5,
+              "issuer_id": "MU",
+              "name": "美光 Micron (MU)",
+              "weight_pct": "0.99"
+            },
+            {
+              "rank": 6,
+              "issuer_id": "AMD",
+              "name": "超威 AMD (AMD)",
+              "weight_pct": "0.99"
+            },
+            {
+              "rank": 7,
+              "issuer_id": "CAT",
+              "name": "卡特彼勒 Caterpillar (CAT)",
+              "weight_pct": "0.96"
+            },
+            {
+              "rank": 8,
+              "issuer_id": "GE",
+              "name": "通用电气 GE (GE)",
+              "weight_pct": "0.90"
+            },
+            {
+              "rank": 9,
+              "issuer_id": "DE",
+              "name": "迪尔 Deere (DE)",
+              "weight_pct": "0.87"
+            },
+            {
+              "rank": 10,
+              "issuer_id": "COF",
+              "name": "第一资本金融 Capital One (COF)",
+              "weight_pct": "0.87"
+            }
+          ],
+          "active_portfolio": {
+            "sectors": {
+              "原材料": "0.07",
+              "非日常生活消费品": "0.95",
+              "日常消费品": null,
+              "能源": null,
+              "金融": null,
+              "医疗保健": null,
+              "工业": "0.62",
+              "信息技术": "7.72",
+              "通信服务": "0.37",
+              "公用事业": null,
+              "房地产": null
+            },
+            "sectors_total_pct": "9.74",
+            "holdings": [
+              {
+                "rank": 1,
+                "issuer_id": "MRVL",
+                "name": "美满电子 Marvell (MRVL)",
+                "weight_pct": "1.30"
+              },
+              {
+                "rank": 2,
+                "issuer_id": "AMZN",
+                "name": "亚马逊 Amazon (AMZN)",
+                "weight_pct": "0.95"
+              },
+              {
+                "rank": 3,
+                "issuer_id": "MU",
+                "name": "美光 Micron (MU)",
+                "weight_pct": "0.92"
+              },
+              {
+                "rank": 4,
+                "issuer_id": "SNDK",
+                "name": "闪迪 Sandisk (SNDK)",
+                "weight_pct": "0.68"
+              },
+              {
+                "rank": 5,
+                "issuer_id": "LITE",
+                "name": "Lumentum Holdings (LITE)",
+                "weight_pct": "0.55"
+              }
+            ]
+          },
+          "strategy": [
+            "管理人称二季度战争扰动减弱，海峡开放预期与 AI 超预期推动美股上行；六月 AI 叙事出现波折、前期涨幅较多及紧缩预期引发高位盘整。这是报告的市场判断。",
+            "组合方面，考虑市场风险，整体仓位仍维持中性，但在个股层面做了较大调整，管理人认为对 AI 相对弱势的标普指数提供了一定增强效果。",
+            "对下半年，报告认为 AI 长期有潜力、短期结合宏观背景可能调整，计划随市场变化及时调整组合比例。"
+          ]
+        },
+        {
+          "label": "2026年三季度报告",
+          "report_date": "2026-09-30",
+          "published_date": "2026-10-27",
+          "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202610271830988581_1.pdf",
+          "pdf_sha256": "24d82eb6e923144f5dae1068a3008853a2a17651ca709fcfcd320c2f396ca0ba",
+          "pages": {
+            "financial": 3,
+            "performance": 4,
+            "strategy": 6,
+            "assets": 7,
+            "regions": 7,
+            "sectors": 8,
+            "holdings": 8,
+            "active_sectors": 8,
+            "active_holdings": 9
+          },
+          "classes": [
+            {
+              "label": "人民币",
+              "display_label": "人民币份额",
+              "nav": "2.537",
+              "net_assets_label": "全基金并表资产净值（亿元）",
+              "net_assets_cny": "2594313855.27",
+              "return_pct": "-1.44"
+            }
+          ],
+          "benchmark_pct": "0.39",
+          "primary_return_windows": {
+            "过去三个月": {
+              "return_pct": "-1.44",
+              "benchmark_pct": "0.39"
+            },
+            "过去六个月": {
+              "return_pct": "12.66",
+              "benchmark_pct": "12.99"
+            },
+            "过去一年": {
+              "return_pct": "8.98",
+              "benchmark_pct": "14.71"
+            },
+            "过去三年": {
+              "return_pct": "51.73",
+              "benchmark_pct": "74.40"
+            },
+            "过去五年": {
+              "return_pct": "55.84",
+              "benchmark_pct": "80.07"
+            },
+            "过去十年": {
+              "return_pct": "160.66",
+              "benchmark_pct": "269.82"
+            }
+          },
+          "assets": {
+            "权益投资": "88.02",
+            "基金投资": null,
+            "固定收益投资": "4.97",
+            "买入返售金融资产": null,
+            "银行存款和结算备付金": "6.64",
+            "其他资产": "0.37"
+          },
+          "regions": {
+            "美国": "89.06"
+          },
+          "sectors": {
+            "原材料": "0.86",
+            "非日常生活消费品": "6.36",
+            "日常消费品": "6.67",
+            "能源": "2.43",
+            "金融": "11.78",
+            "医疗保健": "13.05",
+            "工业": "9.03",
+            "信息技术": "20.92",
+            "通信服务": "6.58",
+            "公用事业": "2.37",
+            "房地产": "0.79"
+          },
+          "sectors_total_pct": "80.85",
+          "holdings": [
+            {
+              "rank": 1,
+              "issuer_id": "TMO",
+              "name": "赛默飞世尔 Thermo Fisher Scientific (TMO)",
+              "weight_pct": "1.11"
+            },
+            {
+              "rank": 2,
+              "issuer_id": "PANW",
+              "name": "派拓网络 Palo Alto Networks (PANW)",
+              "weight_pct": "1.00"
+            },
+            {
+              "rank": 3,
+              "issuer_id": "AMD",
+              "name": "超威 AMD (AMD)",
+              "weight_pct": "1.00"
+            },
+            {
+              "rank": 4,
+              "issuer_id": "ISRG",
+              "name": "直觉外科 Intuitive Surgical (ISRG)",
+              "weight_pct": "0.98"
+            },
+            {
+              "rank": 5,
+              "issuer_id": "INTC",
+              "name": "英特尔 Intel (INTC)",
+              "weight_pct": "0.96"
+            },
+            {
+              "rank": 6,
+              "issuer_id": "META",
+              "name": "Meta Platforms (META)",
+              "weight_pct": "0.94"
+            },
+            {
+              "rank": 7,
+              "issuer_id": "PLTR",
+              "name": "Palantir Technologies (PLTR)",
+              "weight_pct": "0.94"
+            },
+            {
+              "rank": 8,
+              "issuer_id": "SNDK",
+              "name": "闪迪 Sandisk (SNDK)",
+              "weight_pct": "0.93"
+            },
+            {
+              "rank": 9,
+              "issuer_id": "AMAT",
+              "name": "应用材料 Applied Materials (AMAT)",
+              "weight_pct": "0.92"
+            },
+            {
+              "rank": 10,
+              "issuer_id": "DHR",
+              "name": "丹纳赫 Danaher (DHR)",
+              "weight_pct": "0.92"
+            }
+          ],
+          "active_portfolio": {
+            "sectors": {
+              "原材料": null,
+              "非日常生活消费品": "0.51",
+              "日常消费品": null,
+              "能源": null,
+              "金融": "0.27",
+              "医疗保健": "0.49",
+              "工业": "0.59",
+              "信息技术": "5.20",
+              "通信服务": "1.15",
+              "公用事业": null,
+              "房地产": null
+            },
+            "sectors_total_pct": "8.21",
+            "holdings": [
+              {
+                "rank": 1,
+                "issuer_id": "META",
+                "name": "Meta Platforms (META)",
+                "weight_pct": "1.04"
+              },
+              {
+                "rank": 2,
+                "issuer_id": "PLTR",
+                "name": "Palantir Technologies (PLTR)",
+                "weight_pct": "0.68"
+              },
+              {
+                "rank": 3,
+                "issuer_id": "INTC",
+                "name": "英特尔 Intel (INTC)",
+                "weight_pct": "0.62"
+              },
+              {
+                "rank": 4,
+                "issuer_id": "QCOM",
+                "name": "高通 Qualcomm (QCOM)",
+                "weight_pct": "0.57"
+              },
+              {
+                "rank": 5,
+                "issuer_id": "SKHY",
+                "name": "SK 海力士 ADR (SKHY)",
+                "weight_pct": "0.51"
+              }
+            ]
+          },
+          "strategy": [
+            "管理人将三季度描述为企业盈利改善与利率上行之间的博弈：AI 需求支撑科技盈利，能源价格和货币政策变化加剧波动。报告认为盈利改善不只限于科技，但 AI 企业的上修更突出。",
+            "报告关注 AI 从基础设施延伸到应用和工作流程，指出非科技企业尚未普遍呈现显著的费用率下降或收入提升，效率改善转成财务回报仍需时间；若逐步验证，等权指数有望受益于盈利增长扩散。",
+            "产品管理继续坚持等权指数增强定位，以基准为锚，在风险预算下围绕 AI 产业趋势、盈利预期、竞争优势、估值和现金流寻找增强机会。报告仍提示油价、通胀和长期利率对资本成本及风险偏好的影响。"
+          ]
+        }
+      ]
+    }
+  }
+}

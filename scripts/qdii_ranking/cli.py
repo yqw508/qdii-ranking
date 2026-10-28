@@ -20,6 +20,11 @@ from .config import (
 )
 from .errors import DataError
 from .pipeline import build_payload
+from .report_comparisons import (
+    ReportComparisonError,
+    load_report_comparison_index,
+    render_report_comparison_pages,
+)
 from .runtime import HttpClient, RunMetrics, current_shanghai_date, parse_date
 
 
@@ -149,6 +154,18 @@ def main(argv: Iterable[str] | None = None) -> int:
     publish_dir = args.publish_dir.resolve()
     try:
         payload = build_payload(args, client, metrics)
+        try:
+            report_comparisons = load_report_comparison_index(
+                publish_dir / "report-comparisons" / "index.json"
+            )
+        except ReportComparisonError as exc:
+            # A malformed optional report artifact must never create a misleading
+            # link or block the ranking itself.  The generated page therefore
+            # receives an empty index and the artifact remains visible for repair.
+            print(f"WARNING: {exc}", file=sys.stderr)
+            report_comparisons = {"schema_version": 1, "funds": {}}
+        payload["report_comparisons"] = report_comparisons["funds"]
+        render_report_comparison_pages(publish_dir, report_comparisons)
         with metrics.phase("artifact_rendering"):
             write_json(output_dir / "latest.json", payload)
             write_csv(output_dir / "latest.csv", payload)

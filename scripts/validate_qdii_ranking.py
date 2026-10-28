@@ -49,6 +49,7 @@ from qdii_validation.publish import (
     validate_deployment,
     validate_email_rendering,
     validate_local_artifacts,
+    validate_report_comparisons,
 )
 from qdii_validation.schema import (
     load_payload,
@@ -81,6 +82,7 @@ __all__ = [
     "validate_exclusion_summary", "validate_filters", "validate_holding_cost",
     "validate_html_document", "validate_limit", "validate_local_artifacts",
     "validate_markdown", "validate_nasdaq100_otc_section", "validate_nasdaq_fit",
+    "validate_report_comparisons",
     "validate_records", "validate_three_year_window", "years_ago",
 ]
 

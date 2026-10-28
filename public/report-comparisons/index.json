@@ -1,0 +1,302 @@
+{
+  "schema_version": 1,
+  "funds": {
+    "000043": {
+      "name": "嘉实美国成长股票人民币",
+      "list_url": "report-comparisons/000043/",
+      "comparisons": [
+        {
+          "id": "2026-q2-vs-q3",
+          "title": "2026年二季度 vs 三季度",
+          "generated_at": "2026-10-27T12:00:00+08:00",
+          "summary": "三季度人民币份额净值增长率为 -2.54%，低于二季度的 +22.79%；美国股票及存托凭证占净值从 94.94% 降至 85.90%，中国香港配置升至 4.46%，现金及结算备付金占比升至 9.73%。",
+          "periods": [
+            {
+              "label": "2026年二季度报告",
+              "report_date": "2026-06-30",
+              "published_date": "2026-07-21",
+              "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202607211827195290_1.pdf"
+            },
+            {
+              "label": "2026年三季度报告",
+              "report_date": "2026-09-30",
+              "published_date": "2026-10-27",
+              "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202610271830978685_1.pdf"
+            }
+          ],
+          "detail_url": "report-comparisons/000043/2026-q2-vs-q3.html"
+        }
+      ]
+    },
+    "016701": {
+      "name": "银华海外数字经济量化选股混合发起式(QDII)A",
+      "list_url": "report-comparisons/016701/",
+      "comparisons": [
+        {
+          "id": "2026-q2-vs-q3",
+          "title": "2026年二季度 vs 三季度",
+          "generated_at": "2026-10-27T12:00:00+08:00",
+          "summary": "三季度 A 份额净值增长率为 -1.26%，低于二季度的 +41.92%；美国股票及存托凭证占净值基本稳定在 87.52%，中国香港配置为 2.48%，权益投资占比为 90.00%。",
+          "periods": [
+            {
+              "label": "2026年二季度报告",
+              "report_date": "2026-06-30",
+              "published_date": "2026-07-20",
+              "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202607201827127790_1.pdf"
+            },
+            {
+              "label": "2026年三季度报告",
+              "report_date": "2026-09-30",
+              "published_date": "2026-10-26",
+              "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202610261830904851_1.pdf"
+            }
+          ],
+          "detail_url": "report-comparisons/016701/2026-q2-vs-q3.html"
+        }
+      ]
+    },
+    "017436": {
+      "name": "华宝纳斯达克精选股票发起式(QDII)A",
+      "list_url": "report-comparisons/017436/",
+      "comparisons": [
+        {
+          "id": "2026-q2-vs-q3",
+          "title": "2026年二季度 vs 三季度",
+          "generated_at": "2026-10-27T14:45:00+08:00",
+          "summary": "二季度 A +16.55%、三季度 A +4.15%；A 类单季相对基准由 -6.25 转为 +4.71 个百分点。 美国证券市场配置 89.84% → 93.70%，科技 56.61% → 67.19%，期末更集中于科技。 Meta 从第 8 升至第 1（5.55% → 9.06%）；闪迪、美光进入前十大，奈飞、特斯拉未进入三季度前十大，不代表清仓。",
+          "periods": [
+            {
+              "label": "2026年二季度报告",
+              "report_date": "2026-06-30",
+              "published_date": "2026-07-21",
+              "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202607211827184076_1.pdf"
+            },
+            {
+              "label": "2026年三季度报告",
+              "report_date": "2026-09-30",
+              "published_date": "2026-10-27",
+              "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202610271830958254_1.pdf"
+            }
+          ],
+          "detail_url": "report-comparisons/017436/2026-q2-vs-q3.html"
+        }
+      ]
+    },
+    "501226": {
+      "name": "长城全球新能源车股票发起式(QDII)A",
+      "list_url": "report-comparisons/501226/",
+      "comparisons": [
+        {
+          "id": "2026-q2-vs-q3",
+          "title": "2026年二季度 vs 三季度",
+          "generated_at": "2026-10-27T14:45:00+08:00",
+          "summary": "A 类由二季度 +59.28% 转为三季度 -12.69%，同期基准由 +0.02% 变为 -11.59%；三季度落后 1.10 个百分点。 美国市场配置 74.62% → 73.68%，信息科技 69.41% → 70.17%；行业主线延续，回撤并非组合改投传统整车的证据。 两季前十大公司一致但排序变化：台积电仍第一，Alphabet 4.89% → 6.66%，美光 7.55% → 4.71%，拉姆研究 5.27% → 3.63%。",
+          "periods": [
+            {
+              "label": "2026年二季度报告",
+              "report_date": "2026-06-30",
+              "published_date": "2026-07-21",
+              "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202607211827194530_1.pdf"
+            },
+            {
+              "label": "2026年三季度报告",
+              "report_date": "2026-09-30",
+              "published_date": "2026-10-27",
+              "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202610271830989465_1.pdf"
+            }
+          ],
+          "detail_url": "report-comparisons/501226/2026-q2-vs-q3.html"
+        }
+      ]
+    },
+    "270023": {
+      "name": "广发全球精选股票(QDII)人民币A",
+      "list_url": "report-comparisons/270023/",
+      "comparisons": [
+        {
+          "id": "2026-q2-vs-q3",
+          "title": "2026年二季度 vs 三季度",
+          "generated_at": "2026-10-27T14:45:00+08:00",
+          "summary": "A 类由二季度 +56.15% 转为三季度 -14.89%，三季度相对基准 -17.76 个百分点；C/F 同样回撤约 15%。 美国市场配置 46.65% → 55.62%，信息技术 66.89% → 56.75%；美国权重提高的同时行业更分散。 智谱华章未进入三季度前十大，AMD 升至第一；管理人披露七月先降低 beta、月底回补大市值科技公司，不能仅凭期末名次推断全季交易。",
+          "periods": [
+            {
+              "label": "2026年二季度报告",
+              "report_date": "2026-06-30",
+              "published_date": "2026-07-20",
+              "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202607201827126979_1.pdf"
+            },
+            {
+              "label": "2026年三季度报告",
+              "report_date": "2026-09-30",
+              "published_date": "2026-10-27",
+              "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202610271830977488_1.pdf"
+            }
+          ],
+          "detail_url": "report-comparisons/270023/2026-q2-vs-q3.html"
+        }
+      ]
+    },
+    "539002": {
+      "name": "建信新兴市场混合(QDII)A",
+      "list_url": "report-comparisons/539002/",
+      "comparisons": [
+        {
+          "id": "2026-q2-vs-q3",
+          "title": "2026年二季度 vs 三季度",
+          "generated_at": "2026-10-27T14:45:00+08:00",
+          "summary": "A 类由二季度 +74.56% 转为三季度 -12.26%，三季度相对基准 -10.26 个百分点；资产净值增长不能直接解释为投资盈利。 美国配置 59.65% → 54.54%，韩国 17.51% → 17.81%；信息技术仍高达 76.46%，集中度风险持续。 台积电、英伟达、SK 海力士、三星保留前四；日月光、ASML 进入前十大，博通、康宁未进入三季度前十大。",
+          "periods": [
+            {
+              "label": "2026年二季度报告",
+              "report_date": "2026-06-30",
+              "published_date": "2026-07-20",
+              "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202607201827128028_1.pdf"
+            },
+            {
+              "label": "2026年三季度报告",
+              "report_date": "2026-09-30",
+              "published_date": "2026-10-26",
+              "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202610261830906335_1.pdf"
+            }
+          ],
+          "detail_url": "report-comparisons/539002/2026-q2-vs-q3.html"
+        }
+      ]
+    },
+    "006555": {
+      "name": "浦银全球智能科技(QDII)A",
+      "list_url": "report-comparisons/006555/",
+      "comparisons": [
+        {
+          "id": "2026-q2-vs-q3",
+          "title": "2026年二季度 vs 三季度",
+          "generated_at": "2026-10-27T14:45:00+08:00",
+          "summary": "A 类由二季度 +72.79% 转为三季度 -16.26%，同期基准三季度 +0.41%，相对基准 -16.67 个百分点。 信息科技 88.99% → 74.43%，电信服务由报告横线变为 6.16%；美国仍为最大市场（71.29%）。 二季度第一大闪迪未进入三季度前十大，AMD 升至第一；Alphabet、台积电、英伟达、微软、苹果进入前十大，与管理人获利了结部分存储、增加龙头及软件的说明相呼应。",
+          "periods": [
+            {
+              "label": "2026年二季度报告",
+              "report_date": "2026-06-30",
+              "published_date": "2026-07-21",
+              "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202607211827194647_1.pdf"
+            },
+            {
+              "label": "2026年三季度报告",
+              "report_date": "2026-09-30",
+              "published_date": "2026-10-27",
+              "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202610271830989302_1.pdf"
+            }
+          ],
+          "detail_url": "report-comparisons/006555/2026-q2-vs-q3.html"
+        }
+      ]
+    },
+    "017144": {
+      "name": "华宝海外新能源汽车股票发起式(QDII)A",
+      "list_url": "report-comparisons/017144/",
+      "comparisons": [
+        {
+          "id": "2026-q2-vs-q3",
+          "title": "2026年二季度 vs 三季度",
+          "generated_at": "2026-10-27T14:45:00+08:00",
+          "summary": "A 类二季度 +12.01%、三季度 -9.21%，两季分别落后同期基准 18.08、2.05 个百分点。 美国配置 88.57% → 90.23%，科技 40.73% → 46.50%，非必须消费品 45.58% → 38.99%；新能源汽车与车载芯片仍为主线。 Marvell 保持第一，法拉利从第 5 升至第 2；闪迪进入第 8，宁德时代未进入三季度前十大。",
+          "periods": [
+            {
+              "label": "2026年二季度报告",
+              "report_date": "2026-06-30",
+              "published_date": "2026-07-21",
+              "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202607211827186644_1.pdf"
+            },
+            {
+              "label": "2026年三季度报告",
+              "report_date": "2026-09-30",
+              "published_date": "2026-10-27",
+              "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202610271830958271_1.pdf"
+            }
+          ],
+          "detail_url": "report-comparisons/017144/2026-q2-vs-q3.html"
+        }
+      ]
+    },
+    "164212": {
+      "name": "天弘全球新能源汽车股票(QDII-LOF)A",
+      "list_url": "report-comparisons/164212/",
+      "comparisons": [
+        {
+          "id": "2026-q2-vs-q3",
+          "title": "2026年二季度 vs 三季度",
+          "generated_at": "2026-10-27T14:45:00+08:00",
+          "summary": "A 类由二季度 +66.55% 转为三季度 -29.67%，三季度相对基准 -17.27 个百分点；净值与规模均明显收缩。 美国配置 44.19% → 59.20%，中国 35.81% → 23.35%，与管理人明确提高美股、降低 A 股敞口的表述一致。 Marvell 从第 2 升至第 1（4.15% → 7.20%）；SK 海力士、塔尔半导体、英伟达、特斯拉进入前十大。行业信息技术仍占 70.00%。",
+          "periods": [
+            {
+              "label": "2026年二季度报告",
+              "report_date": "2026-06-30",
+              "published_date": "2026-07-20",
+              "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202607201827148844_1.pdf"
+            },
+            {
+              "label": "2026年三季度报告",
+              "report_date": "2026-09-30",
+              "published_date": "2026-10-26",
+              "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202610261830928760_1.pdf"
+            }
+          ],
+          "detail_url": "report-comparisons/164212/2026-q2-vs-q3.html"
+        }
+      ]
+    },
+    "012920": {
+      "name": "易方达全球成长精选混合(QDII)人民币A",
+      "list_url": "report-comparisons/012920/",
+      "comparisons": [
+        {
+          "id": "2026-q2-vs-q3",
+          "title": "2026年二季度 vs 三季度",
+          "generated_at": "2026-10-27T14:45:00+08:00",
+          "summary": "A 类由二季度 +89.84% 转为三季度 -29.07%，三季度相对基准 -26.08 个百分点；需结合基准六月变更理解比较口径。 美国配置 42.76% → 57.07%，信息技术 88.59% → 73.95%；仍偏科技，但增加电力、应用等方向，管理人称降低海外半导体设备配置。 台积电从第 3 升至第 1，英伟达进入第 2；泛林、铠侠、闪迪未进入三季度前十大，期末快照不代表完全卖出。",
+          "periods": [
+            {
+              "label": "2026年二季度报告",
+              "report_date": "2026-06-30",
+              "published_date": "2026-07-21",
+              "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202607211827165228_1.pdf"
+            },
+            {
+              "label": "2026年三季度报告",
+              "report_date": "2026-09-30",
+              "published_date": "2026-10-27",
+              "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202610271830959154_1.pdf"
+            }
+          ],
+          "detail_url": "report-comparisons/012920/2026-q2-vs-q3.html"
+        }
+      ]
+    },
+    "519981": {
+      "name": "长信标普100等权重指数人民币",
+      "list_url": "report-comparisons/519981/",
+      "comparisons": [
+        {
+          "id": "2026-q2-vs-q3",
+          "title": "2026年二季度 vs 三季度",
+          "generated_at": "2026-10-28T10:21:48+08:00",
+          "summary": "人民币份额单季收益由二季度 +14.30% 转为三季度 -1.44%；同期美元计价基准分别为 +12.55%、+0.39%，披露收益差由 +1.75 转为 -1.83 个百分点，含计价币种差异。 美国股票占净资产由 85.95% 升至 89.06%。按总资产口径，权益 82.68% → 88.02%，债券 12.69% → 4.97%，银行存款及结算备付金 3.25% → 6.64%。 指数投资股票合计 76.22% → 80.85%，积极投资股票合计 9.74% → 8.21%（均占净资产）。指数部分信息技术 15.97% → 20.92%，积极部分信息技术 7.72% → 5.20%，需分开理解。 指数部分首位由应用材料变为赛默飞世尔，AMD 由第 6 升至第 3；积极投资前五名由 Marvell 领衔转为 Meta、Palantir、Intel。进入或退出某一部分的披露名单不代表全基金买入或清仓。 人民币及美元份额并表资产净值 17.1402 → 25.9431 亿元，增长约 51.36%；这是规模变化，不能当作投资收益或净申购金额。",
+          "periods": [
+            {
+              "label": "2026年二季度报告",
+              "report_date": "2026-06-30",
+              "published_date": "2026-07-21",
+              "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202607211827192115_1.pdf"
+            },
+            {
+              "label": "2026年三季度报告",
+              "report_date": "2026-09-30",
+              "published_date": "2026-10-27",
+              "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202610271830988581_1.pdf"
+            }
+          ],
+          "detail_url": "report-comparisons/519981/2026-q2-vs-q3.html"
+        }
+      ]
+    }
+  }
+}

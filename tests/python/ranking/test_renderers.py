@@ -9,6 +9,7 @@ from tempfile import TemporaryDirectory
 from unittest.mock import Mock, patch
 
 import update_qdii_ranking as ranking
+from qdii_ranking.renderers.html_components import report_comparison_link
 
 from tests.python.support.ranking import sample_exchange_premium
 
@@ -216,6 +217,34 @@ class HtmlOutputTests(unittest.TestCase):
         self.assertIn("500元", ccb)
         self.assertIn("10万元", harvest)
         self.assertIn("100元", harvest)
+
+    def test_report_comparison_link_only_appears_for_generated_funds(self):
+        payload = self.payload()
+        payload["report_comparisons"] = {
+            "000043": {
+                "name": payload["records"][1]["name"],
+                "list_url": "report-comparisons/000043/",
+                "comparisons": [{"id": "q2-vs-q3"}],
+            }
+        }
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "latest.html"
+            ranking.write_html(path, payload)
+            document = path.read_text(encoding="utf-8")
+        self.assertEqual(1, document.count("report-comparison-link"))
+        self.assertIn("财报对比（1 条）", document)
+        self.assertIn('href="report-comparisons/000043/"', document)
+        ccb = document.split('data-code="539002"', 1)[1].split("</details>", 1)[0]
+        self.assertNotIn("财报对比", ccb)
+
+    def test_report_comparison_link_is_absent_for_legacy_payload(self):
+        payload = self.payload()
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "latest.html"
+            ranking.write_html(path, payload)
+            document = path.read_text(encoding="utf-8")
+        self.assertNotIn("report-comparison-link", document)
+        self.assertNotIn("财报对比", document)
 
     def test_nasdaq_common_window_and_inception_are_rendered(self):
         payload = self.payload()

@@ -1,0 +1,2308 @@
+{
+  "schema_version": 1,
+  "comparison_id": "2026-q2-vs-q3",
+  "title": "2026年二季度 vs 三季度",
+  "generated_at": "2026-10-27T14:45:00+08:00",
+  "funds": {
+    "017436": {
+      "name": "华宝纳斯达克精选股票发起式(QDII)A",
+      "insights": [
+        "二季度 A +16.55%、三季度 A +4.15%；A 类单季相对基准由 -6.25 转为 +4.71 个百分点。",
+        "美国证券市场配置 89.84% → 93.70%，科技 56.61% → 67.19%，期末更集中于科技。",
+        "Meta 从第 8 升至第 1（5.55% → 9.06%）；闪迪、美光进入前十大，奈飞、特斯拉未进入三季度前十大，不代表清仓。"
+      ],
+      "notes": [],
+      "periods": [
+        {
+          "label": "2026年二季度报告",
+          "report_date": "2026-06-30",
+          "published_date": "2026-07-21",
+          "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202607211827184076_1.pdf",
+          "pdf_sha256": "e14cc7f272176fca5e70eb8c00a841c9ae11ce4544e44a1da86e6bec682eb0ca",
+          "pages": {
+            "financial": 3,
+            "performance": 4,
+            "strategy": 8,
+            "assets": 9,
+            "regions": 10,
+            "sectors": 10,
+            "holdings": 10
+          },
+          "classes": [
+            {
+              "label": "A",
+              "nav": "2.3227",
+              "net_assets_cny": "4705709458.14",
+              "return_pct": "16.55"
+            },
+            {
+              "label": "C",
+              "nav": "2.2938",
+              "net_assets_cny": "5619721968.33",
+              "return_pct": "16.43"
+            }
+          ],
+          "benchmark_pct": "22.80",
+          "a_return_windows": {
+            "过去三个月": {
+              "return_pct": "16.55",
+              "benchmark_pct": "22.80"
+            },
+            "过去六个月": {
+              "return_pct": "4.86",
+              "benchmark_pct": "14.59"
+            },
+            "过去一年": {
+              "return_pct": "17.27",
+              "benchmark_pct": "24.25"
+            },
+            "过去三年": {
+              "return_pct": "81.93",
+              "benchmark_pct": "77.66"
+            }
+          },
+          "assets": {
+            "权益投资": "87.22",
+            "基金投资": null,
+            "固定收益投资": null,
+            "买入返售金融资产": null,
+            "银行存款和结算备付金": "11.37",
+            "其他资产": "1.40"
+          },
+          "regions": {
+            "美国": "89.84"
+          },
+          "sectors": {
+            "科技": "56.61",
+            "通讯": "14.65",
+            "非必须消费品": "14.08",
+            "工业": "4.51"
+          },
+          "holdings": [
+            {
+              "issuer_id": "英伟达 NVIDIA",
+              "name": "英伟达 NVIDIA",
+              "weight_pct": "8.14",
+              "rank": 1
+            },
+            {
+              "issuer_id": "美满电子科技 Marvell",
+              "name": "美满电子科技 Marvell",
+              "weight_pct": "7.98",
+              "rank": 2
+            },
+            {
+              "issuer_id": "苹果 Apple",
+              "name": "苹果 Apple",
+              "weight_pct": "6.73",
+              "rank": 3
+            },
+            {
+              "issuer_id": "微软 Microsoft",
+              "name": "微软 Microsoft",
+              "weight_pct": "6.35",
+              "rank": 4
+            },
+            {
+              "issuer_id": "奈飞 Netflix",
+              "name": "奈飞 Netflix",
+              "weight_pct": "6.12",
+              "rank": 5
+            },
+            {
+              "issuer_id": "博通 Broadcom",
+              "name": "博通 Broadcom",
+              "weight_pct": "5.89",
+              "rank": 6
+            },
+            {
+              "issuer_id": "特斯拉 Tesla",
+              "name": "特斯拉 Tesla",
+              "weight_pct": "5.63",
+              "rank": 7
+            },
+            {
+              "issuer_id": "Meta Platforms",
+              "name": "Meta Platforms",
+              "weight_pct": "5.55",
+              "rank": 8
+            },
+            {
+              "issuer_id": "亚马逊 Amazon",
+              "name": "亚马逊 Amazon",
+              "weight_pct": "5.29",
+              "rank": 9
+            },
+            {
+              "issuer_id": "超微电脑 Super Micro",
+              "name": "超微电脑 Super Micro",
+              "weight_pct": "4.94",
+              "rank": 10
+            }
+          ],
+          "strategy": [
+            "管理人将二季度强势反弹归因于一季报盈利强劲及地缘政治缓解；同时提示 AI 上游热门板块的拥挤与估值风险。",
+            "配置上继续看好相对有性价比的大型科技股，人工智能云、芯片龙头、电动车、社交媒体及其他软硬件布局保持稳定。"
+          ]
+        },
+        {
+          "label": "2026年三季度报告",
+          "report_date": "2026-09-30",
+          "published_date": "2026-10-27",
+          "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202610271830958254_1.pdf",
+          "pdf_sha256": "d7778218e57e800210bd3c8d1055eea17d4340590434be6102555d5a1c023ad3",
+          "pages": {
+            "financial": 3,
+            "performance": 4,
+            "strategy": 8,
+            "assets": 9,
+            "regions": 10,
+            "sectors": 10,
+            "holdings": 10
+          },
+          "classes": [
+            {
+              "label": "A",
+              "nav": "2.4191",
+              "net_assets_cny": "5816549553.85",
+              "return_pct": "4.15"
+            },
+            {
+              "label": "C",
+              "nav": "2.3867",
+              "net_assets_cny": "6699806610.32",
+              "return_pct": "4.05"
+            }
+          ],
+          "benchmark_pct": "-0.56",
+          "a_return_windows": {
+            "过去三个月": {
+              "return_pct": "4.15",
+              "benchmark_pct": "-0.56"
+            },
+            "过去六个月": {
+              "return_pct": "21.39",
+              "benchmark_pct": "22.11"
+            },
+            "过去一年": {
+              "return_pct": "4.80",
+              "benchmark_pct": "15.24"
+            },
+            "过去三年": {
+              "return_pct": "95.18",
+              "benchmark_pct": "82.64"
+            }
+          },
+          "assets": {
+            "权益投资": "91.48",
+            "基金投资": null,
+            "固定收益投资": null,
+            "买入返售金融资产": null,
+            "银行存款和结算备付金": "7.19",
+            "其他资产": "1.33"
+          },
+          "regions": {
+            "美国": "93.70"
+          },
+          "sectors": {
+            "科技": "67.19",
+            "通讯": "11.56",
+            "非必须消费品": "11.87",
+            "工业": "3.07"
+          },
+          "holdings": [
+            {
+              "issuer_id": "Meta Platforms",
+              "name": "Meta Platforms",
+              "weight_pct": "9.06",
+              "rank": 1
+            },
+            {
+              "issuer_id": "英伟达 NVIDIA",
+              "name": "英伟达 NVIDIA",
+              "weight_pct": "8.45",
+              "rank": 2
+            },
+            {
+              "issuer_id": "微软 Microsoft",
+              "name": "微软 Microsoft",
+              "weight_pct": "8.13",
+              "rank": 3
+            },
+            {
+              "issuer_id": "苹果 Apple",
+              "name": "苹果 Apple",
+              "weight_pct": "7.95",
+              "rank": 4
+            },
+            {
+              "issuer_id": "超微电脑 Super Micro",
+              "name": "超微电脑 Super Micro",
+              "weight_pct": "6.85",
+              "rank": 5
+            },
+            {
+              "issuer_id": "美满电子科技 Marvell",
+              "name": "美满电子科技 Marvell",
+              "weight_pct": "6.50",
+              "rank": 6
+            },
+            {
+              "issuer_id": "亚马逊 Amazon",
+              "name": "亚马逊 Amazon",
+              "weight_pct": "5.81",
+              "rank": 7
+            },
+            {
+              "issuer_id": "博通 Broadcom",
+              "name": "博通 Broadcom",
+              "weight_pct": "5.62",
+              "rank": 8
+            },
+            {
+              "issuer_id": "闪迪 Sandisk",
+              "name": "闪迪 Sandisk",
+              "weight_pct": "4.55",
+              "rank": 9
+            },
+            {
+              "issuer_id": "美光 Micron",
+              "name": "美光 Micron",
+              "weight_pct": "4.41",
+              "rank": 10
+            }
+          ],
+          "strategy": [
+            "管理人称七月部分 AI 上游高估值子行业大幅回调，认为拥挤交易与周期高盈利的持续性值得警惕，并称组合避免了这类赛道。",
+            "报告提示十年期美债利率快速上行可能压制估值并影响依赖债券融资的 AI 企业；更看好具备 Agentic AI 能力的大型科技股，核心布局保持稳定。"
+          ]
+        }
+      ]
+    },
+    "501226": {
+      "name": "长城全球新能源车股票发起式(QDII)A",
+      "insights": [
+        "A 类由二季度 +59.28% 转为三季度 -12.69%，同期基准由 +0.02% 变为 -11.59%；三季度落后 1.10 个百分点。",
+        "美国市场配置 74.62% → 73.68%，信息科技 69.41% → 70.17%；行业主线延续，回撤并非组合改投传统整车的证据。",
+        "两季前十大公司一致但排序变化：台积电仍第一，Alphabet 4.89% → 6.66%，美光 7.55% → 4.71%，拉姆研究 5.27% → 3.63%。"
+      ],
+      "notes": [],
+      "periods": [
+        {
+          "label": "2026年二季度报告",
+          "report_date": "2026-06-30",
+          "published_date": "2026-07-21",
+          "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202607211827194530_1.pdf",
+          "pdf_sha256": "4a8d9f157b9dbdb3063eab460703196e2f7b9e8b4dd01782f24c4d696bba02ca",
+          "pages": {
+            "financial": 4,
+            "performance": 4,
+            "strategy": 8,
+            "assets": 9,
+            "regions": 10,
+            "sectors": 10,
+            "holdings": 10
+          },
+          "classes": [
+            {
+              "label": "A",
+              "nav": "3.1278",
+              "net_assets_cny": "1267729099.09",
+              "return_pct": "59.28"
+            },
+            {
+              "label": "C",
+              "nav": "3.0745",
+              "net_assets_cny": "3211191894.12",
+              "return_pct": "58.96"
+            }
+          ],
+          "benchmark_pct": "0.02",
+          "a_return_windows": {
+            "过去三个月": {
+              "return_pct": "59.28",
+              "benchmark_pct": "0.02"
+            },
+            "过去六个月": {
+              "return_pct": "61.19",
+              "benchmark_pct": "0.64"
+            },
+            "过去一年": {
+              "return_pct": "93.71",
+              "benchmark_pct": "35.88"
+            },
+            "过去三年": {
+              "return_pct": "164.66",
+              "benchmark_pct": "-0.01"
+            }
+          },
+          "assets": {
+            "权益投资": "84.48",
+            "基金投资": null,
+            "固定收益投资": null,
+            "买入返售金融资产": null,
+            "银行存款和结算备付金": "11.75",
+            "其他资产": "3.78"
+          },
+          "regions": {
+            "美国": "74.62",
+            "中国大陆": "8.47",
+            "韩国": "5.16",
+            "德国": "0.01"
+          },
+          "sectors": {
+            "信息科技": "69.41",
+            "电信服务": "11.37",
+            "工业": "6.91",
+            "消费者非必需品": "0.52",
+            "基础材料": "0.00",
+            "金融": "0.04",
+            "公用事业": "0.02",
+            "医疗保健": null
+          },
+          "holdings": [
+            {
+              "issuer_id": "台积电 TSM ADR",
+              "name": "台积电 TSM ADR",
+              "weight_pct": "8.71",
+              "rank": 1
+            },
+            {
+              "issuer_id": "美光 Micron",
+              "name": "美光 Micron",
+              "weight_pct": "7.55",
+              "rank": 2
+            },
+            {
+              "issuer_id": "博通 Broadcom",
+              "name": "博通 Broadcom",
+              "weight_pct": "6.03",
+              "rank": 3
+            },
+            {
+              "issuer_id": "科磊 KLA",
+              "name": "科磊 KLA",
+              "weight_pct": "5.96",
+              "rank": 4
+            },
+            {
+              "issuer_id": "拉姆研究 Lam Research",
+              "name": "拉姆研究 Lam Research",
+              "weight_pct": "5.27",
+              "rank": 5
+            },
+            {
+              "issuer_id": "闪迪 Sandisk",
+              "name": "闪迪 Sandisk",
+              "weight_pct": "5.19",
+              "rank": 6
+            },
+            {
+              "issuer_id": "阿斯麦 ASML",
+              "name": "阿斯麦 ASML",
+              "weight_pct": "5.14",
+              "rank": 7
+            },
+            {
+              "issuer_id": "谷歌 Alphabet",
+              "name": "谷歌 Alphabet",
+              "weight_pct": "4.89",
+              "rank": 8
+            },
+            {
+              "issuer_id": "亚马逊 Amazon",
+              "name": "亚马逊 Amazon",
+              "weight_pct": "4.35",
+              "rank": 9
+            },
+            {
+              "issuer_id": "英伟达 NVIDIA",
+              "name": "英伟达 NVIDIA",
+              "weight_pct": "4.11",
+              "rank": 10
+            }
+          ],
+          "strategy": [
+            "管理人称二季度 AI 硬件产业链表现突出，存储、算力芯片及半导体设备的盈利、HBM 与先进制程设备订单强劲，带动组合取得明显超额收益。",
+            "其投资框架将智能驾驶视作 AI 的早期形态及物理模型的重要应用，重点配置 AI 芯片、存储、半导体设备及智能驾驶龙头。"
+          ]
+        },
+        {
+          "label": "2026年三季度报告",
+          "report_date": "2026-09-30",
+          "published_date": "2026-10-27",
+          "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202610271830989465_1.pdf",
+          "pdf_sha256": "bbd25e0b95695627b0ddf8c0110c17774d63d6366561002c8416d76b874b2fc4",
+          "pages": {
+            "financial": 4,
+            "performance": 5,
+            "strategy": 8,
+            "assets": 9,
+            "regions": 10,
+            "sectors": 10,
+            "holdings": 10
+          },
+          "classes": [
+            {
+              "label": "A",
+              "nav": "2.7308",
+              "net_assets_cny": "1698964576.73",
+              "return_pct": "-12.69"
+            },
+            {
+              "label": "C",
+              "nav": "2.6802",
+              "net_assets_cny": "3173230065.89",
+              "return_pct": "-12.82"
+            }
+          ],
+          "benchmark_pct": "-11.59",
+          "a_return_windows": {
+            "过去三个月": {
+              "return_pct": "-12.69",
+              "benchmark_pct": "-11.59"
+            },
+            "过去六个月": {
+              "return_pct": "39.06",
+              "benchmark_pct": "-11.57"
+            },
+            "过去一年": {
+              "return_pct": "45.81",
+              "benchmark_pct": "-11.79"
+            },
+            "过去三年": {
+              "return_pct": "147.15",
+              "benchmark_pct": "-0.45"
+            }
+          },
+          "assets": {
+            "权益投资": "85.20",
+            "基金投资": null,
+            "固定收益投资": null,
+            "买入返售金融资产": "4.02",
+            "银行存款和结算备付金": "9.81",
+            "其他资产": "0.97"
+          },
+          "regions": {
+            "美国": "73.68",
+            "中国大陆": "7.48",
+            "韩国": "5.80",
+            "德国": "0.01"
+          },
+          "sectors": {
+            "信息科技": "70.17",
+            "电信服务": "13.18",
+            "工业": "3.03",
+            "消费者非必需品": "0.35",
+            "基础材料": "0.19",
+            "金融": "0.03",
+            "公用事业": "0.01",
+            "医疗保健": "0.00"
+          },
+          "holdings": [
+            {
+              "issuer_id": "台积电 TSM ADR",
+              "name": "台积电 TSM ADR",
+              "weight_pct": "9.33",
+              "rank": 1
+            },
+            {
+              "issuer_id": "谷歌 Alphabet",
+              "name": "谷歌 Alphabet",
+              "weight_pct": "6.66",
+              "rank": 2
+            },
+            {
+              "issuer_id": "英伟达 NVIDIA",
+              "name": "英伟达 NVIDIA",
+              "weight_pct": "5.68",
+              "rank": 3
+            },
+            {
+              "issuer_id": "博通 Broadcom",
+              "name": "博通 Broadcom",
+              "weight_pct": "5.58",
+              "rank": 4
+            },
+            {
+              "issuer_id": "亚马逊 Amazon",
+              "name": "亚马逊 Amazon",
+              "weight_pct": "4.82",
+              "rank": 5
+            },
+            {
+              "issuer_id": "美光 Micron",
+              "name": "美光 Micron",
+              "weight_pct": "4.71",
+              "rank": 6
+            },
+            {
+              "issuer_id": "科磊 KLA",
+              "name": "科磊 KLA",
+              "weight_pct": "4.31",
+              "rank": 7
+            },
+            {
+              "issuer_id": "阿斯麦 ASML",
+              "name": "阿斯麦 ASML",
+              "weight_pct": "4.26",
+              "rank": 8
+            },
+            {
+              "issuer_id": "闪迪 Sandisk",
+              "name": "闪迪 Sandisk",
+              "weight_pct": "3.85",
+              "rank": 9
+            },
+            {
+              "issuer_id": "拉姆研究 Lam Research",
+              "name": "拉姆研究 Lam Research",
+              "weight_pct": "3.63",
+              "rank": 10
+            }
+          ],
+          "strategy": [
+            "报告强调三季度出现“基本面向好、股价下跌”的背离：盈利增长已被充分预期，市场担忧长期增长与高资本开支的持续性，硬件赛道消化估值。",
+            "管理人继续看好产业长期趋势，将链条扩展为“AI 算力硬件、大模型、智能驾驶和人形机器人”，并称本季度净值随硬件股回调。"
+          ]
+        }
+      ]
+    },
+    "270023": {
+      "name": "广发全球精选股票(QDII)人民币A",
+      "insights": [
+        "A 类由二季度 +56.15% 转为三季度 -14.89%，三季度相对基准 -17.76 个百分点；C/F 同样回撤约 15%。",
+        "美国市场配置 46.65% → 55.62%，信息技术 66.89% → 56.75%；美国权重提高的同时行业更分散。",
+        "智谱华章未进入三季度前十大，AMD 升至第一；管理人披露七月先降低 beta、月底回补大市值科技公司，不能仅凭期末名次推断全季交易。"
+      ],
+      "notes": [
+        "A 类资产净值包含人民币 A 与美元现汇 A，按报告以人民币列示；C/F 为各自人民币类别。单位净值和收益使用报告人民币计价数据，不把 A 类总资产称为人民币 A 单独规模。",
+        "Alphabet 原报告同一名次下拆列两类股份：二季度 3.37% + 0.02% = 3.39%，三季度 3.73% + 0.02% = 3.75%。"
+      ],
+      "periods": [
+        {
+          "label": "2026年二季度报告",
+          "report_date": "2026-06-30",
+          "published_date": "2026-07-20",
+          "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202607201827126979_1.pdf",
+          "pdf_sha256": "b4408bf55d2b89d35ac977f99ebb945fe3d8b433786b421a98e5f79dfaa8b0a4",
+          "pages": {
+            "financial": 3,
+            "performance": 4,
+            "strategy": 11,
+            "assets": 12,
+            "regions": 13,
+            "sectors": 14,
+            "holdings": 14
+          },
+          "classes": [
+            {
+              "label": "A",
+              "nav": "7.5358",
+              "net_assets_cny": "18353859956.59",
+              "return_pct": "56.15"
+            },
+            {
+              "label": "C",
+              "nav": "7.4377",
+              "net_assets_cny": "6792717042.48",
+              "return_pct": "55.88"
+            },
+            {
+              "label": "F",
+              "nav": "7.4878",
+              "net_assets_cny": "1583266430.52",
+              "return_pct": "55.93"
+            }
+          ],
+          "benchmark_pct": "2.82",
+          "a_return_windows": {
+            "过去三个月": {
+              "return_pct": "56.15",
+              "benchmark_pct": "2.82"
+            },
+            "过去六个月": {
+              "return_pct": "61.99",
+              "benchmark_pct": "-2.61"
+            },
+            "过去一年": {
+              "return_pct": "79.00",
+              "benchmark_pct": "4.39"
+            },
+            "过去三年": {
+              "return_pct": "178.79",
+              "benchmark_pct": "38.45"
+            }
+          },
+          "assets": {
+            "权益投资": "86.60",
+            "基金投资": "0.26",
+            "固定收益投资": "0.12",
+            "买入返售金融资产": null,
+            "银行存款和结算备付金": "12.15",
+            "其他资产": "0.88"
+          },
+          "regions": {
+            "美国": "46.65",
+            "中国": "17.43",
+            "中国香港": "12.81",
+            "日本": "7.56",
+            "韩国": "3.08"
+          },
+          "sectors": {
+            "能源": "2.97",
+            "原材料": "3.18",
+            "工业": "3.28",
+            "非日常生活消费品": "3.96",
+            "日常消费品": "0.14",
+            "医疗保健": "0.59",
+            "金融": "1.99",
+            "信息技术": "66.89",
+            "通讯业务": "4.37",
+            "公用事业": "0.10",
+            "房地产": "0.06"
+          },
+          "holdings": [
+            {
+              "issuer_id": "智谱华章 Knowledge Atlas",
+              "name": "智谱华章 Knowledge Atlas",
+              "weight_pct": "9.01",
+              "rank": 1
+            },
+            {
+              "issuer_id": "美光 Micron",
+              "name": "美光 Micron",
+              "weight_pct": "6.16",
+              "rank": 2
+            },
+            {
+              "issuer_id": "泛林集团 Lam Research",
+              "name": "泛林集团 Lam Research",
+              "weight_pct": "4.50",
+              "rank": 3
+            },
+            {
+              "issuer_id": "阿斯麦 ASML",
+              "name": "阿斯麦 ASML",
+              "weight_pct": "4.35",
+              "rank": 4
+            },
+            {
+              "issuer_id": "铠侠 Kioxia",
+              "name": "铠侠 Kioxia",
+              "weight_pct": "4.07",
+              "rank": 5
+            },
+            {
+              "issuer_id": "闪迪 Sandisk",
+              "name": "闪迪 Sandisk",
+              "weight_pct": "3.89",
+              "rank": 6
+            },
+            {
+              "issuer_id": "超威 AMD",
+              "name": "超威 AMD",
+              "weight_pct": "3.74",
+              "rank": 7
+            },
+            {
+              "issuer_id": "应用材料 Applied Materials",
+              "name": "应用材料 Applied Materials",
+              "weight_pct": "3.50",
+              "rank": 8
+            },
+            {
+              "issuer_id": "谷歌 Alphabet",
+              "name": "谷歌 Alphabet",
+              "weight_pct": "3.39",
+              "rank": 9
+            },
+            {
+              "issuer_id": "潮州三环",
+              "name": "潮州三环",
+              "weight_pct": "3.10",
+              "rank": 10
+            }
+          ],
+          "strategy": [
+            "报告称二季度整体增加存储、半导体设备、电子元器件配置，在美国、日本、韩国和中国半导体产业链均有布局。",
+            "展望中提出逐步卖出边缘品种，加仓长期现金流强劲、能够持续回购的优秀公司；对大模型公司乐观，但提示估值过快提升的风险。"
+          ]
+        },
+        {
+          "label": "2026年三季度报告",
+          "report_date": "2026-09-30",
+          "published_date": "2026-10-27",
+          "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202610271830977488_1.pdf",
+          "pdf_sha256": "16020a468d33493366aa2ace68ca09228c1c0a1ae724f8c54ef8dbf4f331a7e0",
+          "pages": {
+            "financial": 3,
+            "performance": 4,
+            "strategy": 11,
+            "assets": 13,
+            "regions": 14,
+            "sectors": 14,
+            "holdings": 14
+          },
+          "classes": [
+            {
+              "label": "A",
+              "nav": "6.4134",
+              "net_assets_cny": "15907484224.79",
+              "return_pct": "-14.89"
+            },
+            {
+              "label": "C",
+              "nav": "6.3203",
+              "net_assets_cny": "5670649110.11",
+              "return_pct": "-15.02"
+            },
+            {
+              "label": "F",
+              "nav": "6.3646",
+              "net_assets_cny": "1445077795.72",
+              "return_pct": "-15.00"
+            }
+          ],
+          "benchmark_pct": "2.87",
+          "a_return_windows": {
+            "过去三个月": {
+              "return_pct": "-14.89",
+              "benchmark_pct": "2.87"
+            },
+            "过去六个月": {
+              "return_pct": "32.89",
+              "benchmark_pct": "5.78"
+            },
+            "过去一年": {
+              "return_pct": "38.72",
+              "benchmark_pct": "-0.97"
+            },
+            "过去三年": {
+              "return_pct": "143.12",
+              "benchmark_pct": "50.01"
+            }
+          },
+          "assets": {
+            "权益投资": "86.57",
+            "基金投资": "1.77",
+            "固定收益投资": "0.13",
+            "买入返售金融资产": null,
+            "银行存款和结算备付金": "10.39",
+            "其他资产": "1.14"
+          },
+          "regions": {
+            "美国": "55.62",
+            "中国": "16.06",
+            "中国香港": "8.22",
+            "韩国": "4.52",
+            "日本": "4.50"
+          },
+          "sectors": {
+            "能源": "4.86",
+            "原材料": "4.41",
+            "工业": "2.93",
+            "非日常生活消费品": "6.47",
+            "日常消费品": "1.38",
+            "医疗保健": "1.00",
+            "金融": "3.05",
+            "信息技术": "56.75",
+            "通讯业务": "7.96",
+            "公用事业": "0.08",
+            "房地产": "0.02"
+          },
+          "holdings": [
+            {
+              "issuer_id": "超威 AMD",
+              "name": "超威 AMD",
+              "weight_pct": "5.44",
+              "rank": 1
+            },
+            {
+              "issuer_id": "阿斯麦 ASML",
+              "name": "阿斯麦 ASML",
+              "weight_pct": "4.19",
+              "rank": 2
+            },
+            {
+              "issuer_id": "亚马逊 Amazon",
+              "name": "亚马逊 Amazon",
+              "weight_pct": "3.97",
+              "rank": 3
+            },
+            {
+              "issuer_id": "谷歌 Alphabet",
+              "name": "谷歌 Alphabet",
+              "weight_pct": "3.75",
+              "rank": 4
+            },
+            {
+              "issuer_id": "英伟达 NVIDIA",
+              "name": "英伟达 NVIDIA",
+              "weight_pct": "3.72",
+              "rank": 5
+            },
+            {
+              "issuer_id": "泛林集团 Lam Research",
+              "name": "泛林集团 Lam Research",
+              "weight_pct": "3.50",
+              "rank": 6
+            },
+            {
+              "issuer_id": "苹果 Apple",
+              "name": "苹果 Apple",
+              "weight_pct": "3.40",
+              "rank": 7
+            },
+            {
+              "issuer_id": "应用材料 Applied Materials",
+              "name": "应用材料 Applied Materials",
+              "weight_pct": "3.09",
+              "rank": 8
+            },
+            {
+              "issuer_id": "美光 Micron",
+              "name": "美光 Micron",
+              "weight_pct": "3.03",
+              "rank": 9
+            },
+            {
+              "issuer_id": "微软 Microsoft",
+              "name": "微软 Microsoft",
+              "weight_pct": "2.98",
+              "rank": 10
+            }
+          ],
+          "strategy": [
+            "管理人明确披露七月上旬减持大模型公司及部分高弹性半导体上游材料公司，以降低组合 beta；七月底在深度调整后回补芯片股、云厂商等大市值公司。",
+            "报告采用分散配置、降低个股集中度和杠铃思路，兼顾潜在收益与下行波动；对 AI 长期发展仍乐观，但主动控制高波动板块敞口。"
+          ]
+        }
+      ]
+    },
+    "539002": {
+      "name": "建信新兴市场混合(QDII)A",
+      "insights": [
+        "A 类由二季度 +74.56% 转为三季度 -12.26%，三季度相对基准 -10.26 个百分点；资产净值增长不能直接解释为投资盈利。",
+        "美国配置 59.65% → 54.54%，韩国 17.51% → 17.81%；信息技术仍高达 76.46%，集中度风险持续。",
+        "台积电、英伟达、SK 海力士、三星保留前四；日月光、ASML 进入前十大，博通、康宁未进入三季度前十大。"
+      ],
+      "notes": [
+        "自 2026-09-21 起基准由 MSCI 新兴市场净总收益指数调整为该指数 ×90% + 中债综合全价指数 ×5% + 人民币活期存款利率 ×5%。两季基准收益沿用报告披露的分段口径，并非同一固定指数。",
+        "三季度日月光在报告第 7 名中拆列美股 ADR 3.37% 与中国台湾股票 1.02%，合计 4.39%；保留原报告名次。"
+      ],
+      "periods": [
+        {
+          "label": "2026年二季度报告",
+          "report_date": "2026-06-30",
+          "published_date": "2026-07-20",
+          "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202607201827128028_1.pdf",
+          "pdf_sha256": "1620d8106193992c96eb4f5075776a4a95d53e99a2aa7fd1d990dec5d04689a7",
+          "pages": {
+            "financial": 3,
+            "performance": 3,
+            "strategy": 7,
+            "assets": 8,
+            "regions": 9,
+            "sectors": 9,
+            "holdings": 10
+          },
+          "classes": [
+            {
+              "label": "A",
+              "nav": "2.847",
+              "net_assets_cny": "2057095449.91",
+              "return_pct": "74.56"
+            },
+            {
+              "label": "C",
+              "nav": "2.803",
+              "net_assets_cny": "5532994709.26",
+              "return_pct": "74.42"
+            }
+          ],
+          "benchmark_pct": "21.85",
+          "a_return_windows": {
+            "过去三个月": {
+              "return_pct": "74.56",
+              "benchmark_pct": "21.85"
+            },
+            "过去六个月": {
+              "return_pct": "99.37",
+              "benchmark_pct": "20.25"
+            },
+            "过去一年": {
+              "return_pct": "145.01",
+              "benchmark_pct": "35.89"
+            },
+            "过去三年": {
+              "return_pct": "273.62",
+              "benchmark_pct": "73.93"
+            }
+          },
+          "assets": {
+            "权益投资": "77.50",
+            "基金投资": null,
+            "固定收益投资": null,
+            "买入返售金融资产": null,
+            "银行存款和结算备付金": "18.76",
+            "其他资产": "3.74"
+          },
+          "regions": {
+            "美国": "59.65",
+            "韩国": "17.51",
+            "中国台湾": "2.33",
+            "日本": "2.11"
+          },
+          "sectors": {
+            "信息技术": "81.18",
+            "电信服务": "0.42"
+          },
+          "holdings": [
+            {
+              "issuer_id": "台积电 TSM",
+              "name": "台积电 TSM",
+              "weight_pct": "9.68",
+              "rank": 1
+            },
+            {
+              "issuer_id": "英伟达 NVIDIA",
+              "name": "英伟达 NVIDIA",
+              "weight_pct": "9.38",
+              "rank": 2
+            },
+            {
+              "issuer_id": "SK 海力士",
+              "name": "SK 海力士",
+              "weight_pct": "8.94",
+              "rank": 3
+            },
+            {
+              "issuer_id": "三星电子",
+              "name": "三星电子",
+              "weight_pct": "7.80",
+              "rank": 4
+            },
+            {
+              "issuer_id": "闪迪 Sandisk",
+              "name": "闪迪 Sandisk",
+              "weight_pct": "7.16",
+              "rank": 5
+            },
+            {
+              "issuer_id": "博通 Broadcom",
+              "name": "博通 Broadcom",
+              "weight_pct": "4.18",
+              "rank": 6
+            },
+            {
+              "issuer_id": "西部数据 Western Digital",
+              "name": "西部数据 Western Digital",
+              "weight_pct": "4.18",
+              "rank": 7
+            },
+            {
+              "issuer_id": "美光 Micron",
+              "name": "美光 Micron",
+              "weight_pct": "3.99",
+              "rank": 8
+            },
+            {
+              "issuer_id": "Lumentum",
+              "name": "Lumentum",
+              "weight_pct": "3.56",
+              "rank": 9
+            },
+            {
+              "issuer_id": "康宁 Corning",
+              "name": "康宁 Corning",
+              "weight_pct": "3.35",
+              "rank": 10
+            }
+          ],
+          "strategy": [
+            "报告称新兴市场及韩国半导体二季度大涨，AI 基础设施盈利、资本开支与供需缺口推动行情向设备扩散；组合继续持有海外 AI 科技、半导体龙头。",
+            "管理人使用期货期权管理整体风险与流动性，并在二季度已提醒科技市场高集中度、预期饱和与短期回撤风险。"
+          ]
+        },
+        {
+          "label": "2026年三季度报告",
+          "report_date": "2026-09-30",
+          "published_date": "2026-10-26",
+          "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202610261830906335_1.pdf",
+          "pdf_sha256": "d68382770f9a6e23b105ad581ef1e311de3c9c5c8a99d702d43d820dafc44de2",
+          "pages": {
+            "financial": 3,
+            "performance": 3,
+            "strategy": 8,
+            "assets": 9,
+            "regions": 10,
+            "sectors": 10,
+            "holdings": 10
+          },
+          "classes": [
+            {
+              "label": "A",
+              "nav": "2.498",
+              "net_assets_cny": "3506349027.79",
+              "return_pct": "-12.26"
+            },
+            {
+              "label": "C",
+              "nav": "2.457",
+              "net_assets_cny": "8337640923.22",
+              "return_pct": "-12.34"
+            }
+          ],
+          "benchmark_pct": "-2.00",
+          "a_return_windows": {
+            "过去三个月": {
+              "return_pct": "-12.26",
+              "benchmark_pct": "-2.00"
+            },
+            "过去六个月": {
+              "return_pct": "53.16",
+              "benchmark_pct": "19.40"
+            },
+            "过去一年": {
+              "return_pct": "89.24",
+              "benchmark_pct": "21.16"
+            },
+            "过去三年": {
+              "return_pct": "236.66",
+              "benchmark_pct": "76.24"
+            }
+          },
+          "assets": {
+            "权益投资": "74.62",
+            "基金投资": "4.16",
+            "固定收益投资": null,
+            "买入返售金融资产": null,
+            "银行存款和结算备付金": "18.88",
+            "其他资产": "2.33"
+          },
+          "regions": {
+            "美国": "54.54",
+            "韩国": "17.81",
+            "中国台湾": "2.50",
+            "日本": "1.62"
+          },
+          "sectors": {
+            "信息技术": "76.46",
+            "电信服务": null
+          },
+          "holdings": [
+            {
+              "issuer_id": "台积电 TSM",
+              "name": "台积电 TSM",
+              "weight_pct": "9.77",
+              "rank": 1
+            },
+            {
+              "issuer_id": "英伟达 NVIDIA",
+              "name": "英伟达 NVIDIA",
+              "weight_pct": "9.45",
+              "rank": 2
+            },
+            {
+              "issuer_id": "SK 海力士",
+              "name": "SK 海力士",
+              "weight_pct": "8.92",
+              "rank": 3
+            },
+            {
+              "issuer_id": "三星电子",
+              "name": "三星电子",
+              "weight_pct": "8.49",
+              "rank": 4
+            },
+            {
+              "issuer_id": "闪迪 Sandisk",
+              "name": "闪迪 Sandisk",
+              "weight_pct": "7.67",
+              "rank": 5
+            },
+            {
+              "issuer_id": "Lumentum",
+              "name": "Lumentum",
+              "weight_pct": "4.44",
+              "rank": 6
+            },
+            {
+              "issuer_id": "日月光 ASE（美股/台股合计）",
+              "name": "日月光 ASE（美股/台股合计）",
+              "weight_pct": "4.39",
+              "rank": 7
+            },
+            {
+              "issuer_id": "美光 Micron",
+              "name": "美光 Micron",
+              "weight_pct": "4.21",
+              "rank": 8
+            },
+            {
+              "issuer_id": "西部数据 Western Digital",
+              "name": "西部数据 Western Digital",
+              "weight_pct": "4.11",
+              "rank": 9
+            },
+            {
+              "issuer_id": "阿斯麦 ASML",
+              "name": "阿斯麦 ASML",
+              "weight_pct": "3.57",
+              "rank": 10
+            }
+          ],
+          "strategy": [
+            "管理人称三季度韩国股市剧烈去杠杆、海外通胀及美联储加息使流动性和风险偏好变化；组合继续持有海外 AI 科技、半导体龙头并运用衍生品管理风险。",
+            "展望强调推理与 Agent AI 需求、HBM/DRAM/eSSD 供给稀缺，认为短期调整后估值有吸引力，策略保持稳定；同时继续提示集中度和波动风险。"
+          ]
+        }
+      ]
+    },
+    "006555": {
+      "name": "浦银全球智能科技(QDII)A",
+      "insights": [
+        "A 类由二季度 +72.79% 转为三季度 -16.26%，同期基准三季度 +0.41%，相对基准 -16.67 个百分点。",
+        "信息科技 88.99% → 74.43%，电信服务由报告横线变为 6.16%；美国仍为最大市场（71.29%）。",
+        "二季度第一大闪迪未进入三季度前十大，AMD 升至第一；Alphabet、台积电、英伟达、微软、苹果进入前十大，与管理人获利了结部分存储、增加龙头及软件的说明相呼应。"
+      ],
+      "notes": [],
+      "periods": [
+        {
+          "label": "2026年二季度报告",
+          "report_date": "2026-06-30",
+          "published_date": "2026-07-21",
+          "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202607211827194647_1.pdf",
+          "pdf_sha256": "105d5fe51d158693d30a7d3650d48082d9c01b7dbbe0e12f9bebceb14c298940",
+          "pages": {
+            "financial": 3,
+            "performance": 3,
+            "strategy": 8,
+            "assets": 9,
+            "regions": 9,
+            "sectors": 9,
+            "holdings": 10
+          },
+          "classes": [
+            {
+              "label": "A",
+              "nav": "4.4496",
+              "net_assets_cny": "1849678451.12",
+              "return_pct": "72.79"
+            },
+            {
+              "label": "C",
+              "nav": "4.3575",
+              "net_assets_cny": "3119588548.93",
+              "return_pct": "72.62"
+            }
+          ],
+          "benchmark_pct": "12.89",
+          "a_return_windows": {
+            "过去三个月": {
+              "return_pct": "72.79",
+              "benchmark_pct": "12.89"
+            },
+            "过去六个月": {
+              "return_pct": "75.32",
+              "benchmark_pct": "8.02"
+            },
+            "过去一年": {
+              "return_pct": "105.99",
+              "benchmark_pct": "17.11"
+            },
+            "过去三年": {
+              "return_pct": "197.16",
+              "benchmark_pct": "60.20"
+            }
+          },
+          "assets": {
+            "权益投资": "88.38",
+            "基金投资": null,
+            "固定收益投资": "0.27",
+            "买入返售金融资产": null,
+            "银行存款和结算备付金": "11.25",
+            "其他资产": "0.10"
+          },
+          "regions": {
+            "美国": "73.31",
+            "日本": "9.61",
+            "韩国": "7.59"
+          },
+          "sectors": {
+            "信息科技": "88.99",
+            "工业": "0.88",
+            "原材料": "0.45",
+            "非周期性消费品": "0.19",
+            "电信服务": null
+          },
+          "holdings": [
+            {
+              "issuer_id": "闪迪 Sandisk",
+              "name": "闪迪 Sandisk",
+              "weight_pct": "9.52",
+              "rank": 1
+            },
+            {
+              "issuer_id": "铠侠 Kioxia",
+              "name": "铠侠 Kioxia",
+              "weight_pct": "8.81",
+              "rank": 2
+            },
+            {
+              "issuer_id": "美光 Micron",
+              "name": "美光 Micron",
+              "weight_pct": "8.50",
+              "rank": 3
+            },
+            {
+              "issuer_id": "英特尔 Intel",
+              "name": "英特尔 Intel",
+              "weight_pct": "7.82",
+              "rank": 4
+            },
+            {
+              "issuer_id": "西部数据 Western Digital",
+              "name": "西部数据 Western Digital",
+              "weight_pct": "7.58",
+              "rank": 5
+            },
+            {
+              "issuer_id": "超威 AMD",
+              "name": "超威 AMD",
+              "weight_pct": "7.53",
+              "rank": 6
+            },
+            {
+              "issuer_id": "相干 Coherent",
+              "name": "相干 Coherent",
+              "weight_pct": "3.95",
+              "rank": 7
+            },
+            {
+              "issuer_id": "泰瑞达 Teradyne",
+              "name": "泰瑞达 Teradyne",
+              "weight_pct": "3.95",
+              "rank": 8
+            },
+            {
+              "issuer_id": "三星电子",
+              "name": "三星电子",
+              "weight_pct": "3.83",
+              "rank": 9
+            },
+            {
+              "issuer_id": "SK 海力士",
+              "name": "SK 海力士",
+              "weight_pct": "3.77",
+              "rank": 10
+            }
+          ],
+          "strategy": [
+            "管理人称全球资金涌入 AI 与半导体，存储景气和盈利确定性较强；操作上进一步增配存储板块。",
+            "报告明确减持受“AI 资本开支庞大但投资回报不明”逻辑冲击的科技七巨头，组合仍以美股为主。"
+          ]
+        },
+        {
+          "label": "2026年三季度报告",
+          "report_date": "2026-09-30",
+          "published_date": "2026-10-27",
+          "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202610271830989302_1.pdf",
+          "pdf_sha256": "bed650716a59fc8a106c9f327af16b24df81dd8cb57a9279ff46a6dae95210f4",
+          "pages": {
+            "financial": 3,
+            "performance": 3,
+            "strategy": 8,
+            "assets": 8,
+            "regions": 9,
+            "sectors": 9,
+            "holdings": 9
+          },
+          "classes": [
+            {
+              "label": "A",
+              "nav": "3.7262",
+              "net_assets_cny": "1558887394.22",
+              "return_pct": "-16.26"
+            },
+            {
+              "label": "C",
+              "nav": "3.6454",
+              "net_assets_cny": "3156349953.07",
+              "return_pct": "-16.34"
+            }
+          ],
+          "benchmark_pct": "0.41",
+          "a_return_windows": {
+            "过去三个月": {
+              "return_pct": "-16.26",
+              "benchmark_pct": "0.41"
+            },
+            "过去六个月": {
+              "return_pct": "44.70",
+              "benchmark_pct": "13.34"
+            },
+            "过去一年": {
+              "return_pct": "54.94",
+              "benchmark_pct": "9.98"
+            },
+            "过去三年": {
+              "return_pct": "162.32",
+              "benchmark_pct": "65.61"
+            }
+          },
+          "assets": {
+            "权益投资": "83.78",
+            "基金投资": null,
+            "固定收益投资": "0.00",
+            "买入返售金融资产": null,
+            "银行存款和结算备付金": "12.73",
+            "其他资产": "3.48"
+          },
+          "regions": {
+            "美国": "71.29",
+            "韩国": "7.57",
+            "日本": "6.00"
+          },
+          "sectors": {
+            "信息科技": "74.43",
+            "工业": "1.22",
+            "原材料": null,
+            "非周期性消费品": "3.05",
+            "电信服务": "6.16"
+          },
+          "holdings": [
+            {
+              "issuer_id": "超威 AMD",
+              "name": "超威 AMD",
+              "weight_pct": "5.95",
+              "rank": 1
+            },
+            {
+              "issuer_id": "美光 Micron",
+              "name": "美光 Micron",
+              "weight_pct": "5.55",
+              "rank": 2
+            },
+            {
+              "issuer_id": "Alphabet",
+              "name": "Alphabet",
+              "weight_pct": "5.35",
+              "rank": 3
+            },
+            {
+              "issuer_id": "铠侠 Kioxia",
+              "name": "铠侠 Kioxia",
+              "weight_pct": "4.93",
+              "rank": 4
+            },
+            {
+              "issuer_id": "英特尔 Intel",
+              "name": "英特尔 Intel",
+              "weight_pct": "4.88",
+              "rank": 5
+            },
+            {
+              "issuer_id": "台积电 TSM ADR",
+              "name": "台积电 TSM ADR",
+              "weight_pct": "4.85",
+              "rank": 6
+            },
+            {
+              "issuer_id": "英伟达 NVIDIA",
+              "name": "英伟达 NVIDIA",
+              "weight_pct": "4.56",
+              "rank": 7
+            },
+            {
+              "issuer_id": "三星电子",
+              "name": "三星电子",
+              "weight_pct": "4.11",
+              "rank": 8
+            },
+            {
+              "issuer_id": "微软 Microsoft",
+              "name": "微软 Microsoft",
+              "weight_pct": "4.01",
+              "rank": 9
+            },
+            {
+              "issuer_id": "苹果 Apple",
+              "name": "苹果 Apple",
+              "weight_pct": "3.84",
+              "rank": 10
+            }
+          ],
+          "strategy": [
+            "报告称加息与长期美债收益率攀升压制高估值资产，部分科技龙头的盈利确定性支持股价；管理人认为 AI 的中长期逻辑未变。",
+            "操作上对部分存储、光通信等半导体标的获利了结，增配盈利兑现能力较强、对高利率相对不敏感的科技龙头，以及业绩有支撑、估值合理的软件公司。"
+          ]
+        }
+      ]
+    },
+    "017144": {
+      "name": "华宝海外新能源汽车股票发起式(QDII)A",
+      "insights": [
+        "A 类二季度 +12.01%、三季度 -9.21%，两季分别落后同期基准 18.08、2.05 个百分点。",
+        "美国配置 88.57% → 90.23%，科技 40.73% → 46.50%，非必须消费品 45.58% → 38.99%；新能源汽车与车载芯片仍为主线。",
+        "Marvell 保持第一，法拉利从第 5 升至第 2；闪迪进入第 8，宁德时代未进入三季度前十大。"
+      ],
+      "notes": [],
+      "periods": [
+        {
+          "label": "2026年二季度报告",
+          "report_date": "2026-06-30",
+          "published_date": "2026-07-21",
+          "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202607211827186644_1.pdf",
+          "pdf_sha256": "73f8027248fa2e4d9ca1eaa4ad0217895f350c9ef92b219f2ff5446802c0ce03",
+          "pages": {
+            "financial": 3,
+            "performance": 4,
+            "strategy": 8,
+            "assets": 9,
+            "regions": 9,
+            "sectors": 9,
+            "holdings": 10
+          },
+          "classes": [
+            {
+              "label": "A",
+              "nav": "1.6950",
+              "net_assets_cny": "98860811.66",
+              "return_pct": "12.01"
+            },
+            {
+              "label": "C",
+              "nav": "1.6752",
+              "net_assets_cny": "227072816.93",
+              "return_pct": "11.89"
+            }
+          ],
+          "benchmark_pct": "30.09",
+          "a_return_windows": {
+            "过去三个月": {
+              "return_pct": "12.01",
+              "benchmark_pct": "30.09"
+            },
+            "过去六个月": {
+              "return_pct": "-1.67",
+              "benchmark_pct": "25.51"
+            },
+            "过去一年": {
+              "return_pct": "9.10",
+              "benchmark_pct": "39.93"
+            },
+            "过去三年": {
+              "return_pct": "52.30",
+              "benchmark_pct": "79.11"
+            }
+          },
+          "assets": {
+            "权益投资": "89.48",
+            "基金投资": null,
+            "固定收益投资": null,
+            "买入返售金融资产": null,
+            "银行存款和结算备付金": "9.03",
+            "其他资产": "1.49"
+          },
+          "regions": {
+            "美国": "88.57",
+            "中国香港": "5.61"
+          },
+          "sectors": {
+            "科技": "40.73",
+            "非必须消费品": "45.58",
+            "工业": "7.35",
+            "通讯": "0.52"
+          },
+          "holdings": [
+            {
+              "issuer_id": "美满电子科技 Marvell",
+              "name": "美满电子科技 Marvell",
+              "weight_pct": "9.83",
+              "rank": 1
+            },
+            {
+              "issuer_id": "特斯拉 Tesla",
+              "name": "特斯拉 Tesla",
+              "weight_pct": "9.61",
+              "rank": 2
+            },
+            {
+              "issuer_id": "蔚来 NIO",
+              "name": "蔚来 NIO",
+              "weight_pct": "9.17",
+              "rank": 3
+            },
+            {
+              "issuer_id": "Rivian",
+              "name": "Rivian",
+              "weight_pct": "8.94",
+              "rank": 4
+            },
+            {
+              "issuer_id": "法拉利 Ferrari",
+              "name": "法拉利 Ferrari",
+              "weight_pct": "8.44",
+              "rank": 5
+            },
+            {
+              "issuer_id": "小马智行 Pony AI",
+              "name": "小马智行 Pony AI",
+              "weight_pct": "7.34",
+              "rank": 6
+            },
+            {
+              "issuer_id": "超威 AMD",
+              "name": "超威 AMD",
+              "weight_pct": "6.30",
+              "rank": 7
+            },
+            {
+              "issuer_id": "美光 Micron",
+              "name": "美光 Micron",
+              "weight_pct": "5.99",
+              "rank": 8
+            },
+            {
+              "issuer_id": "宁德时代",
+              "name": "宁德时代",
+              "weight_pct": "5.61",
+              "rank": 9
+            },
+            {
+              "issuer_id": "博通 Broadcom",
+              "name": "博通 Broadcom",
+              "weight_pct": "4.91",
+              "rank": 10
+            }
+          ],
+          "strategy": [
+            "报告指出新能源车订单和交付整体偏弱，行业竞争加剧、产品同质化严重，汽车存储价格上涨对成本形成压力。",
+            "管理人认为有技术及产品定位优势的企业将受益于竞争格局变化，持续以境外上市新能源汽车相关股票为主要配置方向。"
+          ]
+        },
+        {
+          "label": "2026年三季度报告",
+          "report_date": "2026-09-30",
+          "published_date": "2026-10-27",
+          "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202610271830958271_1.pdf",
+          "pdf_sha256": "9fcb2c319c044fb47d1bacb17b69f6f113515e66671f66f8f0a391d1012bca32",
+          "pages": {
+            "financial": 3,
+            "performance": 4,
+            "strategy": 8,
+            "assets": 9,
+            "regions": 9,
+            "sectors": 9,
+            "holdings": 10
+          },
+          "classes": [
+            {
+              "label": "A",
+              "nav": "1.5389",
+              "net_assets_cny": "90381382.76",
+              "return_pct": "-9.21"
+            },
+            {
+              "label": "C",
+              "nav": "1.5194",
+              "net_assets_cny": "215125449.85",
+              "return_pct": "-9.30"
+            }
+          ],
+          "benchmark_pct": "-7.16",
+          "a_return_windows": {
+            "过去三个月": {
+              "return_pct": "-9.21",
+              "benchmark_pct": "-7.16"
+            },
+            "过去六个月": {
+              "return_pct": "1.69",
+              "benchmark_pct": "20.77"
+            },
+            "过去一年": {
+              "return_pct": "-19.26",
+              "benchmark_pct": "12.83"
+            },
+            "过去三年": {
+              "return_pct": "38.74",
+              "benchmark_pct": "70.32"
+            }
+          },
+          "assets": {
+            "权益投资": "91.03",
+            "基金投资": null,
+            "固定收益投资": null,
+            "买入返售金融资产": null,
+            "银行存款和结算备付金": "8.43",
+            "其他资产": "0.54"
+          },
+          "regions": {
+            "美国": "90.23",
+            "中国香港": "3.10"
+          },
+          "sectors": {
+            "科技": "46.50",
+            "非必须消费品": "38.99",
+            "工业": "7.28",
+            "通讯": "0.56"
+          },
+          "holdings": [
+            {
+              "issuer_id": "美满电子科技 Marvell",
+              "name": "美满电子科技 Marvell",
+              "weight_pct": "9.03",
+              "rank": 1
+            },
+            {
+              "issuer_id": "法拉利 Ferrari",
+              "name": "法拉利 Ferrari",
+              "weight_pct": "8.75",
+              "rank": 2
+            },
+            {
+              "issuer_id": "特斯拉 Tesla",
+              "name": "特斯拉 Tesla",
+              "weight_pct": "8.24",
+              "rank": 3
+            },
+            {
+              "issuer_id": "Rivian",
+              "name": "Rivian",
+              "weight_pct": "7.55",
+              "rank": 4
+            },
+            {
+              "issuer_id": "蔚来 NIO",
+              "name": "蔚来 NIO",
+              "weight_pct": "7.54",
+              "rank": 5
+            },
+            {
+              "issuer_id": "小马智行 Pony AI",
+              "name": "小马智行 Pony AI",
+              "weight_pct": "7.28",
+              "rank": 6
+            },
+            {
+              "issuer_id": "超威 AMD",
+              "name": "超威 AMD",
+              "weight_pct": "7.00",
+              "rank": 7
+            },
+            {
+              "issuer_id": "闪迪 Sandisk",
+              "name": "闪迪 Sandisk",
+              "weight_pct": "6.79",
+              "rank": 8
+            },
+            {
+              "issuer_id": "美光 Micron",
+              "name": "美光 Micron",
+              "weight_pct": "6.64",
+              "rank": 9
+            },
+            {
+              "issuer_id": "博通 Broadcom",
+              "name": "博通 Broadcom",
+              "weight_pct": "5.20",
+              "rank": 10
+            }
+          ],
+          "strategy": [
+            "报告继续强调竞争、同质化与存储高价的成本压力；称特斯拉代表的行业 beta 持续下行，海外新能源车表现乏力。",
+            "管理人看好优质企业在技术和产品定位上的优势，并新增强调人工智能在车载中的应用。期末科技权重增加，是配置快照变化，不能直接当作交易归因。"
+          ]
+        }
+      ]
+    },
+    "164212": {
+      "name": "天弘全球新能源汽车股票(QDII-LOF)A",
+      "insights": [
+        "A 类由二季度 +66.55% 转为三季度 -29.67%，三季度相对基准 -17.27 个百分点；净值与规模均明显收缩。",
+        "美国配置 44.19% → 59.20%，中国 35.81% → 23.35%，与管理人明确提高美股、降低 A 股敞口的表述一致。",
+        "Marvell 从第 2 升至第 1（4.15% → 7.20%）；SK 海力士、塔尔半导体、英伟达、特斯拉进入前十大。行业信息技术仍占 70.00%。"
+      ],
+      "notes": [],
+      "periods": [
+        {
+          "label": "2026年二季度报告",
+          "report_date": "2026-06-30",
+          "published_date": "2026-07-20",
+          "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202607201827148844_1.pdf",
+          "pdf_sha256": "03cc00397be755cb93f15018d422c7f445c7634f1ebc594fb26b10cd1433a700",
+          "pages": {
+            "financial": 3,
+            "performance": 4,
+            "strategy": 7,
+            "assets": 7,
+            "regions": 8,
+            "sectors": 9,
+            "holdings": 9
+          },
+          "classes": [
+            {
+              "label": "A",
+              "nav": "2.6734",
+              "net_assets_cny": "433787927.82",
+              "return_pct": "66.55"
+            },
+            {
+              "label": "C",
+              "nav": "2.6478",
+              "net_assets_cny": "1480706005.77",
+              "return_pct": "66.16"
+            }
+          ],
+          "benchmark_pct": "22.26",
+          "a_return_windows": {
+            "过去三个月": {
+              "return_pct": "66.55",
+              "benchmark_pct": "22.26"
+            },
+            "过去六个月": {
+              "return_pct": "68.91",
+              "benchmark_pct": "22.69"
+            },
+            "过去一年": {
+              "return_pct": "113.87",
+              "benchmark_pct": "44.41"
+            },
+            "过去三年": {
+              "return_pct": "157.33",
+              "benchmark_pct": "13.78"
+            }
+          },
+          "assets": {
+            "权益投资": "81.85",
+            "基金投资": "6.43",
+            "固定收益投资": "0.05",
+            "买入返售金融资产": null,
+            "银行存款和结算备付金": "6.40",
+            "其他资产": "5.28"
+          },
+          "regions": {
+            "美国": "44.19",
+            "中国": "35.81",
+            "中国香港": "6.07"
+          },
+          "sectors": {
+            "信息技术": "66.78",
+            "基础材料": "12.62",
+            "工业": "5.13",
+            "消费者非必需品": "1.51",
+            "公用事业": "0.02",
+            "其他GICS未分类": "0.01",
+            "医疗保健": null
+          },
+          "holdings": [
+            {
+              "issuer_id": "康宁 Corning",
+              "name": "康宁 Corning",
+              "weight_pct": "5.00",
+              "rank": 1
+            },
+            {
+              "issuer_id": "迈威迩 Marvell",
+              "name": "迈威迩 Marvell",
+              "weight_pct": "4.15",
+              "rank": 2
+            },
+            {
+              "issuer_id": "美光 Micron",
+              "name": "美光 Micron",
+              "weight_pct": "3.98",
+              "rank": 3
+            },
+            {
+              "issuer_id": "超威 AMD",
+              "name": "超威 AMD",
+              "weight_pct": "3.31",
+              "rank": 4
+            },
+            {
+              "issuer_id": "泰瑞达 Teradyne",
+              "name": "泰瑞达 Teradyne",
+              "weight_pct": "2.24",
+              "rank": 5
+            },
+            {
+              "issuer_id": "Lumentum",
+              "name": "Lumentum",
+              "weight_pct": "2.20",
+              "rank": 6
+            },
+            {
+              "issuer_id": "应用材料 Applied Materials",
+              "name": "应用材料 Applied Materials",
+              "weight_pct": "2.19",
+              "rank": 7
+            },
+            {
+              "issuer_id": "相干 Coherent",
+              "name": "相干 Coherent",
+              "weight_pct": "2.03",
+              "rank": 8
+            },
+            {
+              "issuer_id": "意法半导体 STMicroelectronics",
+              "name": "意法半导体 STMicroelectronics",
+              "weight_pct": "1.97",
+              "rank": 9
+            },
+            {
+              "issuer_id": "华虹半导体",
+              "name": "华虹半导体",
+              "weight_pct": "1.95",
+              "rank": 10
+            }
+          ],
+          "strategy": [
+            "管理人认为 AI 算力虹吸使车规芯片及上游元器件涨价，对整车中性、对有定价能力的部件及设备供应商乐观，保持部分锂电配置、低配整车。",
+            "市场布局以美股为最大单一市场，其次 A 股，在香港寻求稀缺产业链公司；持仓聚焦车规存储、功率电源芯片、材料设备、通信与晶圆代工。"
+          ]
+        },
+        {
+          "label": "2026年三季度报告",
+          "report_date": "2026-09-30",
+          "published_date": "2026-10-26",
+          "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202610261830928760_1.pdf",
+          "pdf_sha256": "ba6333809fd104ad70518e6bb37cff3fee4c874d9d7684c28905fcdb79356174",
+          "pages": {
+            "financial": 3,
+            "performance": 3,
+            "strategy": 7,
+            "assets": 8,
+            "regions": 8,
+            "sectors": 9,
+            "holdings": 9
+          },
+          "classes": [
+            {
+              "label": "A",
+              "nav": "1.8803",
+              "net_assets_cny": "213239965.98",
+              "return_pct": "-29.67"
+            },
+            {
+              "label": "C",
+              "nav": "1.8612",
+              "net_assets_cny": "490832611.23",
+              "return_pct": "-29.71"
+            }
+          ],
+          "benchmark_pct": "-12.40",
+          "a_return_windows": {
+            "过去三个月": {
+              "return_pct": "-29.67",
+              "benchmark_pct": "-12.40"
+            },
+            "过去六个月": {
+              "return_pct": "17.14",
+              "benchmark_pct": "7.10"
+            },
+            "过去一年": {
+              "return_pct": "22.59",
+              "benchmark_pct": "6.56"
+            },
+            "过去三年": {
+              "return_pct": "93.55",
+              "benchmark_pct": "6.44"
+            }
+          },
+          "assets": {
+            "权益投资": "86.08",
+            "基金投资": "5.52",
+            "固定收益投资": "1.10",
+            "买入返售金融资产": null,
+            "银行存款和结算备付金": "6.25",
+            "其他资产": "1.05"
+          },
+          "regions": {
+            "美国": "59.20",
+            "中国": "23.35",
+            "中国香港": "5.09"
+          },
+          "sectors": {
+            "信息技术": "70.00",
+            "基础材料": "6.50",
+            "工业": "6.68",
+            "消费者非必需品": "4.37",
+            "公用事业": "0.04",
+            "其他GICS未分类": "0.04",
+            "医疗保健": "0.01"
+          },
+          "holdings": [
+            {
+              "issuer_id": "迈威迩 Marvell",
+              "name": "迈威迩 Marvell",
+              "weight_pct": "7.20",
+              "rank": 1
+            },
+            {
+              "issuer_id": "超威 AMD",
+              "name": "超威 AMD",
+              "weight_pct": "4.97",
+              "rank": 2
+            },
+            {
+              "issuer_id": "康宁 Corning",
+              "name": "康宁 Corning",
+              "weight_pct": "4.85",
+              "rank": 3
+            },
+            {
+              "issuer_id": "相干 Coherent",
+              "name": "相干 Coherent",
+              "weight_pct": "4.68",
+              "rank": 4
+            },
+            {
+              "issuer_id": "SK 海力士",
+              "name": "SK 海力士",
+              "weight_pct": "4.58",
+              "rank": 5
+            },
+            {
+              "issuer_id": "Lumentum",
+              "name": "Lumentum",
+              "weight_pct": "3.72",
+              "rank": 6
+            },
+            {
+              "issuer_id": "塔尔半导体 Tower Semiconductor",
+              "name": "塔尔半导体 Tower Semiconductor",
+              "weight_pct": "3.48",
+              "rank": 7
+            },
+            {
+              "issuer_id": "泰瑞达 Teradyne",
+              "name": "泰瑞达 Teradyne",
+              "weight_pct": "3.45",
+              "rank": 8
+            },
+            {
+              "issuer_id": "英伟达 NVIDIA",
+              "name": "英伟达 NVIDIA",
+              "weight_pct": "3.28",
+              "rank": 9
+            },
+            {
+              "issuer_id": "特斯拉 Tesla",
+              "name": "特斯拉 Tesla",
+              "weight_pct": "3.05",
+              "rank": 10
+            }
+          ],
+          "strategy": [
+            "报告承认七月部分持仓经历系统性去杠杆，使业绩不及预期；两到三年的 AI 需求与供需缺口投资思路未变，但调整了具体持仓。",
+            "管理人明确进一步提高美股权重、整体降低 A 股敞口；在 A 股内部降低电子元器件和半导体占比、提高锂电占比，继续在港股寻找稀缺供应商。"
+          ]
+        }
+      ]
+    },
+    "012920": {
+      "name": "易方达全球成长精选混合(QDII)人民币A",
+      "insights": [
+        "A 类由二季度 +89.84% 转为三季度 -29.07%，三季度相对基准 -26.08 个百分点；需结合基准六月变更理解比较口径。",
+        "美国配置 42.76% → 57.07%，信息技术 88.59% → 73.95%；仍偏科技，但增加电力、应用等方向，管理人称降低海外半导体设备配置。",
+        "台积电从第 3 升至第 1，英伟达进入第 2；泛林、铠侠、闪迪未进入三季度前十大，期末快照不代表完全卖出。"
+      ],
+      "notes": [
+        "A/C 类资产净值分别包含人民币及美元现汇份额，以报告人民币口径列示，并非人民币份额单独规模。单位净值及收益沿用人民币计价披露。",
+        "自 2026-06-01 起基准由中证800 ×65% + 标普全球1200 ×20% + 中债总指数 ×15%，改为 MSCI ACWI ×30% + 中证港股通综合 ×25% + 中证800 ×30% + 中债总全价 ×15%。二季度跨越变更日，两季超额收益按各报告分段基准计算。",
+        "三季度中际旭创为原报告第 4 名，内地股票 4.16% 与港股 0.22% 合计 4.38%；与二季度中际旭创按同一公司口径比较。"
+      ],
+      "periods": [
+        {
+          "label": "2026年二季度报告",
+          "report_date": "2026-06-30",
+          "published_date": "2026-07-21",
+          "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202607211827165228_1.pdf",
+          "pdf_sha256": "29ddfb87d97ea455e1b7164266bc88827bb50f3cc716dcc4f6d06532a1aade59",
+          "pages": {
+            "financial": 4,
+            "performance": 4,
+            "strategy": 9,
+            "assets": 11,
+            "regions": 12,
+            "sectors": 12,
+            "holdings": 13
+          },
+          "classes": [
+            {
+              "label": "A",
+              "nav": "5.2809",
+              "net_assets_cny": "7492483541.41",
+              "return_pct": "89.84"
+            },
+            {
+              "label": "C",
+              "nav": "5.1797",
+              "net_assets_cny": "11963629936.83",
+              "return_pct": "89.61"
+            }
+          ],
+          "benchmark_pct": "7.67",
+          "a_return_windows": {
+            "过去三个月": {
+              "return_pct": "89.84",
+              "benchmark_pct": "7.67"
+            },
+            "过去六个月": {
+              "return_pct": "110.76",
+              "benchmark_pct": "5.17"
+            },
+            "过去一年": {
+              "return_pct": "227.88",
+              "benchmark_pct": "20.22"
+            },
+            "过去三年": {
+              "return_pct": "405.01",
+              "benchmark_pct": "30.87"
+            }
+          },
+          "assets": {
+            "权益投资": "90.34",
+            "基金投资": "0.50",
+            "固定收益投资": null,
+            "买入返售金融资产": null,
+            "银行存款和结算备付金": "8.76",
+            "其他资产": "0.39"
+          },
+          "regions": {
+            "美国": "42.76",
+            "中国内地": "28.54",
+            "日本": "8.53",
+            "中国香港": "8.03",
+            "韩国": "3.50",
+            "中国台湾": "0.23",
+            "德国": "0.15"
+          },
+          "sectors": {
+            "信息技术": "88.59",
+            "工业": "2.53",
+            "材料": "0.35",
+            "非必需消费品": "0.24",
+            "必需消费品": "0.02",
+            "保健": "0.00",
+            "金融": "0.00",
+            "电信服务": null,
+            "能源": null,
+            "其他GICS未分类": "0.00"
+          },
+          "holdings": [
+            {
+              "issuer_id": "泛林集团 Lam Research",
+              "name": "泛林集团 Lam Research",
+              "weight_pct": "6.41",
+              "rank": 1
+            },
+            {
+              "issuer_id": "铠侠 Kioxia",
+              "name": "铠侠 Kioxia",
+              "weight_pct": "5.89",
+              "rank": 2
+            },
+            {
+              "issuer_id": "台积电 TSM",
+              "name": "台积电 TSM",
+              "weight_pct": "5.54",
+              "rank": 3
+            },
+            {
+              "issuer_id": "超威 AMD",
+              "name": "超威 AMD",
+              "weight_pct": "4.96",
+              "rank": 4
+            },
+            {
+              "issuer_id": "成都新易盛",
+              "name": "成都新易盛",
+              "weight_pct": "4.68",
+              "rank": 5
+            },
+            {
+              "issuer_id": "中际旭创",
+              "name": "中际旭创",
+              "weight_pct": "4.61",
+              "rank": 6
+            },
+            {
+              "issuer_id": "闪迪 Sandisk",
+              "name": "闪迪 Sandisk",
+              "weight_pct": "4.46",
+              "rank": 7
+            },
+            {
+              "issuer_id": "英特尔 Intel",
+              "name": "英特尔 Intel",
+              "weight_pct": "4.26",
+              "rank": 8
+            },
+            {
+              "issuer_id": "陕西源杰半导体",
+              "name": "陕西源杰半导体",
+              "weight_pct": "3.34",
+              "rank": 9
+            },
+            {
+              "issuer_id": "阿斯麦 ASML",
+              "name": "阿斯麦 ASML",
+              "weight_pct": "3.33",
+              "rank": 10
+            }
+          ],
+          "strategy": [
+            "报告描述 AI 算力与上游供给紧张推动行情，软件互联网、消费及金融表现较弱；组合维持高仓位。",
+            "管理人明确提高全球算力产业链上游、半导体设备配置，降低消费与金融配置，立足中长期盈利成长与稳定性。"
+          ]
+        },
+        {
+          "label": "2026年三季度报告",
+          "report_date": "2026-09-30",
+          "published_date": "2026-10-27",
+          "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202610271830959154_1.pdf",
+          "pdf_sha256": "54ba8732dc25bd8e3a3db4c17184955353ad599fa85c86c993e2e9d27c24fc16",
+          "pages": {
+            "financial": 4,
+            "performance": 4,
+            "strategy": 8,
+            "assets": 10,
+            "regions": 11,
+            "sectors": 12,
+            "holdings": 12
+          },
+          "classes": [
+            {
+              "label": "A",
+              "nav": "3.7460",
+              "net_assets_cny": "4018942619.33",
+              "return_pct": "-29.07"
+            },
+            {
+              "label": "C",
+              "nav": "3.6685",
+              "net_assets_cny": "5624760490.41",
+              "return_pct": "-29.18"
+            }
+          ],
+          "benchmark_pct": "-2.99",
+          "a_return_windows": {
+            "过去三个月": {
+              "return_pct": "-29.07",
+              "benchmark_pct": "-2.99"
+            },
+            "过去六个月": {
+              "return_pct": "34.29",
+              "benchmark_pct": "4.45"
+            },
+            "过去一年": {
+              "return_pct": "62.33",
+              "benchmark_pct": "2.54"
+            },
+            "过去三年": {
+              "return_pct": "293.49",
+              "benchmark_pct": "31.82"
+            }
+          },
+          "assets": {
+            "权益投资": "86.60",
+            "基金投资": "1.68",
+            "固定收益投资": null,
+            "买入返售金融资产": null,
+            "银行存款和结算备付金": "11.62",
+            "其他资产": "0.10"
+          },
+          "regions": {
+            "美国": "57.07",
+            "中国内地": "22.29",
+            "中国香港": "4.72",
+            "日本": "3.31",
+            "中国台湾": "0.94"
+          },
+          "sectors": {
+            "信息技术": "73.95",
+            "工业": "5.42",
+            "材料": "0.01",
+            "非必需消费品": "1.32",
+            "必需消费品": "0.09",
+            "保健": "2.62",
+            "金融": "1.68",
+            "电信服务": "2.92",
+            "能源": "0.31",
+            "其他GICS未分类": "0.01"
+          },
+          "holdings": [
+            {
+              "issuer_id": "台积电 TSM",
+              "name": "台积电 TSM",
+              "weight_pct": "8.28",
+              "rank": 1
+            },
+            {
+              "issuer_id": "英伟达 NVIDIA",
+              "name": "英伟达 NVIDIA",
+              "weight_pct": "7.05",
+              "rank": 2
+            },
+            {
+              "issuer_id": "英特尔 Intel",
+              "name": "英特尔 Intel",
+              "weight_pct": "5.54",
+              "rank": 3
+            },
+            {
+              "issuer_id": "中际旭创",
+              "name": "中际旭创（含港股）",
+              "weight_pct": "4.38",
+              "rank": 4
+            },
+            {
+              "issuer_id": "Bloom Energy",
+              "name": "Bloom Energy",
+              "weight_pct": "4.03",
+              "rank": 5
+            },
+            {
+              "issuer_id": "超威 AMD",
+              "name": "超威 AMD",
+              "weight_pct": "3.94",
+              "rank": 6
+            },
+            {
+              "issuer_id": "成都新易盛",
+              "name": "成都新易盛",
+              "weight_pct": "3.40",
+              "rank": 7
+            },
+            {
+              "issuer_id": "Lumentum",
+              "name": "Lumentum",
+              "weight_pct": "3.23",
+              "rank": 8
+            },
+            {
+              "issuer_id": "阿斯麦 ASML",
+              "name": "阿斯麦 ASML",
+              "weight_pct": "2.76",
+              "rank": 9
+            },
+            {
+              "issuer_id": "沪士电子",
+              "name": "沪士电子",
+              "weight_pct": "2.41",
+              "rank": 10
+            }
+          ],
+          "strategy": [
+            "报告称 AI 算力及部分周期资源品下跌，金融、地产、医药反弹；利率上升、以 Coding 为核心的模型公司 ARR 增速放缓，引发对算力资本开支持续性的担忧。",
+            "组合仍保持高仓位，明确提高 GPU、数据中心电力产业链、AI 应用及光通信配置，降低海外半导体设备配置；四季度计划继续保持较高仓位。"
+          ]
+        }
+      ]
+    }
+  }
+}

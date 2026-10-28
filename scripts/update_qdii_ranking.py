@@ -104,6 +104,14 @@ from qdii_ranking.pipeline import (
     rank_candidates,
     route_candidates,
 )
+from qdii_ranking.report_comparisons import (
+    REPORT_COMPARISON_SCHEMA_VERSION,
+    ReportComparisonError,
+    load_report_comparison_index,
+    render_report_comparison_list,
+    render_report_comparison_pages,
+    validate_report_comparison_index,
+)
 from qdii_ranking.ranking import (
     build_holder_candidates,
     calculate_return_drawdown_ratio,
@@ -325,6 +333,8 @@ __all__ = (
     "QuotaGateResult",
     "QuotaNoticeParseCache",
     "RANKING_SCHEMA_VERSION",
+    "REPORT_COMPARISON_SCHEMA_VERSION",
+    "ReportComparisonError",
     "REPORT_TITLE_EXCLUDE_RE",
     "ROUTING_REASON_BELOW_US_THRESHOLD",
     "ROUTING_REASON_CONFIRMED_US",
@@ -428,6 +438,7 @@ __all__ = (
     "is_rmb_a_share",
     "latest_series_value",
     "load_exchange_premium_catalog",
+    "load_report_comparison_index",
     "load_qdii_exchange_premium_catalog",
     "main",
     "nasdaq100_otc_sort_key",
@@ -447,6 +458,9 @@ __all__ = (
     "parse_nasdaq100_history",
     "parse_performance_page",
     "parse_periodic_report_date",
+    "render_report_comparison_list",
+    "render_report_comparison_pages",
+    "validate_report_comparison_index",
     "parse_quota_notice",
     "parse_safe_usd_cny_history",
     "parse_us_equity_report",

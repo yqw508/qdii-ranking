@@ -7,6 +7,10 @@ from pathlib import Path
 from typing import Any
 
 from qdii_ranking.config import RANKING_SCHEMA_VERSION
+from qdii_ranking.report_comparisons import (
+    ReportComparisonError,
+    load_report_comparison_index,
+)
 
 from .common import (
     BOUNDARY_WARNING_RE,
@@ -27,6 +31,32 @@ from .schema import (
     validate_nasdaq100_otc_section,
     validate_records,
 )
+
+
+def validate_report_comparisons(payload: dict[str, Any], publish_dir: Path) -> None:
+    """Validate optional comparison metadata and every generated site page."""
+    try:
+        index = load_report_comparison_index(
+            publish_dir / "report-comparisons" / "index.json"
+        )
+    except ReportComparisonError as exc:
+        raise ValidationError(str(exc)) from exc
+    raw_funds = payload.get("report_comparisons")
+    if raw_funds is None and not index["funds"]:
+        return
+    require(
+        raw_funds == index["funds"],
+        "Ranking payload report comparisons differ from the published index",
+    )
+    for code, fund in index["funds"].items():
+        list_path = publish_dir.joinpath(*fund["list_url"].rstrip("/").split("/"), "index.html")
+        require(list_path.is_file(), f"Missing report comparison list page for {code}")
+        list_document = list_path.read_text(encoding="utf-8")
+        require(fund["name"] in list_document, f"Report comparison list omits {code} name")
+        for comparison in fund["comparisons"]:
+            detail_path = publish_dir.joinpath(*comparison["detail_url"].split("/"))
+            require(detail_path.is_file(), f"Missing report comparison detail page for {code}/{comparison['id']}")
+            require(comparison["title"] in list_document, f"Report comparison list omits {code}/{comparison['id']}")
 
 def validate_email_rendering(payload: dict[str, Any], records: list[dict[str, Any]]) -> None:
     page_url = f"https://example.test/?v={payload['run_date']}"
@@ -137,6 +167,7 @@ def validate_local_artifacts(
     validate_csv(output_dir / "latest.csv", [*records, *nasdaq_records])
     validate_markdown(output_dir / "latest.md", payload, records)
     validate_email_rendering(payload, records)
+    validate_report_comparisons(payload, publish_dir)
 
     generated_html_path = output_dir / "latest.html"
     published_html_path = publish_dir / "index.html"

@@ -23,6 +23,25 @@ from .common import (
     routing_reason_label,
 )
 
+
+def report_comparison_link(item: dict[str, Any], payload: dict[str, Any]) -> str:
+    """Render a link only when this fund has generated comparisons."""
+    entries = payload.get("report_comparisons") or {}
+    fund = entries.get(item.get("code")) if isinstance(entries, dict) else None
+    if not isinstance(fund, dict):
+        return ""
+    comparisons = fund.get("comparisons")
+    list_url = fund.get("list_url")
+    if not isinstance(comparisons, list) or not comparisons or not isinstance(list_url, str):
+        return ""
+    return (
+        f'<a class="source-link report-comparison-link" '
+        f'href="{html.escape(list_url, quote=True)}" '
+        f'aria-label="{html.escape(item["name"])} 财报对比（{len(comparisons)} 条）">'
+        f'财报对比（{len(comparisons)} 条）<span class="external" aria-hidden="true">↗</span></a>'
+    )
+
+
 def render_card(item: dict[str, Any], payload: dict[str, Any]) -> str:
     is_us = item["ranking_list"] == "us_main"
     fit = item["nasdaq100_fit"]
@@ -138,6 +157,7 @@ def render_card(item: dict[str, Any], payload: dict[str, Any]) -> str:
         {html_source_link('人民币产品概要', contract.get('product_summary_source_url'))}
         {html_source_link('基金主页', item['fund_page_url'])}
         {extra_sources}
+        {report_comparison_link(item, payload)}
       </div>
     </div>
     </details>"""

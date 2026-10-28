@@ -101,6 +101,24 @@ JSON schema 为 15：顶层 `records` 是美国主榜，`global_supplement.recor
 筛选条件中的 `three_year_boundary_tolerance_days` 固定为 7；每条排名记录及 CSV 的
 `three_year_boundary_shortfall_days` 记录实际短缺天数，完整区间为 0。
 
+财报对比是可选的静态扩展。生成流程可将 schema v1 索引写入
+`public/report-comparisons/index.json`，并将对应的详情页放在索引声明的站内路径；
+排名刷新会校验索引、生成每只基金的对比列表页，并只在该基金存在有效记录时在详情卡片显示入口。
+缺少索引时不显示入口，也不会把单期报告缓存当作对比结果。
+
+2026 年二、三季度剩余 8 只美国主榜基金的双报告核对数据保存在
+`references/report-comparisons/2026-q2-vs-q3.json`。其中保留原 PDF 的 SHA-256、章节页码、
+份额类别、资产配置分母及各期完整十个持仓名次；未披露权重不按零推算。
+运行 `python scripts/render_report_comparison_details.py` 可离线重建这 8 只的列表、详情及索引，
+不改动已有嘉实和银华对比页，也不抓取行情或重新计算排名。榜单刷新仍只读取对比索引；
+该命令本身不会刷新榜单或提交、部署页面。
+
+长信标普100等权重指数人民币（519981）使用独立核对文件
+`references/report-comparisons/2026-q2-vs-q3-519981.json`，可通过
+`python scripts/render_report_comparison_details.py --data references/report-comparisons/2026-q2-vs-q3-519981.json`
+重建。它保留人民币主份额名称及美元计价基准说明，将指数投资前十名、积极投资前五名及两部分行业
+分别展示，不能把披露名单拼接成全基金前十大；资产规模按人民币、美元份额并表口径标注。
+
 估值页另写 `output/index-valuation/latest.json`、`latest.html`、`run-metrics.json` 和字节一致的
 `public/valuation/index.html`。schema v3 的 `assets` 固定包含 7 个指数和 1 个黄金标的，资产状态为
 `fresh`、`cached_stale` 或 `unavailable`。按来源拆分的规范化缓存位于

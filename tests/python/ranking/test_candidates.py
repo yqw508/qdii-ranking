@@ -91,7 +91,7 @@ class FundFilterTests(unittest.TestCase):
         self.assertIsNone(args.min_scale)
         self.assertEqual(30.0, args.min_three_year_return_pct)
         self.assertEqual(40.0, args.min_five_year_return_pct)
-        self.assertEqual(100.0, args.min_ten_year_return_pct)
+        self.assertEqual(80.0, args.min_ten_year_return_pct)
         self.assertEqual(50.0, args.min_us_equity_pct)
         self.assertEqual(200, args.min_direct_limit_cny)
         self.assertEqual(["亚洲", "中国", "港"], args.us_main_exclude_keywords)

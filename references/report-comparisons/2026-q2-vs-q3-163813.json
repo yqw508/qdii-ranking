@@ -1,0 +1,676 @@
+{
+  "schema_version": 1,
+  "comparison_id": "2026-q2-vs-q3",
+  "title": "2026年二季度 vs 三季度",
+  "generated_at": "2026-10-29T14:30:00+08:00",
+  "funds": {
+    "163813": {
+      "name": "中银全球策略(QDII-FOF)A",
+      "insights": [
+        "A 类份额净值增长率由二季度 +24.83% 转为三季度 -10.51%，同期业绩比较基准由 +8.76% 变为 +1.06%；三季度相对基准为 -11.57 个百分点。",
+        "基金投资占资产从 67.25% 升至 74.71%，权益投资从 13.71% 降至 3.66%；银行存款和结算备付金从 17.66% 升至 21.54%，组合明显降低直接股票仓位。",
+        "直接股票及存托凭证中，美国配置从 13.96% 降至 3.76%；前十大股票由美光、闪迪等科技股为主，转为伯克希尔、英特尔、卡特彼勒等更分散的持仓。"
+      ],
+      "notes": [
+        "本基金为 FOF，基金投资占比很高；本页的前十大股票仅对应直接权益投资，不代表底层基金合并后的全部持仓。",
+        "两期报告的资产配置、地区、行业和前十大股票均为期末快照，不能仅凭名次变化推断季度内的交易路径或收益贡献。",
+        "A/C 份额分别披露；页面以 A 类作为主份额的业绩比较，C 类数据保留在各期份额表中。"
+      ],
+      "periods": [
+        {
+          "label": "2026年二季度报告",
+          "report_date": "2026-06-30",
+          "published_date": "2026-07-21",
+          "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202607211827181995_1.pdf",
+          "pdf_sha256": "59378c7363ef07d71ce1a6b2ce16cccd4624b40c1f6727806782d72127f8bbe3",
+          "pages": {
+            "financial": 3,
+            "performance": 4,
+            "strategy": 8,
+            "assets": 8,
+            "regions": 9,
+            "sectors": 9,
+            "holdings": 9,
+            "fund_holdings": 10
+          },
+          "classes": [
+            {
+              "label": "A",
+              "nav": "1.2672",
+              "net_assets_cny": "573089495.75",
+              "return_pct": "24.83"
+            },
+            {
+              "label": "C",
+              "nav": "1.2529",
+              "net_assets_cny": "422837533.98",
+              "return_pct": "24.72"
+            }
+          ],
+          "benchmark_pct": "8.76",
+          "a_return_windows": {
+            "过去三个月": {
+              "return_pct": "24.83",
+              "benchmark_pct": "8.76"
+            },
+            "过去六个月": {
+              "return_pct": "21.19",
+              "benchmark_pct": "6.73"
+            },
+            "过去一年": {
+              "return_pct": "30.12",
+              "benchmark_pct": "14.00"
+            },
+            "过去三年": {
+              "return_pct": "72.88",
+              "benchmark_pct": "40.18"
+            },
+            "过去五年": {
+              "return_pct": "79.24",
+              "benchmark_pct": "38.10"
+            },
+            "过去七年": {
+              "return_pct": "118.48",
+              "benchmark_pct": "69.58"
+            },
+            "过去十年": {
+              "return_pct": "113.33",
+              "benchmark_pct": "102.37"
+            },
+            "自基金合同生效日起": {
+              "return_pct": "26.72",
+              "benchmark_pct": "125.07"
+            }
+          },
+          "assets": {
+            "权益投资": "13.71",
+            "基金投资": "67.25",
+            "固定收益投资": null,
+            "买入返售金融资产": null,
+            "银行存款和结算备付金": "17.66",
+            "其他各项资产": "1.39"
+          },
+          "regions": {
+            "美国": "13.96",
+            "日本": "0.80"
+          },
+          "sectors": {
+            "科技": "13.99",
+            "工业": "0.36",
+            "金融": "0.34",
+            "非必需消费品": "0.06"
+          },
+          "holdings": [
+            {
+              "rank": 1,
+              "issuer_id": "MU US",
+              "name": "美光科技 Micron Technology",
+              "weight_pct": "2.37"
+            },
+            {
+              "rank": 2,
+              "issuer_id": "SNDK US",
+              "name": "闪迪 Sandisk",
+              "weight_pct": "2.33"
+            },
+            {
+              "rank": 3,
+              "issuer_id": "AMAT US",
+              "name": "应用材料 Applied Materials",
+              "weight_pct": "1.24"
+            },
+            {
+              "rank": 4,
+              "issuer_id": "INTC US",
+              "name": "英特尔 Intel",
+              "weight_pct": "0.95"
+            },
+            {
+              "rank": 5,
+              "issuer_id": "GLW US",
+              "name": "康宁 Corning",
+              "weight_pct": "0.87"
+            },
+            {
+              "rank": 6,
+              "issuer_id": "AMD US",
+              "name": "超威半导体 AMD",
+              "weight_pct": "0.79"
+            },
+            {
+              "rank": 7,
+              "issuer_id": "WDC US",
+              "name": "西部数据 Western Digital",
+              "weight_pct": "0.79"
+            },
+            {
+              "rank": 8,
+              "issuer_id": "LRCX US",
+              "name": "泛林集团 Lam Research",
+              "weight_pct": "0.74"
+            },
+            {
+              "rank": 9,
+              "issuer_id": "ARM US",
+              "name": "ARM控股 ARM Holdings ADR",
+              "weight_pct": "0.73"
+            },
+            {
+              "rank": 10,
+              "issuer_id": "ASML US",
+              "name": "阿斯麦 ASML",
+              "weight_pct": "0.68"
+            }
+          ],
+          "strategy": [
+            "科技板块表现突出，基金跟踪具备投资价值的行业和公司并调整组合。",
+            "美元兑人民币继续贬值，对以人民币为本币进行海外投资的基金净值产生负面影响。"
+          ],
+          "fund_holdings": [
+            {
+              "rank": 1,
+              "issuer_id": "QQQ",
+              "name": "INVESCO QQQ TRUST SERIES 1",
+              "weight_pct": "12.09",
+              "domestic_analogue": {
+                "benchmark": "纳斯达克100",
+                "examples": [
+                  {
+                    "code": "159513",
+                    "name": "纳斯达克100ETF大成",
+                    "exchange": "深交所"
+                  },
+                  {
+                    "code": "513100",
+                    "name": "纳指ETF国泰",
+                    "exchange": "上交所"
+                  }
+                ],
+                "note": "QQQ与该类产品都以纳斯达克100指数为核心暴露，但基金结构、汇率、费率、跟踪误差和交易价格不同。"
+              }
+            },
+            {
+              "rank": 2,
+              "issuer_id": "PSI",
+              "name": "INVESCO SEMICONDUCTORS ETF",
+              "weight_pct": "11.82",
+              "domestic_analogue": {
+                "benchmark": "美国半导体行业",
+                "examples": [
+                  {
+                    "code": "159509",
+                    "name": "纳指科技ETF景顺",
+                    "exchange": "深交所"
+                  }
+                ],
+                "note": "暂无完全对应的国内半导体同指数ETF；159509覆盖纳斯达克科技股，行业范围更宽，仅作方向类比。"
+              }
+            },
+            {
+              "rank": 3,
+              "issuer_id": "RYT",
+              "name": "PWR S&P 500 EQ WGT TECH ETF",
+              "weight_pct": "9.04",
+              "domestic_analogue": {
+                "benchmark": "美国科技板块/纳指科技",
+                "examples": [
+                  {
+                    "code": "159509",
+                    "name": "纳指科技ETF景顺",
+                    "exchange": "深交所"
+                  }
+                ],
+                "note": "159509的指数口径与XLK、纳指科技类策略并不相同，仅用于理解美国科技板块暴露。"
+              }
+            },
+            {
+              "rank": 4,
+              "issuer_id": "QQQM",
+              "name": "INVESCO NASDAQ 100 ETF",
+              "weight_pct": "6.73",
+              "domestic_analogue": {
+                "benchmark": "纳斯达克100",
+                "examples": [
+                  {
+                    "code": "159513",
+                    "name": "纳斯达克100ETF大成",
+                    "exchange": "深交所"
+                  },
+                  {
+                    "code": "513100",
+                    "name": "纳指ETF国泰",
+                    "exchange": "上交所"
+                  }
+                ],
+                "note": "QQQ与该类产品都以纳斯达克100指数为核心暴露，但基金结构、汇率、费率、跟踪误差和交易价格不同。"
+              }
+            },
+            {
+              "rank": 5,
+              "issuer_id": "SMH",
+              "name": "VANECK SEMICONDUCTOR ETF",
+              "weight_pct": "6.50",
+              "domestic_analogue": {
+                "benchmark": "美国半导体行业",
+                "examples": [
+                  {
+                    "code": "159509",
+                    "name": "纳指科技ETF景顺",
+                    "exchange": "深交所"
+                  }
+                ],
+                "note": "暂无完全对应的国内半导体同指数ETF；159509覆盖纳斯达克科技股，行业范围更宽，仅作方向类比。"
+              }
+            },
+            {
+              "rank": 6,
+              "issuer_id": "QTEC",
+              "name": "FIRST TRUST NASDQ 100 TECH I ETF",
+              "weight_pct": "6.41",
+              "domestic_analogue": {
+                "benchmark": "美国科技板块/纳指科技",
+                "examples": [
+                  {
+                    "code": "159509",
+                    "name": "纳指科技ETF景顺",
+                    "exchange": "深交所"
+                  }
+                ],
+                "note": "159509的指数口径与XLK、纳指科技类策略并不相同，仅用于理解美国科技板块暴露。"
+              }
+            },
+            {
+              "rank": 7,
+              "issuer_id": "BIL",
+              "name": "SPDR BBG BARC 1-3 MONTH TBIL ETF",
+              "weight_pct": "5.01",
+              "domestic_analogue": {
+                "benchmark": "1—3个月美国国债现金管理",
+                "examples": [],
+                "note": "暂无完全对应的国内场内基金；国内货币或短债ETF只能作现金管理用途类比，资产类别不同。"
+              }
+            },
+            {
+              "rank": 8,
+              "issuer_id": "VT",
+              "name": "VANGUARD TOT WORLD STK ETF",
+              "weight_pct": "3.76",
+              "domestic_analogue": {
+                "benchmark": "全球股票",
+                "examples": [],
+                "note": "暂无完全对应的国内场内全球股票ETF；国内跨市场产品的区域范围和权重口径不同。"
+              }
+            },
+            {
+              "rank": 9,
+              "issuer_id": "XLK",
+              "name": "TECHNOLOGY SELECT SECT SPDR",
+              "weight_pct": "3.26",
+              "domestic_analogue": {
+                "benchmark": "美国科技板块/纳指科技",
+                "examples": [
+                  {
+                    "code": "159509",
+                    "name": "纳指科技ETF景顺",
+                    "exchange": "深交所"
+                  }
+                ],
+                "note": "159509的指数口径与XLK、纳指科技类策略并不相同，仅用于理解美国科技板块暴露。"
+              }
+            },
+            {
+              "rank": 10,
+              "issuer_id": "Korea",
+              "name": "FRK FTSE KOREA UCITS ETF",
+              "weight_pct": "2.29",
+              "domestic_analogue": {
+                "benchmark": "韩国股票",
+                "examples": [],
+                "note": "暂无可确认的一一对应国内场内韩国股票ETF；不能用其他亚洲或宽基ETF替代。"
+              }
+            }
+          ]
+        },
+        {
+          "label": "2026年三季度报告",
+          "report_date": "2026-09-30",
+          "published_date": "2026-10-27",
+          "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202610271830980467_1.pdf",
+          "pdf_sha256": "2aa703015b77ed83d375a5731936f98e45b37673cf7fe6de5d345db57e066601",
+          "pages": {
+            "financial": 3,
+            "performance": 4,
+            "strategy": 8,
+            "assets": 8,
+            "regions": 9,
+            "sectors": 9,
+            "holdings": 9,
+            "fund_holdings": 10
+          },
+          "classes": [
+            {
+              "label": "A",
+              "nav": "1.1340",
+              "net_assets_cny": "547234753.21",
+              "return_pct": "-10.51"
+            },
+            {
+              "label": "C",
+              "nav": "1.1201",
+              "net_assets_cny": "424570096.01",
+              "return_pct": "-10.60"
+            }
+          ],
+          "benchmark_pct": "1.06",
+          "a_return_windows": {
+            "过去三个月": {
+              "return_pct": "-10.51",
+              "benchmark_pct": "1.06"
+            },
+            "过去六个月": {
+              "return_pct": "11.71",
+              "benchmark_pct": "9.91"
+            },
+            "过去一年": {
+              "return_pct": "9.00",
+              "benchmark_pct": "10.10"
+            },
+            "过去三年": {
+              "return_pct": "62.23",
+              "benchmark_pct": "44.45"
+            },
+            "过去五年": {
+              "return_pct": "64.11",
+              "benchmark_pct": "40.76"
+            },
+            "过去七年": {
+              "return_pct": "91.55",
+              "benchmark_pct": "71.62"
+            },
+            "过去十年": {
+              "return_pct": "86.51",
+              "benchmark_pct": "98.76"
+            },
+            "自基金合同生效日起": {
+              "return_pct": "13.40",
+              "benchmark_pct": "127.45"
+            }
+          },
+          "assets": {
+            "权益投资": "3.66",
+            "基金投资": "74.71",
+            "固定收益投资": null,
+            "买入返售金融资产": null,
+            "银行存款和结算备付金": "21.54",
+            "其他各项资产": "0.09"
+          },
+          "regions": {
+            "美国": "3.76",
+            "日本": "0.12"
+          },
+          "sectors": {
+            "科技": "1.92",
+            "金融": "1.50",
+            "工业": "0.28",
+            "非必需消费品": "0.17"
+          },
+          "holdings": [
+            {
+              "rank": 1,
+              "issuer_id": "BRK/B US",
+              "name": "伯克希尔·哈撒韦 Berkshire Hathaway",
+              "weight_pct": "1.38"
+            },
+            {
+              "rank": 2,
+              "issuer_id": "MU US",
+              "name": "美光科技 Micron Technology",
+              "weight_pct": "0.37"
+            },
+            {
+              "rank": 3,
+              "issuer_id": "INTC US",
+              "name": "英特尔 Intel",
+              "weight_pct": "0.33"
+            },
+            {
+              "rank": 4,
+              "issuer_id": "CAT US",
+              "name": "卡特彼勒 Caterpillar",
+              "weight_pct": "0.28"
+            },
+            {
+              "rank": 5,
+              "issuer_id": "SNDK US",
+              "name": "闪迪 Sandisk",
+              "weight_pct": "0.24"
+            },
+            {
+              "rank": 6,
+              "issuer_id": "NVDA US",
+              "name": "英伟达 NVIDIA",
+              "weight_pct": "0.24"
+            },
+            {
+              "rank": 7,
+              "issuer_id": "AAPL US",
+              "name": "苹果 Apple",
+              "weight_pct": "0.23"
+            },
+            {
+              "rank": 8,
+              "issuer_id": "AMD US",
+              "name": "超威半导体 AMD",
+              "weight_pct": "0.21"
+            },
+            {
+              "rank": 9,
+              "issuer_id": "MSFT US",
+              "name": "微软 Microsoft",
+              "weight_pct": "0.18"
+            },
+            {
+              "rank": 10,
+              "issuer_id": "AMZN US",
+              "name": "亚马逊 Amazon",
+              "weight_pct": "0.17"
+            }
+          ],
+          "strategy": [
+            "全球市场三季度波动，科技龙头仍明显影响市场预期，基金对组合配置进行了积极调整。",
+            "美元兑人民币继续贬值，对以人民币为本币进行海外投资的基金净值产生负面影响。"
+          ],
+          "fund_holdings": [
+            {
+              "rank": 1,
+              "issuer_id": "QQQ",
+              "name": "INVESCO QQQ TRUST SERIES 1",
+              "weight_pct": "19.48",
+              "domestic_analogue": {
+                "benchmark": "纳斯达克100",
+                "examples": [
+                  {
+                    "code": "159513",
+                    "name": "纳斯达克100ETF大成",
+                    "exchange": "深交所"
+                  },
+                  {
+                    "code": "513100",
+                    "name": "纳指ETF国泰",
+                    "exchange": "上交所"
+                  }
+                ],
+                "note": "QQQ与该类产品都以纳斯达克100指数为核心暴露，但基金结构、汇率、费率、跟踪误差和交易价格不同。"
+              }
+            },
+            {
+              "rank": 2,
+              "issuer_id": "QQQM",
+              "name": "INVESCO NASDAQ 100 ETF",
+              "weight_pct": "16.89",
+              "domestic_analogue": {
+                "benchmark": "纳斯达克100",
+                "examples": [
+                  {
+                    "code": "159513",
+                    "name": "纳斯达克100ETF大成",
+                    "exchange": "深交所"
+                  },
+                  {
+                    "code": "513100",
+                    "name": "纳指ETF国泰",
+                    "exchange": "上交所"
+                  }
+                ],
+                "note": "QQQ与该类产品都以纳斯达克100指数为核心暴露，但基金结构、汇率、费率、跟踪误差和交易价格不同。"
+              }
+            },
+            {
+              "rank": 3,
+              "issuer_id": "VOO",
+              "name": "VANGUARD S&P 500 ETF",
+              "weight_pct": "10.20",
+              "domestic_analogue": {
+                "benchmark": "标普500",
+                "examples": [
+                  {
+                    "code": "513500",
+                    "name": "标普500ETF博时",
+                    "exchange": "上交所"
+                  },
+                  {
+                    "code": "159612",
+                    "name": "标普500ETF国泰",
+                    "exchange": "深交所"
+                  }
+                ],
+                "note": "与该类产品都以标普500指数为核心暴露，但基金结构、汇率、费率、跟踪误差和交易价格不同。"
+              }
+            },
+            {
+              "rank": 4,
+              "issuer_id": "RYT",
+              "name": "PWR S&P 500 EQ WGT TECH ETF",
+              "weight_pct": "10.04",
+              "domestic_analogue": {
+                "benchmark": "美国科技板块/纳指科技",
+                "examples": [
+                  {
+                    "code": "159509",
+                    "name": "纳指科技ETF景顺",
+                    "exchange": "深交所"
+                  }
+                ],
+                "note": "159509的指数口径与XLK、纳指科技类策略并不相同，仅用于理解美国科技板块暴露。"
+              }
+            },
+            {
+              "rank": 5,
+              "issuer_id": "SPY",
+              "name": "SPDR S&P 500 ETF TRUST",
+              "weight_pct": "7.66",
+              "domestic_analogue": {
+                "benchmark": "标普500",
+                "examples": [
+                  {
+                    "code": "513500",
+                    "name": "标普500ETF博时",
+                    "exchange": "上交所"
+                  },
+                  {
+                    "code": "159612",
+                    "name": "标普500ETF国泰",
+                    "exchange": "深交所"
+                  }
+                ],
+                "note": "与该类产品都以标普500指数为核心暴露，但基金结构、汇率、费率、跟踪误差和交易价格不同。"
+              }
+            },
+            {
+              "rank": 6,
+              "issuer_id": "SMH",
+              "name": "VANECK SEMICONDUCTOR ETF",
+              "weight_pct": "3.80",
+              "domestic_analogue": {
+                "benchmark": "美国半导体行业",
+                "examples": [
+                  {
+                    "code": "159509",
+                    "name": "纳指科技ETF景顺",
+                    "exchange": "深交所"
+                  }
+                ],
+                "note": "暂无完全对应的国内半导体同指数ETF；159509覆盖纳斯达克科技股，行业范围更宽，仅作方向类比。"
+              }
+            },
+            {
+              "rank": 7,
+              "issuer_id": "VT",
+              "name": "VANGUARD TOT WORLD STK ETF",
+              "weight_pct": "2.73",
+              "domestic_analogue": {
+                "benchmark": "全球股票",
+                "examples": [],
+                "note": "暂无完全对应的国内场内全球股票ETF；国内跨市场产品的区域范围和权重口径不同。"
+              }
+            },
+            {
+              "rank": 8,
+              "issuer_id": "QTEC",
+              "name": "FIRST TRUST NASDQ 100 TECH I ETF",
+              "weight_pct": "2.29",
+              "domestic_analogue": {
+                "benchmark": "美国科技板块/纳指科技",
+                "examples": [
+                  {
+                    "code": "159509",
+                    "name": "纳指科技ETF景顺",
+                    "exchange": "深交所"
+                  }
+                ],
+                "note": "159509的指数口径与XLK、纳指科技类策略并不相同，仅用于理解美国科技板块暴露。"
+              }
+            },
+            {
+              "rank": 9,
+              "issuer_id": "PSI",
+              "name": "INVESCO SEMICONDUCTORS ETF",
+              "weight_pct": "2.11",
+              "domestic_analogue": {
+                "benchmark": "美国半导体行业",
+                "examples": [
+                  {
+                    "code": "159509",
+                    "name": "纳指科技ETF景顺",
+                    "exchange": "深交所"
+                  }
+                ],
+                "note": "暂无完全对应的国内半导体同指数ETF；159509覆盖纳斯达克科技股，行业范围更宽，仅作方向类比。"
+              }
+            },
+            {
+              "rank": 10,
+              "issuer_id": "XLK",
+              "name": "TECHNOLOGY SELECT SECT SPDR",
+              "weight_pct": "2.03",
+              "domestic_analogue": {
+                "benchmark": "美国科技板块/纳指科技",
+                "examples": [
+                  {
+                    "code": "159509",
+                    "name": "纳指科技ETF景顺",
+                    "exchange": "深交所"
+                  }
+                ],
+                "note": "159509的指数口径与XLK、纳指科技类策略并不相同，仅用于理解美国科技板块暴露。"
+              }
+            }
+          ]
+        }
+      ],
+      "fund_holdings_title": "底层基金投资前十大及国内场内基金类比",
+      "fund_holdings_section": "§5.9",
+      "fund_holdings_scope_note": "以下为两期报告期末披露的前十大基金投资；“国内场内基金类比”按指数或策略暴露帮助理解，非同一产品或收益替代。"
+    }
+  }
+}

@@ -60,6 +60,12 @@ def validate_comparison_details(data: dict) -> dict:
             require(primary_label in ("A", "人民币"), "Unsupported primary share label")
             active_flags = ["active_portfolio" in p for p in fund["periods"]]
             require(active_flags[0] == active_flags[1], "Active sleeve requires both reports")
+            fund_holding_flags = ["fund_holdings" in p for p in fund["periods"]]
+            require(fund_holding_flags[0] == fund_holding_flags[1], "Underlying-fund sleeve requires both reports")
+            if any(fund_holding_flags):
+                require(all(isinstance(fund.get(k), str) and fund[k].strip() for k in (
+                    "fund_holdings_title", "fund_holdings_section", "fund_holdings_scope_note")),
+                        "Underlying-fund sleeve scope is required")
             if any(active_flags):
                 require(all(isinstance(fund.get(k), str) and fund[k].strip() for k in (
                     "sectors_title", "sectors_section", "holdings_title", "holdings_section",
@@ -69,6 +75,9 @@ def validate_comparison_details(data: dict) -> dict:
                 require(bool(re.fullmatch(r"[0-9a-f]{64}", period["pdf_sha256"])), "Missing PDF digest")
                 require(all(type(period["pages"][key]) is int and period["pages"][key] > 0
                             for key in ("financial", "performance", "assets", "regions", "sectors", "holdings", "strategy")), "Missing PDF locator")
+                if "fund_holdings" in period:
+                    require(type(period["pages"].get("fund_holdings")) is int and period["pages"]["fund_holdings"] > 0,
+                            "Missing underlying-fund PDF locator")
                 classes = period["classes"]
                 require(bool(classes) and classes[0]["label"] == primary_label, "Missing primary share class")
                 labels = [c["label"] for c in classes]
@@ -100,6 +109,32 @@ def validate_comparison_details(data: dict) -> dict:
                     require(isinstance(holding["name"], str) and bool(holding["name"]), "Missing holding name")
                     require(0 < number(holding["weight_pct"]) <= 100, "Invalid holding weight")
                 require(sum(number(h["weight_pct"]) for h in holdings) <= 100, "Invalid top-ten concentration")
+                if "fund_holdings" in period:
+                    fund_holdings = period["fund_holdings"]
+                    require([h["rank"] for h in fund_holdings] == list(range(1, 11)),
+                            "Expected exactly ten disclosed underlying-fund ranks")
+                    require(len({h["issuer_id"] for h in fund_holdings}) == 10,
+                            "Duplicate underlying-fund identity")
+                    for holding in fund_holdings:
+                        require(all(isinstance(holding.get(k), str) and holding[k].strip()
+                                    for k in ("issuer_id", "name", "weight_pct")),
+                                "Missing underlying-fund identity")
+                        require(0 < number(holding["weight_pct"]) <= 100,
+                                "Invalid underlying-fund weight")
+                        analogy = holding.get("domestic_analogue")
+                        require(isinstance(analogy, dict), "Missing domestic fund analogue")
+                        require(isinstance(analogy.get("benchmark"), str) and analogy["benchmark"].strip(),
+                                "Missing domestic analogue benchmark")
+                        require(isinstance(analogy.get("examples"), list), "Invalid domestic analogue examples")
+                        for example in analogy["examples"]:
+                            require(isinstance(example, dict), "Invalid domestic analogue example")
+                            require(all(isinstance(example.get(k), str) and example[k].strip()
+                                        for k in ("code", "name", "exchange")),
+                                    "Incomplete domestic analogue example")
+                        require(isinstance(analogy.get("note"), str) and analogy["note"].strip(),
+                                "Missing domestic analogue note")
+                    require(sum(number(h["weight_pct"]) for h in fund_holdings) <= 100,
+                            "Invalid underlying-fund top-ten concentration")
                 if "active_portfolio" in period:
                     active = period["active_portfolio"]
                     require(all(type(period["pages"].get(k)) is int and period["pages"][k] > 0
@@ -186,10 +221,32 @@ def holding_changes(fund: dict, *, active: bool = False) -> list[list[str]]:
     return rows
 
 
+def fund_holding_changes(fund: dict) -> list[list[str]]:
+    """Join the disclosed underlying-fund snapshots by identity."""
+    p2, p3 = fund["periods"]
+    a = {h["issuer_id"]: h for h in p2["fund_holdings"]}
+    b = {h["issuer_id"]: h for h in p3["fund_holdings"]}
+    rows = []
+    for identity in [*b, *(key for key in a if key not in b)]:
+        h2, h3 = a.get(identity), b.get(identity)
+        name = (h3 or h2)["name"]
+        if h2 and h3:
+            change = delta(h2["weight_pct"], h3["weight_pct"])
+            rank_change = f'第 {h2["rank"]} → {h3["rank"]} 名'
+        else:
+            change = "不可比：另一期未进入前十大"
+            rank_change = "进入本期前十大" if h3 else "未进入本期前十大"
+        rows.append([name,
+                     f'第 {h2["rank"]} 名 · {percent(h2["weight_pct"])}' if h2 else "未进入该期前十大",
+                     f'第 {h3["rank"]} 名 · {percent(h3["weight_pct"])}' if h3 else "未进入该期前十大",
+                     change, rank_change])
+    return rows
+
+
 _STYLE = """
 :root{color-scheme:light;--bg:#f3f5f7;--surface:#fff;--text:#18222c;--muted:#66727e;--border:#d7dde3;--blue:#195c9b}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;overflow-wrap:anywhere}
-.page{width:min(100%,1100px);margin:0 auto;padding:24px 14px 44px}a{color:var(--blue)}.back{font-weight:700;text-decoration:none}.header{padding:18px 0}.header h1{margin:0;font-size:25px}.header p,.foot{color:var(--muted)}.note{padding:13px 15px;border-left:4px solid var(--blue);background:#eaf2f9}.section{margin-top:18px;padding:18px;border:1px solid var(--border);border-radius:8px;background:var(--surface)}h2{margin:0 0 12px;font-size:19px}h3{margin:18px 0 8px;font-size:16px}.insights{margin:0;padding-left:23px}.insights li{margin:8px 0}.table-wrap{overflow-x:auto}.table-hint{display:none}table{width:100%;border-collapse:collapse;min-width:640px;font-variant-numeric:tabular-nums}th,td{padding:10px;text-align:left;border-bottom:1px solid #e5e9ed;vertical-align:top}th{color:var(--muted);font-weight:600;background:#fafbfc}td:not(:first-child){white-space:nowrap}.foot{font-size:13px}.source-list{padding-left:20px}.source-list li{margin:9px 0}.columns{display:grid;grid-template-columns:1fr 1fr;gap:24px}.columns p{margin:8px 0}#top-ten td{white-space:normal;min-width:70px}#top-ten td:nth-child(2),#top-ten td:nth-child(4){min-width:170px}@media(max-width:640px){.page{padding-top:16px}.header h1{font-size:21px}.section{padding:14px}.columns{grid-template-columns:1fr;gap:8px}.table-hint{display:block;font-size:12px;color:var(--muted);margin:6px 0}}
+.page{width:min(100%,1100px);margin:0 auto;padding:24px 14px 44px}a{color:var(--blue)}.back{font-weight:700;text-decoration:none}.header{padding:18px 0}.header h1{margin:0;font-size:25px}.header p,.foot{color:var(--muted)}.note{padding:13px 15px;border-left:4px solid var(--blue);background:#eaf2f9}.section{margin-top:18px;padding:18px;border:1px solid var(--border);border-radius:8px;background:var(--surface)}h2{margin:0 0 12px;font-size:19px}h3{margin:18px 0 8px;font-size:16px}.insights{margin:0;padding-left:23px}.insights li{margin:8px 0}.table-wrap{overflow-x:auto}.table-hint{display:none}table{width:100%;border-collapse:collapse;min-width:640px;font-variant-numeric:tabular-nums}th,td{padding:10px;text-align:left;border-bottom:1px solid #e5e9ed;vertical-align:top}th{color:var(--muted);font-weight:600;background:#fafbfc}td:not(:first-child){white-space:nowrap}.foot{font-size:13px}.source-list{padding-left:20px}.source-list li{margin:9px 0}.columns{display:grid;grid-template-columns:1fr 1fr;gap:24px}.columns p{margin:8px 0}#top-ten td,#fund-top-ten td{white-space:normal;min-width:70px}#top-ten td:nth-child(2),#top-ten td:nth-child(4){min-width:170px}#fund-top-ten td:nth-child(2),#fund-top-ten td:nth-child(4),#fund-top-ten td:nth-child(5),#fund-top-ten td:nth-child(7){min-width:190px}@media(max-width:640px){.page{padding-top:16px}.header h1{font-size:21px}.section{padding:14px}.columns{grid-template-columns:1fr;gap:8px}.table-hint{display:block;font-size:12px;color:var(--muted);margin:6px 0}}
 """
 
 
@@ -233,6 +290,32 @@ def render_comparison_detail(data: dict, code: str) -> str:
     body = table(["项目", "2026-06-30", "2026-09-30", "期末差额"], rows)
     body += '<p class="foot">金额按原报告人民币口径汇总，亿元展示保留四位小数。资产净值变化同时受收益、申购赎回等影响，不能当作净申购金额；单位净值差额也不能替代含分红口径的净值增长率。</p>'
     section("资产规模与净值", body + sources(periods, "financial", "§3.1"))
+
+    if "fund_holdings" in p2:
+        def analogy_text(holding: dict) -> str:
+            analogy = holding["domestic_analogue"]
+            examples = "、".join(
+                f'{example["name"]}（{example["code"]}，{example["exchange"]}）'
+                for example in analogy["examples"]
+            )
+            return f'{analogy["benchmark"]}；' + (f'可参考：{examples}。' if examples else "暂无完全对应的国内场内基金。") + f' {analogy["note"]}'
+
+        rows = []
+        for a, b in zip(p2["fund_holdings"], p3["fund_holdings"]):
+            rows.append([str(a["rank"]), a["name"], percent(a["weight_pct"]), analogy_text(a),
+                         b["name"], percent(b["weight_pct"]), analogy_text(b)])
+        body = f'<p>{esc(fund.get("fund_holdings_scope_note", ""))}</p>' + table(
+            ["名次", "二季度底层基金", "二季度权重", "二季度国内场内类比",
+             "三季度底层基金", "三季度权重", "三季度国内场内类比"], rows, table_id="fund-top-ten")
+        sums = [sum(number(h["weight_pct"]) for h in p["fund_holdings"]) for p in periods]
+        body += f'<p>前十大底层基金权重合计：{sums[0]:.2f}% → {sums[1]:.2f}%（{sums[1]-sums[0]:+.2f} 个百分点）。</p>'
+        body += '<p class="foot">国内场内基金仅用于帮助理解指数或策略暴露，均不是对应海外基金的同一产品；产品结构、汇率、费率、跟踪误差和交易价格可能不同。类比按底层基金名称及其公开跟踪方向整理，不代表推荐或收益等价。</p>'
+        section(fund.get("fund_holdings_title", "底层基金投资前十大及国内场内类比"),
+                body + sources(periods, "fund_holdings", fund.get("fund_holdings_section", "§5.9")))
+        section("同一底层基金权重与名次变化",
+                table(["底层基金（报告口径）", "二季度", "三季度", "权重变化", "名次变化"],
+                      fund_holding_changes(fund), table_id="fund-holding-changes")
+                + '<p class="foot">按底层基金/ETF身份合并两期快照；另一期未进入前十大时不把未披露权重按零计算。</p>')
 
     for key, title, basis, locator in [
         ("assets", "资产配置", "占基金总资产比例", "§5.1"),

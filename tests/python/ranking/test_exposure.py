@@ -61,6 +61,19 @@ class OpenEndedETFTests(unittest.TestCase):
                 self.assertIsNone(rows[0]["reported_category"])
                 self.assertEqual(1, len(rows))
 
+    def test_parses_etf_type_open_ended_label(self):
+        text = OPEN_ENDED_ETF_TABLE.replace("ETF 开放式", "ETF 型 开放式")
+        rows = ranking.parse_fund_investment_rows(text, "004877")
+        self.assertEqual("博时恒生 医疗保健 (QDII-ETF)", rows[0]["fund_name"])
+        self.assertEqual(94.91, rows[0]["weight_pct"])
+
+    def test_parses_wrapped_trading_open_ended_etf_label(self):
+        text = OPEN_ENDED_ETF_TABLE.replace(
+            "ETF 开放式", "ETF 交易\n型开\n放式 (ETF)"
+        )
+        rows = ranking.parse_fund_investment_rows(text, "519696")
+        self.assertEqual(94.91, rows[0]["weight_pct"])
+
     def test_open_ended_etf_without_percentage_still_blocks(self):
         text = OPEN_ENDED_ETF_TABLE.replace(" 94.91", "")
         with self.assertRaisesRegex(
@@ -99,6 +112,17 @@ class UsEquityExposureTests(unittest.TestCase):
             date(2026, 7, 21),
             "https://example.test/report.pdf",
         )
+
+    def test_country_distribution_allows_wrapped_distribution_label(self):
+        text = """
+        报告期末在各个国家（地区）证券市场的股票及存托凭证投 资 分布
+        国家(地区) 公允价值(人民币元) 占基金资产净值比例(%)
+        美国 100.00 55.52
+        报告期末基金资产组合情况
+        2 基金投资 - -
+        """
+        parsed = ranking.parse_us_equity_report(text, "009225")
+        self.assertEqual(55.52, parsed["direct_us_pct"])
 
     def test_routes_only_confirmed_fifty_percent_to_us_main(self):
         self.assertEqual(

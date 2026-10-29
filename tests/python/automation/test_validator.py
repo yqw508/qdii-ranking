@@ -320,7 +320,7 @@ class RankingValidatorTests(unittest.TestCase):
     def test_rejects_available_long_return_below_conditional_threshold(self):
         for field, value in (
             ("five_year_return_pct", 39.99),
-            ("ten_year_return_pct", 99.99),
+            ("ten_year_return_pct", 79.99),
         ):
             with self.subTest(field=field):
                 payload = make_payload()
@@ -329,6 +329,14 @@ class RankingValidatorTests(unittest.TestCase):
                     validator.ValidationError, "conditional .* return threshold"
                 ):
                     self.validate(payload)
+
+    def test_accepts_available_long_return_at_conditional_threshold(self):
+        payload = make_payload()
+        payload["records"][0]["five_year_return_pct"] = 40.0
+        payload["records"][0]["ten_year_return_pct"] = 80.0
+        validated, _ = self.validate(payload)
+        self.assertEqual(40.0, validated["records"][0]["five_year_return_pct"])
+        self.assertEqual(80.0, validated["records"][0]["ten_year_return_pct"])
 
     def test_scale_is_validated_but_not_an_eligibility_threshold(self):
         payload = make_payload()

@@ -4,6 +4,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 from qdii_ranking.report_comparison_details import (
+    fund_holding_changes,
     holding_changes,
     load_comparison_details,
     render_comparison_detail,
@@ -113,6 +114,21 @@ class ReportComparisonDetailTests(unittest.TestCase):
         self.assertIn('基金 &lt;script&gt; &amp; &quot;名称&quot;', page)
         self.assertIn('持仓 &lt;b&gt; &amp; &quot;名称&quot;', page)
         self.assertIn('?a=1&amp;b=&quot;value&quot;', page)
+
+    def test_163813_underlying_funds_include_domestic_exchange_analogues(self):
+        data = load_comparison_details(ROOT / "references/report-comparisons/2026-q2-vs-q3-163813.json")
+        fund = data["funds"]["163813"]
+        self.assertEqual(10, len(fund["periods"][0]["fund_holdings"]))
+        qqq = fund["periods"][0]["fund_holdings"][0]
+        self.assertEqual("QQQ", qqq["issuer_id"])
+        self.assertEqual("纳斯达克100", qqq["domestic_analogue"]["benchmark"])
+        self.assertIn("159513", {item["code"] for item in qqq["domestic_analogue"]["examples"]})
+        page = render_comparison_detail(data, "163813")
+        self.assertIn("底层基金投资前十大及国内场内基金类比", page)
+        self.assertIn("国内场内基金仅用于帮助理解指数或策略暴露", page)
+        self.assertIn('id="fund-top-ten"', page)
+        psi = next(row for row in fund_holding_changes(fund) if row[0] == "INVESCO SEMICONDUCTORS ETF")
+        self.assertEqual("-9.71 个百分点", psi[3])
 
 
 class IndexEnhancedComparisonTests(unittest.TestCase):

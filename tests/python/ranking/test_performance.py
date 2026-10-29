@@ -108,8 +108,6 @@ class PerformanceTests(unittest.TestCase):
                     "ten_year_return_pct": None,
                 },
                 30,
-                40,
-                100,
             ),
         )
         self.assertEqual(
@@ -121,8 +119,6 @@ class PerformanceTests(unittest.TestCase):
                     "ten_year_return_pct": 100.0,
                 },
                 30,
-                40,
-                100,
             ),
         )
         reasons = {
@@ -131,19 +127,25 @@ class PerformanceTests(unittest.TestCase):
                 {
                     "three_year_return_pct": 30.0,
                     "five_year_return_pct": 39.99,
-                    "ten_year_return_pct": 99.99,
+                    "ten_year_return_pct": 79.99,
                 },
                 30,
-                40,
-                100,
             )
         }
         self.assertEqual(
-            {
-                "five_year_return_below_threshold",
-                "ten_year_return_below_threshold",
-            },
+            {"five_year_return_below_threshold", "ten_year_return_below_threshold"},
             reasons,
+        )
+        self.assertEqual(
+            [],
+            ranking.performance_threshold_failures(
+                {
+                    "three_year_return_pct": 30.0,
+                    "five_year_return_pct": 40.0,
+                    "ten_year_return_pct": 80.0,
+                },
+                30,
+            ),
         )
 
     def test_incomplete_display_only_history_does_not_emit_warning(self):

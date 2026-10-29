@@ -169,7 +169,11 @@ def parse_fund_investment_rows(text: str, code: str) -> list[dict[str, Any]]:
             body,
         )
         if not name_match:
-            name_match = re.match(r"(.+?)\s+ETF\s+(?:交易型|契约型|开\s*放\s*式)", body)
+            name_match = re.match(
+                r"(.+?)\s+ETF\s+(?:(?:型\s*)?(?:交\s*易\s*型|契\s*约\s*型|开\s*放\s*式)"
+                r"(?:\s*开\s*放\s*式)?)(?:\s*\(ETF\))?",
+                body,
+            )
         if not name_match:
             name_match = re.match(r"(.+?)\s+QDII\s+(?:交易型|契约型|开放式)", body)
         if not name_match:
@@ -236,7 +240,7 @@ def parse_us_equity_report(text: str, code: str) -> dict[str, Any]:
     text = clean_report_text(text)
     direct_headings = list(re.finditer(
         r"(?:报告期末|期末)在各个国家（地区）证券市场的"
-        r"(?:股票及存托\s*凭证|权益)投资分\s*布",
+        r"(?:股票及存托\s*凭证|权益)投\s*资\s*分\s*布",
         text,
     ))
     if not direct_headings:

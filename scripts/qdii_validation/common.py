@@ -28,9 +28,9 @@ EXPECTED_FILTERS = {
     "min_scale_billion_cny": None,
     "min_age_years": 3,
     "min_three_year_return_pct": 30.0,
-    "three_year_boundary_tolerance_days": 7,
     "min_five_year_return_pct_if_available": 40.0,
-    "min_ten_year_return_pct_if_available": 100.0,
+    "min_ten_year_return_pct_if_available": 80.0,
+    "three_year_boundary_tolerance_days": 7,
     "min_us_equity_pct": 50.0,
     "min_direct_limit_cny_inclusive": 200,
 }

@@ -248,13 +248,11 @@ def filter_performance_and_us_exposure_full_scan(
 def performance_threshold_failures(
     performance: dict[str, Any],
     min_three_year_return_pct: float,
-    min_five_year_return_pct: float,
-    min_ten_year_return_pct: float,
+    min_five_year_return_pct: float = DEFAULT_MIN_FIVE_YEAR_RETURN_PCT,
+    min_ten_year_return_pct: float = DEFAULT_MIN_TEN_YEAR_RETURN_PCT,
 ) -> list[tuple[str, str]]:
     failures: list[tuple[str, str]] = []
     three_year = performance.get("three_year_return_pct")
-    five_year = performance.get("five_year_return_pct")
-    ten_year = performance.get("ten_year_return_pct")
     if three_year is None or float(three_year) < min_three_year_return_pct:
         failures.append(
             (
@@ -262,6 +260,7 @@ def performance_threshold_failures(
                 f"近三年收益低于 {min_three_year_return_pct:g}%",
             )
         )
+    five_year = performance.get("five_year_return_pct")
     if five_year is not None and float(five_year) < min_five_year_return_pct:
         failures.append(
             (
@@ -269,6 +268,7 @@ def performance_threshold_failures(
                 f"有完整五年历史且近五年收益低于 {min_five_year_return_pct:g}%",
             )
         )
+    ten_year = performance.get("ten_year_return_pct")
     if ten_year is not None and float(ten_year) < min_ten_year_return_pct:
         failures.append(
             (
@@ -309,7 +309,9 @@ def evaluate_performance_full_scan(
                 values, notes = result
                 values["nav_freshness"] = require_fresh(parse_date(values["nav_history_end_date"]), as_of, code=fund["code"])
                 audit.event(fund["code"], "performance", "evaluated", "performance_calculated", "净值与收益评估完成",
-                            values=values, thresholds={"three_year": min_three_year_return_pct, "five_year": min_five_year_return_pct, "ten_year": min_ten_year_return_pct},
+                            values=values, thresholds={"three_year": min_three_year_return_pct,
+                                                       "five_year": min_five_year_return_pct,
+                                                       "ten_year": min_ten_year_return_pct},
                             sources=[values["performance_source_url"]], data_date=values["nav_history_end_date"])
         except (DataError, OSError, ValueError) as exc:
             if audit is not None:

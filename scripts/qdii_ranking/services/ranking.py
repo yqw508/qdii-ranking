@@ -206,8 +206,8 @@ def scan_performance(
             args.min_three_year_return_pct,
             resources.performance_cache,
             resources.benchmark,
-            min_five_year_return_pct=args.min_five_year_return_pct,
-            min_ten_year_return_pct=args.min_ten_year_return_pct,
+            args.min_five_year_return_pct,
+            args.min_ten_year_return_pct,
             run_cache=resources.memo.performance,
             audit=args._audit,
         )

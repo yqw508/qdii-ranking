@@ -125,7 +125,7 @@ class ReportComparisonDetailTests(unittest.TestCase):
         self.assertIn("159513", {item["code"] for item in qqq["domestic_analogue"]["examples"]})
         page = render_comparison_detail(data, "163813")
         self.assertIn("底层基金投资前十大及国内场内基金类比", page)
-        self.assertIn("国内场内基金仅用于帮助理解指数或策略暴露", page)
+        self.assertIn("找不到国内场内对应产品时，直接展示美国基金名称的中文译名", page)
         self.assertIn('id="fund-top-ten"', page)
         psi = next(row for row in fund_holding_changes(fund) if row[0] == "INVESCO SEMICONDUCTORS ETF")
         self.assertEqual("-9.71 个百分点", psi[3])

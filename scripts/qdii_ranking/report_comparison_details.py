@@ -133,6 +133,8 @@ def validate_comparison_details(data: dict) -> dict:
                                     "Incomplete domestic analogue example")
                         require(isinstance(analogy.get("note"), str) and analogy["note"].strip(),
                                 "Missing domestic analogue note")
+                        require(isinstance(analogy.get("translation"), str) and analogy["translation"].strip(),
+                                "Missing US fund translation")
                     require(sum(number(h["weight_pct"]) for h in fund_holdings) <= 100,
                             "Invalid underlying-fund top-ten concentration")
                 if "active_portfolio" in period:
@@ -298,7 +300,9 @@ def render_comparison_detail(data: dict, code: str) -> str:
                 f'{example["name"]}（{example["code"]}，{example["exchange"]}）'
                 for example in analogy["examples"]
             )
-            return f'{analogy["benchmark"]}；' + (f'可参考：{examples}。' if examples else "暂无完全对应的国内场内基金。") + f' {analogy["note"]}'
+            if examples:
+                return f'{analogy["benchmark"]}；可参考：{examples}。'
+            return f'{analogy["benchmark"]}；{analogy["translation"]}'
 
         rows = []
         for a, b in zip(p2["fund_holdings"], p3["fund_holdings"]):
@@ -309,7 +313,7 @@ def render_comparison_detail(data: dict, code: str) -> str:
              "三季度底层基金", "三季度权重", "三季度国内场内类比"], rows, table_id="fund-top-ten")
         sums = [sum(number(h["weight_pct"]) for h in p["fund_holdings"]) for p in periods]
         body += f'<p>前十大底层基金权重合计：{sums[0]:.2f}% → {sums[1]:.2f}%（{sums[1]-sums[0]:+.2f} 个百分点）。</p>'
-        body += '<p class="foot">国内场内基金仅用于帮助理解指数或策略暴露，均不是对应海外基金的同一产品；产品结构、汇率、费率、跟踪误差和交易价格可能不同。类比按底层基金名称及其公开跟踪方向整理，不代表推荐或收益等价。</p>'
+        body += '<p class="foot">类比按底层基金名称及其公开跟踪方向整理；找不到国内场内对应产品时，直接展示美国基金名称的中文译名。</p>'
         section(fund.get("fund_holdings_title", "底层基金投资前十大及国内场内类比"),
                 body + sources(periods, "fund_holdings", fund.get("fund_holdings_section", "§5.9")))
         section("同一底层基金权重与名次变化",

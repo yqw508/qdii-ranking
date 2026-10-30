@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "run_date": "2026-10-29",
+  "run_date": "2026-10-30",
   "holder_report_date": "2026-06-30",
   "candidate_codes": [
     "000041",
@@ -258,8 +258,8 @@
       "ranking_list": "us_main"
     },
     {
-      "code": "519981",
-      "name": "长信标普100等权重指数人民币",
+      "code": "164212",
+      "name": "天弘全球新能源汽车股票(QDII-LOF)A",
       "rank": 10,
       "ranking_list": "us_main"
     },

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "run_date": "2026-10-30",
+  "run_date": "2026-10-31",
   "holder_report_date": "2026-06-30",
   "candidate_codes": [
     "000041",
@@ -306,21 +306,9 @@
       "ranking_list": "global_supplement"
     },
     {
-      "code": "005698",
-      "name": "华夏全球科技先锋混合(QDII)A(人民币)",
-      "rank": 8,
-      "ranking_list": "global_supplement"
-    },
-    {
       "code": "019155",
       "name": "易方达全球配置混合(QDII)A(人民币)",
-      "rank": 9,
-      "ranking_list": "global_supplement"
-    },
-    {
-      "code": "019415",
-      "name": "南方港股医药行业混合发起(QDII)A",
-      "rank": 10,
+      "rank": 8,
       "ranking_list": "global_supplement"
     }
   ]

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "run_date": "2026-10-31",
+  "run_date": "2026-11-01",
   "holder_report_date": "2026-06-30",
   "candidate_codes": [
     "000041",
@@ -306,9 +306,15 @@
       "ranking_list": "global_supplement"
     },
     {
+      "code": "018229",
+      "name": "易方达全球优质企业混合(QDII)A(人民币份额)",
+      "rank": 8,
+      "ranking_list": "global_supplement"
+    },
+    {
       "code": "019155",
       "name": "易方达全球配置混合(QDII)A(人民币)",
-      "rank": 8,
+      "rank": 9,
       "ranking_list": "global_supplement"
     }
   ]

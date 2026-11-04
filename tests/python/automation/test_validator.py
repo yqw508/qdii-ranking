@@ -322,7 +322,7 @@ class RankingValidatorTests(unittest.TestCase):
             ("five_year_return_pct", 39.99),
             ("ten_year_return_pct", 79.99),
         ):
-            with self.subTest(field=field):
+            with self.subTest(field=field, value=value):
                 payload = make_payload()
                 payload["records"][0][field] = value
                 with self.assertRaisesRegex(

@@ -89,7 +89,7 @@ NASDAQ100_OTC_NAME_RE = re.compile(
     r"(?:纳斯达克\s*100|纳指\s*100|NASDAQ\s*[-－]?\s*100)", re.I
 )
 NOTICE_TITLE_RE = re.compile(
-    r"大额申购|申购.{0,20}(?:限额|业务上限)|(?:限额|业务上限).{0,20}申购|恢复.{0,12}申购"
+    r"大额申购|申购.{0,20}(?:限额|业务上限)|(?:限额|业务上限).{0,20}申购"
 )
 REPORT_TITLE_EXCLUDE_RE = re.compile(r"摘要|提示性公告")
 

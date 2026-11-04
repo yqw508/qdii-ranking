@@ -143,6 +143,27 @@ def extract_future_transitions(
             continue
         amount = extract_global_amount(clause)
         if amount is None:
+            compact = re.sub(r"\s+", "", clause)
+            if (
+                re.search(r"恢复(?:办理)?大额申购", compact)
+                and not re.search(r"恢复[^。]{0,40}(?:具体时间|时间|日期).{0,20}另行公告", compact)
+            ):
+                transitions.append(
+                    {
+                        "effective_date": date(
+                            int(match.group(1)), int(match.group(2)), int(match.group(3))
+                        ),
+                        "direct_amount_cny": None,
+                        "agency_amount_cny": None,
+                        "global_amount_cny": None,
+                        "global_status": "unlimited",
+                        "source_url": source_url,
+                        "published_date": published.isoformat(),
+                        "share_aggregation": detect_share_aggregation(clause),
+                        "all_channels_combined": False,
+                        "confidence": "high",
+                    }
+                )
             continue
         transitions.append(
             {

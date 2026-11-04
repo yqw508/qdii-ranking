@@ -148,6 +148,25 @@ class PerformanceTests(unittest.TestCase):
             ),
         )
 
+    def test_five_year_threshold_is_inclusive_and_missing_history_bypasses(self):
+        for value, qualifies in ((None, True), (39.99, False), (40.0, True), (40.01, True)):
+            with self.subTest(five_year_return_pct=value):
+                failures = ranking.performance_threshold_failures(
+                    {"three_year_return_pct": 30.0, "five_year_return_pct": value}, 30.0
+                )
+                self.assertEqual(qualifies, not failures)
+                if failures:
+                    self.assertEqual("five_year_return_below_threshold", failures[0][0])
+                    self.assertIn("低于 40%", failures[0][1])
+
+    def test_custom_five_year_threshold_remains_strict(self):
+        failures = ranking.performance_threshold_failures(
+            {"three_year_return_pct": 30.0, "five_year_return_pct": 49.99},
+            30.0,
+            min_five_year_return_pct=50.0,
+        )
+        self.assertEqual(["five_year_return_below_threshold"], [reason for reason, _ in failures])
+
     def test_incomplete_display_only_history_does_not_emit_warning(self):
         trend = []
         for observed, nav in (

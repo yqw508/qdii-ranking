@@ -168,6 +168,30 @@ class QuotaNoticeTests(unittest.TestCase):
         title = "关于调整某基金人民币销售申购、定期定额申购业务上限的公告"
         self.assertIsNotNone(ranking.NOTICE_TITLE_RE.search(title))
 
+    def test_holiday_subscription_title_is_not_a_quota_notice(self):
+        title = "交银施罗德基金管理有限公司关于旗下部分基金于境外主要市场节假日暂停及节后恢复基金申购、赎回、转换和定期定额投资业务的公告"
+        self.assertIsNone(ranking.NOTICE_TITLE_RE.search(title))
+
+    def test_dated_restore_of_large_subscriptions_clears_prior_cap(self):
+        text = """
+        暂停大额申购起始日 2026年1月12日
+        限制大额申购金额（单位：人民币元）1,000,000
+        自2026年1月12日起，单个基金账户单笔或多笔累计申购金额超过人民币100万元的申请，本基金管理人有权拒绝。
+        自2026年1月16日起，本基金将恢复办理大额申购（定期定额投资），届时不再另行公告。
+        """
+        transitions = ranking.parse_quota_notice(
+            text, date(2026, 1, 9), "https://example.test/jyfund-restore.pdf"
+        )
+        restore = next(item for item in transitions if item["effective_date"] == date(2026, 1, 16))
+        self.assertEqual("unlimited", restore["global_status"])
+        self.assertIsNone(restore["global_amount_cny"])
+        quota, warnings = self.resolve_texts(
+            [("jan-notice", date(2026, 1, 9), text)], as_of=date(2026, 10, 15)
+        )
+        self.assertEqual([], warnings)
+        self.assertEqual("unlimited", quota["direct_limit"]["status"])
+        self.assertEqual("unlimited", quota["agency_limit"]["status"])
+
     def test_rmb_sales_business_cap_applies_to_all_channels(self):
         text = """
         自2026年4月13日起调整人民币销售的申购、定期定额申购业务上限，

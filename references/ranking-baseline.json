@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "run_date": "2026-11-05",
+  "run_date": "2026-11-06",
   "holder_report_date": "2026-06-30",
   "candidate_codes": [
     "000041",
@@ -270,14 +270,14 @@
       "ranking_list": "global_supplement"
     },
     {
-      "code": "457001",
-      "name": "国富亚洲机会股票(QDII)A",
+      "code": "012060",
+      "name": "富国全球消费精选混合(QDII)人民币A",
       "rank": 2,
       "ranking_list": "global_supplement"
     },
     {
-      "code": "012060",
-      "name": "富国全球消费精选混合(QDII)人民币A",
+      "code": "457001",
+      "name": "国富亚洲机会股票(QDII)A",
       "rank": 3,
       "ranking_list": "global_supplement"
     },
@@ -315,6 +315,12 @@
       "code": "019155",
       "name": "易方达全球配置混合(QDII)A(人民币)",
       "rank": 9,
+      "ranking_list": "global_supplement"
+    },
+    {
+      "code": "019670",
+      "name": "广发港股创新药ETF联接(QDII)A",
+      "rank": 10,
       "ranking_list": "global_supplement"
     }
   ]

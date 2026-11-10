@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "run_date": "2026-11-09",
+  "run_date": "2026-11-10",
   "holder_report_date": "2026-06-30",
   "candidate_codes": [
     "000041",
@@ -276,8 +276,8 @@
       "ranking_list": "global_supplement"
     },
     {
-      "code": "040021",
-      "name": "华安大中华升级股票(QDII)A",
+      "code": "007280",
+      "name": "摩根日本精选股票(QDII)A",
       "rank": 3,
       "ranking_list": "global_supplement"
     },
@@ -306,15 +306,21 @@
       "ranking_list": "global_supplement"
     },
     {
+      "code": "019670",
+      "name": "广发港股创新药ETF联接(QDII)A",
+      "rank": 8,
+      "ranking_list": "global_supplement"
+    },
+    {
       "code": "019415",
       "name": "南方港股医药行业混合发起(QDII)A",
-      "rank": 8,
+      "rank": 9,
       "ranking_list": "global_supplement"
     },
     {
       "code": "019155",
       "name": "易方达全球配置混合(QDII)A(人民币)",
-      "rank": 9,
+      "rank": 10,
       "ranking_list": "global_supplement"
     }
   ]

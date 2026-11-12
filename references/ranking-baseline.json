@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "run_date": "2026-11-11",
+  "run_date": "2026-11-12",
   "holder_report_date": "2026-06-30",
   "candidate_codes": [
     "000041",
@@ -152,6 +152,7 @@
     "027755",
     "027765",
     "028041",
+    "029167",
     "040021",
     "040046",
     "050025",
@@ -222,32 +223,32 @@
       "ranking_list": "us_main"
     },
     {
+      "code": "163813",
+      "name": "中银全球策略(QDII-FOF)A",
+      "rank": 4,
+      "ranking_list": "us_main"
+    },
+    {
       "code": "017436",
       "name": "华宝纳斯达克精选股票发起式(QDII)A",
-      "rank": 4,
+      "rank": 5,
       "ranking_list": "us_main"
     },
     {
       "code": "501226",
       "name": "长城全球新能源车股票发起式(QDII)A",
-      "rank": 5,
+      "rank": 6,
       "ranking_list": "us_main"
     },
     {
       "code": "270023",
       "name": "广发全球精选股票(QDII)人民币A",
-      "rank": 6,
+      "rank": 7,
       "ranking_list": "us_main"
     },
     {
       "code": "539002",
       "name": "建信新兴市场混合(QDII)A",
-      "rank": 7,
-      "ranking_list": "us_main"
-    },
-    {
-      "code": "017144",
-      "name": "华宝海外新能源汽车股票发起式(QDII)A",
       "rank": 8,
       "ranking_list": "us_main"
     },
@@ -264,14 +265,14 @@
       "ranking_list": "us_main"
     },
     {
-      "code": "017730",
-      "name": "嘉实全球产业升级股票发起式(QDII)A",
+      "code": "012060",
+      "name": "富国全球消费精选混合(QDII)人民币A",
       "rank": 1,
       "ranking_list": "global_supplement"
     },
     {
-      "code": "012060",
-      "name": "富国全球消费精选混合(QDII)人民币A",
+      "code": "017730",
+      "name": "嘉实全球产业升级股票发起式(QDII)A",
       "rank": 2,
       "ranking_list": "global_supplement"
     },
@@ -282,39 +283,45 @@
       "ranking_list": "global_supplement"
     },
     {
+      "code": "040021",
+      "name": "华安大中华升级股票(QDII)A",
+      "rank": 4,
+      "ranking_list": "global_supplement"
+    },
+    {
       "code": "457001",
       "name": "国富亚洲机会股票(QDII)A",
-      "rank": 4,
+      "rank": 5,
       "ranking_list": "global_supplement"
     },
     {
       "code": "018229",
       "name": "易方达全球优质企业混合(QDII)A(人民币份额)",
-      "rank": 5,
+      "rank": 6,
       "ranking_list": "global_supplement"
     },
     {
       "code": "100055",
       "name": "富国全球科技互联网股票(QDII)A",
-      "rank": 6,
+      "rank": 7,
       "ranking_list": "global_supplement"
     },
     {
       "code": "016664",
       "name": "天弘全球高端制造混合(QDII)A",
-      "rank": 7,
+      "rank": 8,
       "ranking_list": "global_supplement"
     },
     {
       "code": "019670",
       "name": "广发港股创新药ETF联接(QDII)A",
-      "rank": 8,
+      "rank": 9,
       "ranking_list": "global_supplement"
     },
     {
       "code": "019155",
       "name": "易方达全球配置混合(QDII)A(人民币)",
-      "rank": 9,
+      "rank": 10,
       "ranking_list": "global_supplement"
     }
   ]

@@ -1,0 +1,334 @@
+{
+  "schema_version": 1,
+  "comparison_id": "2026-q2-vs-q3",
+  "title": "2026年二季度 vs 三季度",
+  "generated_at": "2026-11-17T12:00:00+08:00",
+  "funds": {
+    "006373": {
+      "name": "国富全球科技互联混合(QDII)人民币A",
+      "primary_share_label": "A",
+      "return_window_label": "人民币 A 份额",
+      "benchmark_note": "三季度报告披露业绩比较基准已于 2026 年 7 月 27 日调整：由 MSCI 全球信息科技指数*40%+中证海外中国互联网指数*40%+人民币活期存款利率*20%，调整为 MSCI 全球信息科技指数*70%+中证海外中国互联网指数*15%+中债综合全价(1-3年)指数*10%+人民币活期存款基准利率*5%。本页保留报告原始口径，不把两期基准差额解释为纯选股收益。",
+      "insights": [
+        "人民币 A 份额单季收益由二季度 +72.07% 转为三季度 -15.10%；同期报告基准由 +7.49% 转为 +6.28%，相对基准差由 +64.58 个百分点转为 -21.38 个百分点。",
+        "美国股票占净资产由 71.95% 升至 79.85%，权益投资占总资产由 77.69% 升至 86.14%；债券占比由 6.34% 升至 8.45%，银行存款由 10.38% 降至 3.91%。",
+        "信息技术行业占净资产由 79.35% 降至 71.63%，但通信服务由 3.21% 升至 8.50%，非日常生活消费品由 0 增至 4.70%，组合行业结构有所扩散。",
+        "前十大持仓由二季度的 MU、MKS、台积电、英特尔、康宁领衔，转为三季度的 MU、英特尔、台积电、Alphabet、微软；英伟达和微软进入三季度前十，诺基亚和爱德万测试退出。",
+        "人民币 A 份额期末资产净值由 58.83 亿元降至 55.31 亿元；这是份额净值波动与申赎共同作用的结果，不能单独解释为投资亏损金额。"
+      ],
+      "notes": [
+        "本页只比较人民币 A 份额；基金同时披露美元 A、人民币 C 和美元 C 份额，其他份额的收益与净值不在本页混合。",
+        "二季度为中期报告，正文投资组合从 §7 开始；三季度为季度报告，正文投资组合从 §5 开始，页面按各自报告章节定位。",
+        "两期资产配置按报告口径分别使用总资产比例；地区分布与行业分类按期末股票及存托凭证上市地/行业分类披露。",
+        "前十大持仓是期末快照，名次变化不能直接等同于买入、卖出或收益贡献；报告未披露期间逐笔交易。",
+        "三季度基准在报告期内发生切换，跨期比较时需同时考虑市场收益、汇率和基准定义变化。"
+      ],
+      "periods": [
+        {
+          "label": "2026年二季度报告",
+          "report_date": "2026-06-30",
+          "published_date": "2026-07-21",
+          "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202607211827187137_1.pdf",
+          "pdf_sha256": "f7584fee74eceb979202d42ca9a436676293e257c7f94dc2c73fbdd637498473",
+          "pages": {
+            "financial": 6,
+            "performance": 8,
+            "strategy": 13,
+            "assets": 44,
+            "regions": 45,
+            "sectors": 45,
+            "holdings": 46
+          },
+          "classes": [
+            {
+              "label": "A",
+              "display_label": "人民币 A 份额",
+              "nav": "8.4331",
+              "net_assets_label": "人民币 A 份额期末基金资产净值（元）",
+              "net_assets_cny": "5883267961.46",
+              "return_pct": "72.07"
+            }
+          ],
+          "benchmark_pct": "7.49",
+          "primary_return_windows": {
+            "过去三个月": {
+              "return_pct": "72.07",
+              "benchmark_pct": "7.49"
+            },
+            "过去六个月": {
+              "return_pct": "90.47",
+              "benchmark_pct": "-4.12"
+            },
+            "过去一年": {
+              "return_pct": "119.98",
+              "benchmark_pct": "3.70"
+            },
+            "过去三年": {
+              "return_pct": "245.60",
+              "benchmark_pct": "42.00"
+            },
+            "过去五年": {
+              "return_pct": "235.79",
+              "benchmark_pct": "13.54"
+            },
+            "过去七年": {
+              "return_pct": "661.52",
+              "benchmark_pct": "77.23"
+            },
+            "自基金合同生效起至今": {
+              "return_pct": "743.31",
+              "benchmark_pct": "95.69"
+            }
+          },
+          "assets": {
+            "权益投资": "77.69",
+            "基金投资": null,
+            "固定收益投资": "6.34",
+            "买入返售金融资产": null,
+            "银行存款和结算备付金": "10.38",
+            "其他资产": "5.60"
+          },
+          "regions": {
+            "美国": "71.95",
+            "日本": "8.74",
+            "中国香港": "3.47",
+            "中国": "1.14"
+          },
+          "sectors": {
+            "基础材料": "0.00",
+            "非日常生活消费品": null,
+            "日常消费品": null,
+            "能源": null,
+            "金融": null,
+            "医疗保健": null,
+            "工业": "2.72",
+            "信息技术": "79.35",
+            "通信服务": "3.21",
+            "公用事业": null,
+            "房地产": null
+          },
+          "sectors_total_pct": "85.29",
+          "holdings": [
+            {
+              "rank": 1,
+              "issuer_id": "MU",
+              "name": "美光科技 Micron Technology (MU)",
+              "weight_pct": "8.42"
+            },
+            {
+              "rank": 2,
+              "issuer_id": "MKSI",
+              "name": "MKS Inc (MKSI)",
+              "weight_pct": "7.47"
+            },
+            {
+              "rank": 3,
+              "issuer_id": "TSM",
+              "name": "台积电 TSMC (TSM)",
+              "weight_pct": "7.47"
+            },
+            {
+              "rank": 4,
+              "issuer_id": "INTC",
+              "name": "英特尔 Intel (INTC)",
+              "weight_pct": "7.17"
+            },
+            {
+              "rank": 5,
+              "issuer_id": "GLW",
+              "name": "康宁 Corning (GLW)",
+              "weight_pct": "5.37"
+            },
+            {
+              "rank": 6,
+              "issuer_id": "SNDK",
+              "name": "闪迪 Sandisk (SNDK)",
+              "weight_pct": "4.38"
+            },
+            {
+              "rank": 7,
+              "issuer_id": "LRCX",
+              "name": "泛林集团 Lam Research (LRCX)",
+              "weight_pct": "3.68"
+            },
+            {
+              "rank": 8,
+              "issuer_id": "GOOG",
+              "name": "Alphabet (GOOG)",
+              "weight_pct": "3.21"
+            },
+            {
+              "rank": 9,
+              "issuer_id": "6857",
+              "name": "爱德万测试 Advantest (6857)",
+              "weight_pct": "2.75"
+            },
+            {
+              "rank": 10,
+              "issuer_id": "NOK",
+              "name": "诺基亚 Nokia (NOK)",
+              "weight_pct": "2.66"
+            }
+          ],
+          "strategy": [
+            "上半年美股受宏观与地缘政治扰动，一季度明显回调，二季度市场情绪逐步修复，AI 相关方向出现结构性分化。",
+            "组合继续在美股硬件半导体板块保持较大仓位，重点布局存储、通信等大模型硬件瓶颈，并在市场波动中逆势加仓基本面改善的 CPU 个股。",
+            "管理人表示二季度没有主动进行波动率管理，而是坚守核心持仓；下半年将跟踪 AI 全产业链、业绩兑现度和估值容忍度。"
+          ]
+        },
+        {
+          "label": "2026年三季度报告",
+          "report_date": "2026-09-30",
+          "published_date": "2026-10-27",
+          "source_url": "https://pdf.dfcfw.com/pdf/H2_AN202610271830983764_1.pdf",
+          "pdf_sha256": "eb5b851e47bb380d0aedbb83585eeb59a42e8c3b83d09df5e151c9ebda3a0cd2",
+          "pages": {
+            "financial": 3,
+            "performance": 4,
+            "strategy": 10,
+            "assets": 11,
+            "regions": 11,
+            "sectors": 12,
+            "holdings": 12
+          },
+          "classes": [
+            {
+              "label": "A",
+              "display_label": "人民币 A 份额",
+              "nav": "7.1598",
+              "net_assets_label": "人民币 A 份额期末基金资产净值（元）",
+              "net_assets_cny": "5530581999.24",
+              "return_pct": "-15.10"
+            }
+          ],
+          "benchmark_pct": "6.28",
+          "primary_return_windows": {
+            "过去三个月": {
+              "return_pct": "-15.10",
+              "benchmark_pct": "6.28"
+            },
+            "过去六个月": {
+              "return_pct": "46.09",
+              "benchmark_pct": "14.24"
+            },
+            "过去一年": {
+              "return_pct": "69.35",
+              "benchmark_pct": "-3.48"
+            },
+            "过去三年": {
+              "return_pct": "206.42",
+              "benchmark_pct": "52.27"
+            },
+            "过去五年": {
+              "return_pct": "206.41",
+              "benchmark_pct": "39.82"
+            },
+            "过去七年": {
+              "return_pct": "498.95",
+              "benchmark_pct": "87.70"
+            },
+            "自基金合同生效起至今": {
+              "return_pct": "615.98",
+              "benchmark_pct": "107.98"
+            }
+          },
+          "assets": {
+            "权益投资": "86.14",
+            "基金投资": null,
+            "固定收益投资": "8.45",
+            "买入返售金融资产": null,
+            "银行存款和结算备付金": "3.91",
+            "其他资产": "1.50"
+          },
+          "regions": {
+            "美国": "79.85",
+            "日本": "4.52",
+            "中国香港": "2.79",
+            "中国": "1.17"
+          },
+          "sectors": {
+            "基础材料": "0.00",
+            "非日常生活消费品": "4.70",
+            "日常消费品": null,
+            "能源": null,
+            "金融": null,
+            "医疗保健": "0.00",
+            "工业": "3.50",
+            "信息技术": "71.63",
+            "通信服务": "8.50",
+            "公用事业": null,
+            "房地产": null
+          },
+          "sectors_total_pct": "88.32",
+          "holdings": [
+            {
+              "rank": 1,
+              "issuer_id": "MU",
+              "name": "美光科技 Micron Technology (MU)",
+              "weight_pct": "7.62"
+            },
+            {
+              "rank": 2,
+              "issuer_id": "INTC",
+              "name": "英特尔 Intel (INTC)",
+              "weight_pct": "7.09"
+            },
+            {
+              "rank": 3,
+              "issuer_id": "TSM",
+              "name": "台积电 TSMC (TSM)",
+              "weight_pct": "7.00"
+            },
+            {
+              "rank": 4,
+              "issuer_id": "GOOG",
+              "name": "Alphabet (GOOG)",
+              "weight_pct": "5.26"
+            },
+            {
+              "rank": 5,
+              "issuer_id": "MSFT",
+              "name": "微软 Microsoft (MSFT)",
+              "weight_pct": "5.05"
+            },
+            {
+              "rank": 6,
+              "issuer_id": "MKSI",
+              "name": "MKS Inc (MKSI)",
+              "weight_pct": "4.43"
+            },
+            {
+              "rank": 7,
+              "issuer_id": "GLW",
+              "name": "康宁 Corning (GLW)",
+              "weight_pct": "4.38"
+            },
+            {
+              "rank": 8,
+              "issuer_id": "NVDA",
+              "name": "英伟达 NVIDIA (NVDA)",
+              "weight_pct": "4.18"
+            },
+            {
+              "rank": 9,
+              "issuer_id": "LRCX",
+              "name": "泛林集团 Lam Research (LRCX)",
+              "weight_pct": "4.14"
+            },
+            {
+              "rank": 10,
+              "issuer_id": "LITE",
+              "name": "Lumentum Holdings (LITE)",
+              "weight_pct": "3.97"
+            }
+          ],
+          "strategy": [
+            "三季度美股 AI 硬件与半导体经历剧烈回撤后反弹，市场在加息与 AI 资本开支争议中震荡，基金单季人民币 A 份额下跌 15.10%。",
+            "组合仍保持较高硬件持仓，并在七月波动中增加云厂商；管理人继续坚持基本面选股，关注未来两到三年的产业确定性。",
+            "三季度业绩比较基准已于 2026 年 7 月 27 日调整，报告期收益表按调整前后期间分别计算，不能直接与二季度基准构成完全同口径比较。"
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "run_date": "2026-11-17",
+  "run_date": "2026-11-18",
   "holder_report_date": "2026-06-30",
   "candidate_codes": [
     "000041",
@@ -265,51 +265,39 @@
       "ranking_list": "us_main"
     },
     {
-      "code": "017730",
-      "name": "嘉实全球产业升级股票发起式(QDII)A",
+      "code": "012060",
+      "name": "富国全球消费精选混合(QDII)人民币A",
       "rank": 1,
       "ranking_list": "global_supplement"
     },
     {
-      "code": "012060",
-      "name": "富国全球消费精选混合(QDII)人民币A",
+      "code": "017730",
+      "name": "嘉实全球产业升级股票发起式(QDII)A",
       "rank": 2,
-      "ranking_list": "global_supplement"
-    },
-    {
-      "code": "457001",
-      "name": "国富亚洲机会股票(QDII)A",
-      "rank": 3,
       "ranking_list": "global_supplement"
     },
     {
       "code": "018229",
       "name": "易方达全球优质企业混合(QDII)A(人民币份额)",
-      "rank": 4,
+      "rank": 3,
       "ranking_list": "global_supplement"
     },
     {
       "code": "100055",
       "name": "富国全球科技互联网股票(QDII)A",
-      "rank": 5,
+      "rank": 4,
       "ranking_list": "global_supplement"
     },
     {
       "code": "016664",
       "name": "天弘全球高端制造混合(QDII)A",
-      "rank": 6,
+      "rank": 5,
       "ranking_list": "global_supplement"
     },
     {
       "code": "019155",
       "name": "易方达全球配置混合(QDII)A(人民币)",
-      "rank": 7,
-      "ranking_list": "global_supplement"
-    },
-    {
-      "code": "019670",
-      "name": "广发港股创新药ETF联接(QDII)A",
-      "rank": 8,
+      "rank": 6,
       "ranking_list": "global_supplement"
     }
   ]

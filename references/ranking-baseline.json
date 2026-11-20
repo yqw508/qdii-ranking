@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "run_date": "2026-11-19",
+  "run_date": "2026-11-20",
   "holder_report_date": "2026-06-30",
   "candidate_codes": [
     "000041",
@@ -223,44 +223,44 @@
       "ranking_list": "us_main"
     },
     {
-      "code": "163813",
-      "name": "中银全球策略(QDII-FOF)A",
-      "rank": 4,
-      "ranking_list": "us_main"
-    },
-    {
       "code": "017436",
       "name": "华宝纳斯达克精选股票发起式(QDII)A",
-      "rank": 5,
+      "rank": 4,
       "ranking_list": "us_main"
     },
     {
       "code": "501226",
       "name": "长城全球新能源车股票发起式(QDII)A",
-      "rank": 6,
+      "rank": 5,
       "ranking_list": "us_main"
     },
     {
       "code": "270023",
       "name": "广发全球精选股票(QDII)人民币A",
-      "rank": 7,
+      "rank": 6,
       "ranking_list": "us_main"
     },
     {
       "code": "006373",
       "name": "国富全球科技互联混合(QDII)人民币A",
-      "rank": 8,
+      "rank": 7,
       "ranking_list": "us_main"
     },
     {
       "code": "539002",
       "name": "建信新兴市场混合(QDII)A",
-      "rank": 9,
+      "rank": 8,
       "ranking_list": "us_main"
     },
     {
       "code": "519981",
       "name": "长信标普100等权重指数人民币",
+      "rank": 9,
+      "ranking_list": "us_main"
+    },
+    {
+      "code": "015204",
+      "name": "银华全球新能源车量化优选股票(QDII)A",
       "rank": 10,
       "ranking_list": "us_main"
     },

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "run_date": "2026-11-20",
+  "run_date": "2026-11-21",
   "holder_report_date": "2026-06-30",
   "candidate_codes": [
     "000041",
@@ -152,6 +152,7 @@
     "027755",
     "027765",
     "028041",
+    "028615",
     "029167",
     "040021",
     "040046",
@@ -259,8 +260,8 @@
       "ranking_list": "us_main"
     },
     {
-      "code": "015204",
-      "name": "银华全球新能源车量化优选股票(QDII)A",
+      "code": "012920",
+      "name": "易方达全球成长精选混合(QDII)人民币A",
       "rank": 10,
       "ranking_list": "us_main"
     },

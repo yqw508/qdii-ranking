@@ -29,6 +29,7 @@ from ..ranking import (
     evaluate_performance_full_scan,
     filter_and_rank,
     global_supplement_sort_key,
+    nasdaq100_otc_sort_key,
     ranking_route,
     us_main_sort_key,
     disappeared_ranked_candidates,
@@ -49,6 +50,7 @@ from ..sources.premium import (
     load_exchange_premium_catalog,
     load_qdii_exchange_premium_catalog,
 )
+from ..sources.fee_components import apply_fee_sums
 from ..sources.quota import resolve_quota
 from .context import (
     DiscoveryResult,
@@ -404,6 +406,23 @@ def scan_nasdaq_otc(
         )
     return NasdaqStage(
         tuple(records), tuple(warnings), missing, comparison_window, tuple(excluded)
+    )
+
+
+def apply_fee_stage(
+    payload: dict[str, Any], client: HttpClient, as_of: date, metrics: RunMetrics
+) -> None:
+    """Primary fee = archive-page three-fee sum on every tab; summary rate kept as reference."""
+    with metrics.phase("fee_sums"):
+        fee_warnings = apply_fee_sums(payload, client, as_of)
+    payload["warnings"] = list(dict.fromkeys([*payload["warnings"], *fee_warnings]))
+    nasdaq_section = payload["nasdaq100_otc"]
+    nasdaq_section["records"].sort(key=nasdaq100_otc_sort_key)
+    for rank, record in enumerate(nasdaq_section["records"], start=1):
+        record["rank"] = rank
+    nasdaq_section["missing_fields"]["holding_cost"] = sum(
+        record["holding_cost"].get("annualized_pct") is None
+        for record in nasdaq_section["records"]
     )
 
 

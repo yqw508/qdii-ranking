@@ -357,23 +357,31 @@ def unreadable_contract_benchmark(fund: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _combined_summary_class_rate(compact: str, target: str) -> float:
-    """Read one class's rate from a summary that covers several share classes."""
-    label = re.search(r"基金运作综合费率\s*[（(]\s*年化\s*[）)]", compact)
-    if not label:
-        raise DataError("Could not locate annualized comprehensive operating expense")
-    section = compact[label.start(): label.end() + 400]
+_RATE_LABEL = r"基金运作综合费率\s*[（(]\s*年化\s*[）)]"
+_HOLDING_PERIOD = r"(?:\s*持有期[间限])?"
+
+
+def _summary_class_rates(compact: str) -> dict[str, set[float]]:
+    """Per-class rates in a summary covering several share classes."""
     rates: dict[str, set[float]] = {}
+    label = re.search(_RATE_LABEL, compact)
+    if label:
+        # Layout 1: label, then "A类份额 0.95% C类份额 1.15%".
+        section = compact[label.start(): label.end() + 400]
+        for match in re.finditer(
+            r"(?<![A-Za-z])([A-I])\s*类(?:\s*(?:基金)?\s*份额)?[^0-9%A-Za-z]{0,20}?"
+            r"([0-9]+(?:\.[0-9]+)?)\s*%",
+            section,
+        ):
+            rates.setdefault(match.group(1).upper(), set()).add(float(match.group(2)))
+    # Layout 2: "…(QDII)C 基金运作综合费率（年化） 持有期间 0.88%".
     for match in re.finditer(
-        r"(?<![A-Za-z])([A-I])\s*类(?:\s*(?:基金)?\s*份额)?[^0-9%A-Za-z]{0,20}?"
-        r"([0-9]+(?:\.[0-9]+)?)\s*%",
-        section,
+        r"(?<![A-Za-z])([A-I])\s*(?:类)?(?:\s*(?:基金)?\s*份额)?\s*(?:人民币)?\s*"
+        + _RATE_LABEL + _HOLDING_PERIOD + r"\s*([0-9]+(?:\.[0-9]+)?)\s*%",
+        compact,
     ):
         rates.setdefault(match.group(1).upper(), set()).add(float(match.group(2)))
-    values = rates.get(target) or set()
-    if len(values) != 1:
-        raise DataError(f"Could not determine the {target}-class annualized comprehensive operating expense")
-    return values.pop()
+    return rates
 
 
 def parse_holding_cost(
@@ -384,13 +392,20 @@ def parse_holding_cost(
     compact = re.sub(r"\s+", " ", text.replace("\u3000", " ")).strip()
     target = effective_share_class(share_class)
     title_class = summary_title_share_class(summary.title)
-    if target is not None and title_class != target and not (target == "A" and title_class is None):
+    class_rates = _summary_class_rates(compact)
+    combined = target is not None and title_class != target
+    if combined and (target != "A" or len(class_rates) > 1):
         # Never fall back to another class's single rate in a combined summary.
-        rate = _combined_summary_class_rate(compact, target)
+        values = class_rates.get(target) or set()
+        if len(values) != 1:
+            raise DataError(
+                f"Could not determine the {target}-class annualized comprehensive operating expense"
+            )
+        rate = values.pop()
     else:
         rate_match = re.search(
-            r"基金运作综合费率\s*[（(]\s*年化\s*[）)]"
-            r"(?:\s*(?:基金运作综合费率|\d+\s*/\s*\d+|[-–—])){0,3}"
+            _RATE_LABEL
+            + r"(?:\s*(?:基金运作综合费率|持有期[间限]|\d+\s*/\s*\d+|[-–—])){0,3}"
             r"\s*([0-9]+(?:\.[0-9]+)?)\s*%",
             compact,
         )

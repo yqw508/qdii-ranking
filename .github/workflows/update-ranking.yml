@@ -133,6 +133,16 @@ jobs:
           done
           exit 1
 
+      - name: Upload announcement PDF cache
+        if: ${{ always() && inputs.verify_only == true }}
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: announcement-pdfs-${{ github.run_id }}
+          retention-days: 7
+          if-no-files-found: warn
+          path: output/qdii-ranking/cache/announcement-pdfs/
+
       - name: Read ranking date
         id: ranking_date
         shell: bash

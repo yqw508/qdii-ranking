@@ -196,7 +196,7 @@ def render_html(path: Path, payload: dict[str, Any]) -> None:
       <section id="panel-us" class="ranking-list" role="tabpanel" aria-labelledby="tab-us">{render_list(us_records, payload)}</section>
       <section id="panel-global" class="ranking-list" role="tabpanel" aria-labelledby="tab-global" hidden>{render_list(global_records, payload)}</section>
       <section id="panel-nasdaq100-otc" class="nasdaq-panel" role="tabpanel" aria-labelledby="tab-nasdaq100-otc" hidden>
-        <div class="nasdaq-toolbar"><h2>场外纳指100</h2><p>{html.escape(nasdaq_window_text)}排序依次为区间收益、综合费率、区间跟踪误差、较小回撤、规模和代码。</p></div>
+        <div class="nasdaq-toolbar"><h2>场外纳指100</h2><p>{html.escape(nasdaq_window_text)}排序依次为区间收益、年费率、区间跟踪误差、较小回撤、规模和代码。</p></div>
         <p class="nasdaq-warning">本榜按名称识别，合同基准仅作展示。名称命中不等于基金严格跟踪纳斯达克100；美国主榜前 3 名不一定跟踪纳指100，跟踪误差仅供参考。请展开合同基准和来源核对。</p>
         <div class="nasdaq-list" id="nasdaq-list" data-page-size="10">{render_nasdaq100_table(nasdaq_records)}</div>
         <nav class="nasdaq-pager" id="nasdaq-pager" aria-label="场外纳指100分页" hidden><button type="button" data-page-action="prev">上一页</button><span class="nasdaq-page-numbers"></span><button type="button" data-page-action="next">下一页</button><span class="nasdaq-page-status" aria-live="polite"></span></nav>
@@ -204,13 +204,13 @@ def render_html(path: Path, payload: dict[str, Any]) -> None:
       </section>
       <section id="panel-premium" class="premium-panel" role="tabpanel" aria-labelledby="tab-premium" hidden>
         <div class="premium-toolbar">
-          <div><h2>场内 QDII</h2><p>按溢价从高到低排列；点击产品展开行情、综合费率和来源详情。</p></div>
+          <div><h2>场内 QDII</h2><p>按溢价从高到低排列；点击产品展开行情、年费率和来源详情。</p></div>
           <button class="refresh-button" id="premium-refresh" type="button" aria-busy="false"><span class="refresh-icon" aria-hidden="true">↻</span><span>刷新行情</span></button>
         </div>
         <p class="premium-status" id="premium-refresh-status" role="status" aria-live="polite">{html.escape(premium_status_text)}；日报请求于 {html.escape(format_quote_time(premium['requested_at']))}；来源时间见各行，腾讯行情延迟未保证，东方财富约15分钟延迟。</p>
         <div class="premium-table-wrap">
           <table class="premium-table">
-            <thead><tr><th>{premium_product_label}</th><th>{premium_group_label}</th><th>溢价</th><th>综合费率</th><th>涨跌</th></tr></thead>
+            <thead><tr><th>{premium_product_label}</th><th>{premium_group_label}</th><th>溢价</th><th>年费率</th><th>涨跌</th></tr></thead>
             {premium_rows}
           </table>
         </div>
@@ -228,7 +228,7 @@ def render_html(path: Path, payload: dict[str, Any]) -> None:
       {freshness_section}
       {warning_section}
     </main>
-    <footer>额度为基金管理人层面的单日单基金账户上限；综合费率已从基金资产中扣除，不含场内券商佣金；场内溢价按来源报价相对 ETF 的 IOPV 或 LOF 的最新单位净值计算。行情源时间不等于最后成交时间，延迟说明见各行。</footer>
+    <footer>额度为基金管理人层面的单日单基金账户上限；年费率为管理费率、托管费率、销售服务费率合计，已从基金资产中扣除，不含场内券商佣金；产品概要综合费率另列作参考；场内溢价按来源报价相对 ETF 的 IOPV 或 LOF 的最新单位净值计算。行情源时间不等于最后成交时间，延迟说明见各行。</footer>
   </div>
   <script>
     const tabs = Array.from(document.querySelectorAll('[role="tab"][data-panel]'));

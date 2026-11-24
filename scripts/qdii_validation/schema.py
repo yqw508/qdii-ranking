@@ -253,6 +253,39 @@ def validate_contract_benchmark(
 
 
 def validate_holding_cost(
+    cost: Any, code: str, run_date: date, *, allow_stale: bool = False,
+    summary: Any = None,
+) -> None:
+    """Primary fee: three-fee sum from the fund archive page; summary rate is reference."""
+    require(isinstance(cost, dict), f"{code} holding cost must be an object")
+    require(cost.get("status") in {"fee_sum", "unavailable"}, f"{code} holding cost status is invalid")
+    if cost["status"] == "fee_sum":
+        parts = cost.get("components") or {}
+        require(
+            set(parts) == {"management_pct", "custody_pct", "sales_service_pct"}
+            and all(0 <= float(value) <= 100 for value in parts.values()),
+            f"{code} fee components are invalid",
+        )
+        value = as_number(cost.get("annualized_pct"), f"{code} holding cost")
+        require(
+            math.isclose(round(sum(float(v) for v in parts.values()), 2), value, abs_tol=1e-9),
+            f"{code} fee components do not add up",
+        )
+        require(
+            cost.get("source_url") == f"https://fundf10.eastmoney.com/jbgk_{code}.html",
+            f"{code} fee-sum source is invalid",
+        )
+        require(
+            parse_date(str(cost.get("source_published_date"))) <= run_date,
+            f"{code} holding cost uses a future date",
+        )
+    else:
+        require(cost.get("annualized_pct") is None, f"{code} unavailable holding cost must be null")
+    if summary is not None:
+        validate_summary_holding_cost(summary, code, run_date, allow_stale=allow_stale)
+
+
+def validate_summary_holding_cost(
     cost: Any, code: str, run_date: date, *, allow_stale: bool = False
 ) -> None:
     require(isinstance(cost, dict), f"{code} holding cost must be an object")
@@ -377,7 +410,9 @@ def _validate_base_record(
     for prefix, years in (("five_year", 5), ("ten_year", 10)):
         _validate_long_window(record, code, prefix, years, run_date)
     validate_contract_benchmark(record.get("contract_benchmark"), record, run_date)
-    validate_holding_cost(record.get("holding_cost"), code, run_date)
+    validate_holding_cost(
+        record.get("holding_cost"), code, run_date, summary=record.get("summary_holding_cost")
+    )
     exposure = record.get("us_equity_exposure")
     require(isinstance(exposure, dict), f"{code} has no US-equity exposure")
     confirmed = as_number(exposure.get("confirmed_pct"), f"{code} confirmed exposure")
@@ -630,16 +665,15 @@ def validate_nasdaq100_otc_section(
         ):
             if record.get(field) is not None:
                 as_number(record[field], f"{code} {field}")
-        cost = record.get("holding_cost")
-        require(isinstance(cost, dict), f"{code} has no holding cost object")
-        if cost.get("annualized_pct") is not None:
-            as_number(cost["annualized_pct"], f"{code} holding cost")
+        summary_cost = record.get("summary_holding_cost")
+        validate_holding_cost(record.get("holding_cost"), code, run_date, summary=summary_cost)
+        if summary_cost.get("annualized_pct") is not None and summary_cost.get("source_title"):
             from qdii_ranking.sources.contracts import effective_share_class, summary_title_share_class
             target_class = effective_share_class(record.get("share_class"))
-            if target_class is not None and cost.get("source_title"):
+            if target_class is not None:
                 require(
-                    summary_title_share_class(cost["source_title"]) in {None, target_class},
-                    f"{code} holding cost uses another share class's product summary",
+                    summary_title_share_class(summary_cost["source_title"]) in {None, target_class},
+                    f"{code} summary holding cost uses another share class's product summary",
                 )
         if record.get("contract_name_match") is False:
             require(bool(record.get("contract_name_match_warning")), f"{code} contract/name mismatch has no warning")

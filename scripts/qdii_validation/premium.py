@@ -22,6 +22,8 @@ from .common import (
     parse_date,
     require,
 )
+from qdii_ranking.renderers.common import format_fee_components, format_summary_holding_cost
+
 from .schema import validate_holding_cost
 from .otc_shares import validate_share_evidence_html
 
@@ -166,7 +168,10 @@ def _validate_premium_record(
     if category in {"broad_market", "sector_theme"}:
         require((group == "行业主题") == (category == "sector_theme"), f"ETF {code} category and group differ")
     require(str(record.get("source_url", "")).startswith("https://"), f"ETF {code} source URL is invalid")
-    validate_holding_cost(record.get("holding_cost"), f"ETF {code}", run_date, allow_stale=True)
+    validate_holding_cost(
+        record.get("holding_cost"), code, run_date, allow_stale=True,
+        summary=record.get("summary_holding_cost"),
+    )
     quote_status = record.get("quote_status")
     require(quote_status in {"fresh", "stale", "unavailable"}, f"ETF {code} quote status is invalid")
     if dynamic:
@@ -375,7 +380,8 @@ def validate_html_document(
             format_premium_value(record["change_pct"]),
             format_premium_turnover(record["turnover_cny"]),
             mailer.format_holding_cost(record["holding_cost"]),
-            str(record["holding_cost"].get("source_published_date") or "--"),
+            format_fee_components(record["holding_cost"]),
+            format_summary_holding_cost(record.get("summary_holding_cost")),
             (
                 "--"
                 if not record["updated_at"]
@@ -386,8 +392,6 @@ def validate_html_document(
             expected.append("旧值")
         elif record["quote_status"] == "unavailable":
             expected.append("暂无行情")
-        if record["holding_cost"]["status"] == "stale":
-            expected.append("旧值")
         if record["holding_cost"].get("source_url"):
             expected.append("查看费率来源")
         if record["reference_value_type"] == "nav":

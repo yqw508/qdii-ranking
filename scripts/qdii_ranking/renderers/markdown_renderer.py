@@ -13,7 +13,9 @@ from .common import (
     benchmark_display,
     format_beta,
     format_correlation,
+    format_fee_components,
     format_holding_cost,
+    format_summary_holding_cost,
     format_limit,
     format_optional_percentage,
     format_percentage,
@@ -21,6 +23,13 @@ from .common import (
     routing_reason_label,
     summarize_periods,
 )
+
+
+def _fee_line(item: dict[str, Any]) -> str:
+    return (
+        f"  - 年费率构成：{format_fee_components(item['holding_cost'])}；"
+        f"产品概要综合费率（参考）：{format_summary_holding_cost(item.get('summary_holding_cost'))}"
+    )
 
 
 def render_markdown(path: Path, payload: dict[str, Any]) -> None:
@@ -69,7 +78,7 @@ def render_markdown(path: Path, payload: dict[str, Any]) -> None:
         "",
         "## 美国主榜",
         "",
-        "| 排名 | 基金 | 分流原因 | 近三年 | 近五年 | 近十年 | 持有费率 | 纳指相关性 | Beta | 美股确认区间 | 直销额度（个人） | 代销额度 |",
+        "| 排名 | 基金 | 分流原因 | 近三年 | 近五年 | 近十年 | 年费率 | 纳指相关性 | Beta | 美股确认区间 | 直销额度（个人） | 代销额度 |",
         "|---:|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for item in payload["records"]:
@@ -96,6 +105,7 @@ def render_markdown(path: Path, payload: dict[str, Any]) -> None:
             f"状态 {contract['status']}；产品标签：{' / '.join(item['product_structure_tags'])}；"
             f"额度计算：{rule}"
         )
+        lines.append(_fee_line(item))
         if item.get("three_year_boundary_shortfall_days"):
             lines.append(f"  - {format_three_year_boundary(item)}")
         institution = item.get('institutional_direct_limit', {})
@@ -109,7 +119,7 @@ def render_markdown(path: Path, payload: dict[str, Any]) -> None:
             "",
             "## 全球补充榜",
             "",
-        "| 排名 | 基金 | 分流原因 | 合同基准 | 美股确认区间 | 近三年 | 近五年 | 近十年 | 持有费率 | 收益回撤比 | 直销额度（个人） | 代销额度 |",
+        "| 排名 | 基金 | 分流原因 | 合同基准 | 美股确认区间 | 近三年 | 近五年 | 近十年 | 年费率 | 收益回撤比 | 直销额度（个人） | 代销额度 |",
             "|---:|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|",
         ]
     )
@@ -131,6 +141,7 @@ def render_markdown(path: Path, payload: dict[str, Any]) -> None:
             f"{format_limit(item['direct_limit'])} | {format_limit(item['agency_limit'])} |"
         )
         lines.append(f"  - 产品标签：{' / '.join(item['product_structure_tags'])}")
+        lines.append(_fee_line(item))
         institution = item.get('institutional_direct_limit', {})
         if institution.get('status') not in (None, 'unknown') and format_limit(institution) != format_limit(item['direct_limit']):
             lines.append(f"  - 机构直销：[{format_limit(institution)}]({institution.get('source_url')})；个人额度见表。")
@@ -153,9 +164,9 @@ def render_markdown(path: Path, payload: dict[str, Any]) -> None:
             "对比名称匹配纳斯达克100、纳指100或 NASDAQ 100 的场外人民币各类份额（A/C/D/E/F/I 等）及经产品概要确认的无标记人民币主份额，以及当天美国主榜前 3 名；排除美元、港币、后端和独立 ETF 份额；不以合同基准、收益门槛、额度或当前申购状态筛除产品。",
             "",
             f"共同区间：{window_text}（最近两年）；没有区间收益的产品不列入。结束日随最新共同净值滚动。",
-            "排序：公共区间收益降序、年化综合费率升序、公共区间跟踪误差升序、公共区间最大回撤较小者优先、规模降序、代码升序；缺失值排在有数据记录之后。",
+            "排序：公共区间收益降序、年费率升序、公共区间跟踪误差升序、公共区间最大回撤较小者优先、规模降序、代码升序；缺失值排在有数据记录之后。",
             "",
-            "| 排名 | 基金 | 成立日 | 申购状态 | 区间收益 | 区间回撤 | 综合费率 | 区间跟踪误差 | 规模 | 合同基准 |",
+            "| 排名 | 基金 | 成立日 | 申购状态 | 区间收益 | 区间回撤 | 年费率 | 区间跟踪误差 | 规模 | 合同基准 |",
             "|---:|---|---|---:|---:|---:|---:|---:|---:|---|",
         ]
     )
@@ -180,6 +191,7 @@ def render_markdown(path: Path, payload: dict[str, Any]) -> None:
         )
         if item.get("us_main_rank"):
             lines.append(f"  - 美国主榜第 {int(item['us_main_rank'])} 名")
+        lines.append(_fee_line(item))
         if item.get("contract_name_match_warning"):
             lines.append(f"  - {item['contract_name_match_warning']}")
         if evidence := item.get("share_class_evidence"):
@@ -204,7 +216,7 @@ def render_markdown(path: Path, payload: dict[str, Any]) -> None:
         [
             "",
             "额度为基金管理人层面的单日单基金账户上限；代销平台可能设置更低限制。",
-            "持有费率为人民币产品概要披露的基金运作综合费率（年化），已反映在基金净值中，不从收益率重复扣减。",
+            "年费率为天天基金基金概况页的管理费率、托管费率、销售服务费率合计；产品概要的基金运作综合费率（年化）另列作参考，二者差异来自审计费、信息披露费等其他运作费用。费用已反映在基金净值中，不从收益率重复扣减。",
             "",
         ]
     )

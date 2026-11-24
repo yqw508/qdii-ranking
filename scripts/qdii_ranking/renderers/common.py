@@ -68,6 +68,25 @@ def format_holding_cost(cost: dict[str, Any]) -> str:
     return "--" if value is None else f"{float(value):.2f}%/年"
 
 
+def format_fee_components(cost: dict[str, Any]) -> str:
+    parts = cost.get("components") or {}
+    if not parts:
+        return "--"
+    return (
+        f"管理费 {float(parts['management_pct']):.2f}% + 托管费 {float(parts['custody_pct']):.2f}% "
+        f"+ 销售服务费 {float(parts['sales_service_pct']):.2f}%"
+    )
+
+
+def format_summary_holding_cost(cost: dict[str, Any] | None) -> str:
+    """Reference: the product summary's comprehensive operating expense."""
+    if not cost or cost.get("annualized_pct") is None:
+        return "--"
+    date_text = cost.get("source_published_date") or "--"
+    stale = "，沿用上次值" if cost.get("status") == "stale" else ""
+    return f"{float(cost['annualized_pct']):.2f}%/年（{date_text}{stale}）"
+
+
 def benchmark_display(profile: dict[str, Any]) -> str:
     if profile["status"] == "recognized" and profile["benchmark_weight_pct"] is not None:
         return f"{profile['benchmark_name']} · {float(profile['benchmark_weight_pct']):g}%"

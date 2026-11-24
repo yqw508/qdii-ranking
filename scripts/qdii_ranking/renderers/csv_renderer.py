@@ -119,6 +119,12 @@ def _write_csv(path: Path, payload: dict[str, Any]) -> None:
         "quota_source_urls",
         *(f"share_evidence_{field}" for field in EVIDENCE_FIELDS),
         "us_main_rank",
+        "holding_cost_management_pct",
+        "holding_cost_custody_pct",
+        "holding_cost_sales_service_pct",
+        "summary_holding_cost_status",
+        "summary_holding_cost_annualized_pct",
+        "summary_holding_cost_source_url",
     ]
     with path.open("w", encoding="utf-8-sig", newline="") as stream:
         writer = csv.DictWriter(stream, fieldnames=fields)
@@ -170,6 +176,12 @@ def _write_csv(path: Path, payload: dict[str, Any]) -> None:
                     "holding_cost_annualized_pct": holding_cost["annualized_pct"],
                     "holding_cost_measurement_date": holding_cost["measurement_date"],
                     "holding_cost_source_url": holding_cost["source_url"],
+                    "holding_cost_management_pct": (holding_cost.get("components") or {}).get("management_pct"),
+                    "holding_cost_custody_pct": (holding_cost.get("components") or {}).get("custody_pct"),
+                    "holding_cost_sales_service_pct": (holding_cost.get("components") or {}).get("sales_service_pct"),
+                    "summary_holding_cost_status": (item.get("summary_holding_cost") or {}).get("status"),
+                    "summary_holding_cost_annualized_pct": (item.get("summary_holding_cost") or {}).get("annualized_pct"),
+                    "summary_holding_cost_source_url": (item.get("summary_holding_cost") or {}).get("source_url"),
                     "nasdaq100_correlation": fit.get("correlation"),
                     "nasdaq100_beta": fit.get("beta"),
                     "nasdaq100_tracking_error_pct": fit.get("tracking_error_pct"),

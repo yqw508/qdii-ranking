@@ -17,6 +17,7 @@ FUND_LIST_URL = "https://fund.eastmoney.com/js/fundcode_search.js"
 HOLDER_API_URL = "https://fund.eastmoney.com/data/FundDataPortfolio_Interface.aspx"
 ANNOUNCEMENT_API_URL = "https://api.fund.eastmoney.com/f10/JJGG"
 FUND_PAGE_URL = "https://fund.eastmoney.com/{code}.html"
+FUND_ARCHIVE_URL = "https://fundf10.eastmoney.com/jbgk_{code}.html"
 PERFORMANCE_DATA_URL = "https://fund.eastmoney.com/pingzhongdata/{code}.js?v={cache_buster}"
 ANNOUNCEMENT_PDF_URL = "https://pdf.dfcfw.com/pdf/H2_{announcement_id}_1.pdf"
 NASDAQ100_HISTORY_PAGE_URL = "https://indexes.nasdaq.com/Index/History/XNDX"
@@ -58,7 +59,7 @@ DEFAULT_MIN_TEN_YEAR_RETURN_PCT = 80.0
 PERFORMANCE_CACHE_SCHEMA_VERSION = 5
 ANNOUNCEMENT_INDEX_CACHE_SCHEMA_VERSION = 1
 CONTRACT_RESULT_CACHE_SCHEMA_VERSION = 1
-CONTRACT_RESULT_METHOD_VERSION = 2
+CONTRACT_RESULT_METHOD_VERSION = 3
 QUOTA_NOTICE_CACHE_SCHEMA_VERSION = 1
 QUOTA_NOTICE_METHOD_VERSION = 4
 BENCHMARK_CACHE_SCHEMA_VERSION = 1

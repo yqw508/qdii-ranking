@@ -12,6 +12,22 @@ import validate_qdii_ranking as validator
 
 RUN_DATE = "2026-08-20"
 
+def make_fee_sum(code, management, custody, sales_service):
+    return {
+        "status": "fee_sum",
+        "annualized_pct": round(management + custody + sales_service, 2),
+        "components": {
+            "management_pct": management,
+            "custody_pct": custody,
+            "sales_service_pct": sales_service,
+        },
+        "measurement_date": None,
+        "source_title": "天天基金基金概况：管理费率 + 托管费率 + 销售服务费率",
+        "source_published_date": RUN_DATE,
+        "source_url": f"https://fundf10.eastmoney.com/jbgk_{code}.html",
+    }
+
+
 def make_exchange_premium():
     entries, fingerprint = ranking.load_exchange_premium_catalog(
         ranking.DEFAULT_US_EQUITY_ETF_CATALOG
@@ -36,7 +52,8 @@ def make_exchange_premium():
                 "updated_at": f"{RUN_DATE}T15:00:00+08:00",
                 "quote_source_url": f"https://example.test/quote/{entry['code']}",
                 "quote_status": "fresh",
-                "holding_cost": {
+                "holding_cost": make_fee_sum(entry["code"], 0.5, 0.1, round(index / 100, 2)),
+                "summary_holding_cost": {
                     "status": "parsed",
                     "annualized_pct": round(0.6 + index / 100, 2),
                     "measurement_date": None,
@@ -116,7 +133,8 @@ def make_record(rank, ranking_list="us_main"):
             "product_summary_source_url": f"https://example.test/{code}/summary.pdf",
             "catalog_fingerprint": "a" * 64,
         },
-        "holding_cost": {
+        "holding_cost": make_fee_sum(code, 0.5, 0.15, round(rank / 100, 2)),
+        "summary_holding_cost": {
             "status": "parsed",
             "annualized_pct": 0.66 + rank / 100,
             "measurement_date": "2026-06-01",

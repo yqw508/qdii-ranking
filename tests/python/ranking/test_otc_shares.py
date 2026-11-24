@@ -189,8 +189,10 @@ class PrimaryShareDiscoveryTests(unittest.TestCase):
                 with patch("qdii_ranking.assemblers.parse_fund_page", return_value=page), patch(
                     "qdii_ranking.assemblers.apply_common_window", side_effect=fake_window
                 ) as common:
+                    client = Mock()
+                    client.get_text.return_value = ""  # archive page without fee rows
                     records, _, _, _, _ = build_nasdaq100_otc_records(
-                        Mock(), {"160213": META}, [], [], AS_OF, "2026-06-30", Mock(),
+                        client, {"160213": META}, [], [], AS_OF, "2026-06-30", Mock(),
                         performance, announcements, contracts, documents, Mock(),
                     )
                 self.assertEqual(1, len(records))

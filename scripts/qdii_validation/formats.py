@@ -39,6 +39,28 @@ def _validate_common_fit_csv(
         )
 
 
+def _validate_holding_cost_csv(row: dict[str, str], record: dict[str, Any], code: str) -> None:
+    cost = record["holding_cost"]
+    parts = cost.get("components") or {}
+    summary_cost = record.get("summary_holding_cost") or {}
+    for column, expected in (
+        ("holding_cost_status", cost.get("status")),
+        ("holding_cost_annualized_pct", cost.get("annualized_pct")),
+        ("holding_cost_measurement_date", cost.get("measurement_date")),
+        ("holding_cost_source_url", cost.get("source_url")),
+        ("holding_cost_management_pct", parts.get("management_pct")),
+        ("holding_cost_custody_pct", parts.get("custody_pct")),
+        ("holding_cost_sales_service_pct", parts.get("sales_service_pct")),
+        ("summary_holding_cost_status", summary_cost.get("status")),
+        ("summary_holding_cost_annualized_pct", summary_cost.get("annualized_pct")),
+        ("summary_holding_cost_source_url", summary_cost.get("source_url")),
+    ):
+        require(
+            row.get(column) == ("" if expected is None else str(expected)),
+            f"CSV {column} differs for {code}",
+        )
+
+
 def validate_csv(path: Path, records: list[dict[str, Any]]) -> None:
     require(path.is_file(), f"Missing artifact: {path}")
     try:
@@ -136,12 +158,7 @@ def validate_csv(path: Path, records: list[dict[str, Any]]) -> None:
             row["contract_benchmark_weight_pct"] == expected_weight,
             f"CSV contract benchmark weight differs for {code}",
         )
-        cost = record["holding_cost"]
-        require(row["holding_cost_status"] == cost["status"], f"CSV holding cost status differs for {code}")
-        expected_cost = "" if cost["annualized_pct"] is None else str(cost["annualized_pct"])
-        require(row["holding_cost_annualized_pct"] == expected_cost, f"CSV holding cost differs for {code}")
-        require(row["holding_cost_measurement_date"] == str(cost.get("measurement_date") or ""), f"CSV holding cost date differs for {code}")
-        require(row["holding_cost_source_url"] == str(cost.get("source_url") or ""), f"CSV holding cost source differs for {code}")
+        _validate_holding_cost_csv(row, record, code)
         require(
             row.get("product_structure_tags")
             == " | ".join(record["product_structure_tags"]),

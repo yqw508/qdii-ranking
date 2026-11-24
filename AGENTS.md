@@ -54,10 +54,12 @@
   notice selected by title but yielding no effective transition makes the quota unresolved; never keep
   an older limit in that case.
 - Calculate five- and ten-year adjusted returns from the existing NAV history when complete and apply
-  their conditional eligibility thresholds without using them for ranking. Parse the official
-  annualized comprehensive fund operating expense from the latest RMB product summary. Missing long
-  history bypasses its threshold; missing fee data is reported but does not affect eligibility, and
-  NAV returns are not reduced by the fee a second time.
+  their conditional eligibility thresholds without using them for ranking. The displayed annual fee
+  on every tab is the management + custody + sales-service fee sum from the fund archive page
+  (`fundf10.eastmoney.com/jbgk_<code>.html`, `---` means zero, a missing row is unavailable). Still
+  parse the annualized comprehensive fund operating expense from the latest RMB product summary and
+  show it as a reference value only. Missing long history bypasses its threshold; missing fee data is
+  reported but does not affect eligibility, and NAV returns are not reduced by the fee a second time.
 
 ## Candidate Continuity And Publication Calendars
 

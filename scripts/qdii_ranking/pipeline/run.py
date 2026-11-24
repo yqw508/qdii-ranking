@@ -10,6 +10,7 @@ from ..services.context import ExclusionCollector
 from ..audit import CandidateAudit, load_baseline
 from ..freshness import load_calendars, require_fresh, revalidate_nav_suspensions
 from ..services.ranking import (
+    apply_fee_stage,
     discover_candidates,
     initialize_resources,
     route_and_rank,
@@ -95,6 +96,9 @@ def _build_payload(args, client, metrics, as_of, audit):
         exclusions,
         warnings,
     )
+
+    audit.stage = "fees"
+    apply_fee_stage(payload, client, as_of, metrics)
 
     payload["nasdaq100_otc"]["freshness_policy_version"] = 1
     for record in payload["nasdaq100_otc"]["records"]:

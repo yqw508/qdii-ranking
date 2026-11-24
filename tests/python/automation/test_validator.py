@@ -270,7 +270,7 @@ class RankingValidatorTests(unittest.TestCase):
 
     def test_accepts_stale_exchange_holding_cost_and_warning(self):
         payload = make_payload()
-        payload["exchange_premium"]["records"][0]["holding_cost"]["status"] = "stale"
+        payload["exchange_premium"]["records"][0]["summary_holding_cost"]["status"] = "stale"
         payload["warnings"].append(
             "场内费率告警 513500：公告索引无法读取，使用上次费率：temporary outage"
         )

@@ -13,8 +13,10 @@ from .common import (
     benchmark_display,
     format_beta,
     format_correlation,
+    format_fee_components,
     format_holding_cost,
     format_limit,
+    format_summary_holding_cost,
     format_long_return,
     format_optional_percentage,
     format_percentage,
@@ -99,6 +101,10 @@ def render_card(item: dict[str, Any], payload: dict[str, Any]) -> str:
     holding_cost_link = html_source_link(
         format_holding_cost(holding_cost), holding_cost.get("source_url")
     )
+    summary_cost = item.get("summary_holding_cost") or {}
+    summary_cost_link = html_source_link(
+        format_summary_holding_cost(summary_cost), summary_cost.get("source_url")
+    )
     prospectus_date = contract.get("prospectus_published_date") or "--"
     boundary_detail = (
         f'<div><dt>三年实际区间</dt><dd>{html.escape(format_three_year_boundary(item))}</dd></div>'
@@ -116,7 +122,7 @@ def render_card(item: dict[str, Any], payload: dict[str, Any]) -> str:
       <span class="summary-metrics">
         {primary_metrics}
         <span class="summary-metric positive"><span class="metric-label">近三年</span><span class="metric-value">{format_percentage(item['three_year_return_pct'], show_sign=True)}</span></span>
-        <span class="summary-metric"><span class="metric-label">持有费率</span><span class="metric-value quota">{format_holding_cost(holding_cost)}</span></span>
+        <span class="summary-metric"><span class="metric-label">年费率</span><span class="metric-value quota">{format_holding_cost(holding_cost)}</span></span>
         <span class="summary-metric"><span class="metric-label">直销（个人）</span><span class="metric-value quota">{direct_text}</span></span>
       </span>
       <span class="chevron" aria-hidden="true"></span>
@@ -133,7 +139,9 @@ def render_card(item: dict[str, Any], payload: dict[str, Any]) -> str:
         <div><dt>近三年回撤</dt><dd class="negative-text">{format_percentage(item['three_year_max_drawdown_pct'])}</dd></div>
         <div><dt>近五年收益</dt><dd>{html.escape(format_long_return(item, 'five_year'))}</dd></div>
         <div><dt>近十年收益</dt><dd>{html.escape(format_long_return(item, 'ten_year'))}</dd></div>
-        <div><dt>持有费率（年化）</dt><dd>{holding_cost_link}</dd></div>
+        <div><dt>年费率</dt><dd>{holding_cost_link}</dd></div>
+        <div><dt>费率构成</dt><dd>{html.escape(format_fee_components(holding_cost))}</dd></div>
+        <div><dt>产品概要综合费率（参考）</dt><dd>{summary_cost_link}</dd></div>
         {list_details}
       </dl>
       <section class="benchmark-detail" aria-label="合同基准">
@@ -228,7 +236,7 @@ def render_nasdaq100_table(records: list[dict[str, Any]]) -> str:
         <span class="nasdaq-summary-metrics">
           <span class="nasdaq-summary-metric"><span class="metric-label">申购状态</span><span class="metric-value small">{html.escape(purchase_status)}</span></span>
           <span class="nasdaq-summary-metric accent"><span class="metric-label">区间收益</span><span class="metric-value positive-text">{html.escape(format_optional_percentage(item.get('common_period_return_pct'), show_sign=True))}</span></span>
-          <span class="nasdaq-summary-metric"><span class="metric-label">综合费率</span><span class="metric-value small">{html.escape(format_holding_cost(item['holding_cost']))}</span></span>
+          <span class="nasdaq-summary-metric"><span class="metric-label">年费率</span><span class="metric-value small">{html.escape(format_holding_cost(item['holding_cost']))}</span></span>
         </span>
         <span class="chevron" aria-hidden="true"></span>
       </summary>
@@ -240,6 +248,8 @@ def render_nasdaq100_table(records: list[dict[str, Any]]) -> str:
           <div><dt>区间回撤</dt><dd class="negative-text">{html.escape(format_optional_percentage(item.get('common_period_max_drawdown_pct')))}</dd></div>
           <div><dt>区间跟踪误差</dt><dd>{html.escape(format_optional_percentage(fit.get('tracking_error_pct')))}</dd></div>
           <div><dt>基金规模</dt><dd>{html.escape(scale)}</dd></div>
+          <div class="nasdaq-period"><dt>费率构成</dt><dd>{html.escape(format_fee_components(item['holding_cost']))}</dd></div>
+          <div class="nasdaq-period"><dt>产品概要综合费率（参考）</dt><dd>{html_source_link(format_summary_holding_cost(item.get('summary_holding_cost')), (item.get('summary_holding_cost') or {}).get('source_url'))}</dd></div>
           <div><dt>纳指相关性</dt><dd>{html.escape(correlation)}</dd></div>
           <div><dt>Beta</dt><dd>{html.escape(beta)}</dd></div>
           <div><dt>跟踪周样本</dt><dd>{html.escape(observations)}</dd></div>
@@ -329,16 +339,13 @@ def render_premium_row(
     quote_status = item["quote_status"]
     holding_cost = item["holding_cost"]
     holding_cost_text = format_holding_cost(holding_cost)
-    holding_cost_status = holding_cost["status"]
-    holding_cost_stale = (
-        '<span class="stale-label">旧值</span>'
-        if holding_cost_status == "stale"
-        else ""
-    )
     holding_cost_link = html_source_link(
         holding_cost_text, holding_cost.get("source_url")
     )
-    holding_cost_date = holding_cost.get("source_published_date") or "--"
+    summary_cost = item.get("summary_holding_cost") or {}
+    summary_cost_link = html_source_link(
+        format_summary_holding_cost(summary_cost), summary_cost.get("source_url")
+    )
     row_classes = ["premium-row"]
     if quote_status == "stale":
         row_classes.append("is-stale")
@@ -368,7 +375,7 @@ def render_premium_row(
           <td class="premium-name" data-label="{product_label}"><button class="premium-row-toggle" type="button" aria-expanded="false" aria-controls="{detail_id}"><span><strong data-field="name">{html.escape(item['name'])}</strong><span class="fund-code">{item['code']} · {item['exchange']}</span></span><span class="premium-chevron" aria-hidden="true"></span></button></td>
           <td data-label="{group_label}"><span class="benchmark-compact">{html.escape(item['benchmark_group'])}</span></td>
           <td data-label="溢价"><span class="premium-value band-{band_key}" data-field="premium">{format_premium_value(value)}</span><span class="premium-band band-{band_key}" data-field="band">{band_label}</span><span class="stale-label" data-field="stale">{stale_text}</span></td>
-          <td data-label="综合费率"><span class="premium-cost" data-field="holding-cost">{holding_cost_text}</span>{holding_cost_stale}</td>
+          <td data-label="年费率"><span class="premium-cost" data-field="holding-cost">{holding_cost_text}</span></td>
           <td data-label="涨跌"><span data-field="change">{format_premium_value(item['change_pct'])}</span></td>
         </tr>
         <tr class="premium-detail-row" id="{detail_id}" hidden>
@@ -381,8 +388,9 @@ def render_premium_row(
               <div><dt>行情来源</dt><dd data-field="quote-source">{'腾讯行情 · 延迟未保证' if item.get('quote_source') == 'tencent' else '东方财富 · 约15分钟延迟'}</dd></div>
               <div><dt>交易所</dt><dd>{item['exchange']}</dd></div>
               <div><dt>分类</dt><dd>{'QDII' if item['category'] == 'qdii' else ('行业主题' if item['category'] == 'sector_theme' else '宽基')}</dd></div>
-              <div><dt>综合费率（年化）</dt><dd>{holding_cost_link}{holding_cost_stale}</dd></div>
-              <div><dt>费率资料日期</dt><dd>{html.escape(holding_cost_date)}</dd></div>
+              <div><dt>年费率</dt><dd>{holding_cost_link}</dd></div>
+              <div><dt>费率构成</dt><dd>{html.escape(format_fee_components(holding_cost))}</dd></div>
+              <div><dt>产品概要综合费率（参考）</dt><dd>{summary_cost_link}</dd></div>
             </dl>
             <div class="premium-source-row">
               <a class="premium-source-link" data-field="quote-source-link" href="{html.escape(source_url, quote=True)}" target="_blank" rel="noopener noreferrer">查看行情来源<span class="external" aria-hidden="true">↗</span></a>

@@ -35,8 +35,10 @@ def run(us_main_top, young_codes=("023422",)):
     with patch("qdii_ranking.assemblers.parse_fund_page", return_value=page), patch(
         "qdii_ranking.assemblers.apply_common_window", side_effect=window
     ):
+        client = Mock()
+        client.get_text.return_value = ""  # archive page without fee rows
         return build_nasdaq100_otc_records(
-            Mock(), METADATA, [], [], AS_OF, "2026-09-30", Mock(), performance, Mock(), contracts,
+            client, METADATA, [], [], AS_OF, "2026-09-30", Mock(), performance, Mock(), contracts,
             Mock(), Mock(), us_main_top=us_main_top,
         )
 

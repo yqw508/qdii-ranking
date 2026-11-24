@@ -34,7 +34,7 @@ def make_otc_payload():
             "two_year_max_drawdown_pct": -19.4,
             "common_period_return_pct": 51.2,
             "common_period_max_drawdown_pct": -20.4,
-            "common_period_performance_start_date": "2024-03-22",
+            "common_period_performance_start_date": "2024-08-20",
             "common_period_performance_end_date": "2026-08-18",
             "common_period_error": None,
             "nasdaq100_fit_2y": {
@@ -50,7 +50,7 @@ def make_otc_payload():
                 "beta": 0.95,
                 "tracking_error_pct": 2.0,
                 "observations": 120,
-                "start_date": "2024-03-22",
+                "start_date": "2024-08-20",
                 "end_date": "2026-08-18",
             },
         }
@@ -69,11 +69,13 @@ def make_otc_payload():
         },
         "comparison_window": {
             "status": "available",
-            "minimum_anchor_age_years": 1,
+            "window_years": 2,
+            "target_start_date": "2024-08-20",
+            "minimum_anchor_age_years": 2,
             "max_boundary_delay_days": 7,
-            "anchor_inception_date": "2024-03-22",
-            "anchor_funds": [{"code": record["code"], "name": record["name"]}],
-            "start_date": "2024-03-22",
+            "anchor_inception_date": None,
+            "anchor_funds": [],
+            "start_date": "2024-08-20",
             "end_date": "2026-08-18",
             "comparable_count": 1,
             "error": None,
@@ -95,6 +97,40 @@ class NasdaqValidatorTests(unittest.TestCase):
             "纳斯达克100联接人民币A",
             validated["nasdaq100_otc"]["records"][0]["name"],
         )
+
+
+class NasdaqSectionRuleTests(unittest.TestCase):
+    RUN = __import__("datetime").date.fromisoformat(RUN_DATE)
+
+    def section(self):
+        return deepcopy(make_otc_payload()["nasdaq100_otc"])
+
+    def check(self, section, us_records=None):
+        return validator.validate_nasdaq100_otc_section(section, self.RUN, us_records)
+
+    def test_accepts_us_top_record_and_excluded_list(self):
+        section = self.section()
+        record = section["records"][0]
+        record.update({"name": "嘉实美国成长股票人民币", "routing_reason": "us_main_top", "us_main_rank": 1})
+        section["us_main_top_count"] = 3
+        section["excluded_records"] = [{"code": "023422", "name": "建信纳斯达克100指数(QDII)D人民币", "reason": "成立未满两年"}]
+        self.check(section, [{"code": record["code"], "rank": 1}])
+
+    def test_rejects_invalid_nasdaq_section_states(self):
+        cases = {
+            "listed without return": lambda s, u: s["records"][0].update({"common_period_return_pct": None, "common_period_error": "x", "nasdaq100_fit_common_period": None}),
+            "non-matching name without US rank": lambda s, u: s["records"][0].update({"name": "嘉实美国成长股票人民币"}),
+            "US rank mismatch": lambda s, u: (s["records"][0].update({"name": "嘉实美国成长股票人民币", "routing_reason": "us_main_top", "us_main_rank": 2}), s.update({"us_main_top_count": 3})),
+            "US top fund missing": lambda s, u: (s.update({"us_main_top_count": 3}), u.append({"code": "999999", "rank": 2})),
+            "listed and excluded": lambda s, u: s.update({"excluded_records": [{"code": s["records"][0]["code"], "name": "x", "reason": "y"}]}),
+        }
+        for label, mutate in cases.items():
+            with self.subTest(label):
+                section = self.section()
+                us_records = [{"code": section["records"][0]["code"], "rank": 1}]
+                mutate(section, us_records)
+                with self.assertRaises(validator.ValidationError):
+                    self.check(section, us_records)
 
 
 class RankingValidatorTests(unittest.TestCase):

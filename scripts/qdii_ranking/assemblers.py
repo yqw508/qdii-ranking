@@ -20,6 +20,7 @@ from .sources.contracts import (
     unavailable_holding_cost,
     unreadable_contract_benchmark,
 )
+from .sources.candidates import is_nasdaq100_otc_name, nasdaq100_share_class
 from .sources.fund import parse_fund_page
 
 
@@ -141,12 +142,18 @@ def build_nasdaq100_otc_output_record(
         **({"nav_freshness": fund["nav_freshness"]} if fund.get("nav_freshness") else {}),
         "rank": rank,
         "ranking_list": "nasdaq100_otc",
-        "routing_reason": "name_match",
-        "name_match_rule": "纳斯达克100 / 纳指100 / NASDAQ 100 名称匹配",
+        "routing_reason": "name_match" if is_nasdaq100_otc_name(fund["name"]) else "us_main_top",
+        "name_match_rule": (
+            "纳斯达克100 / 纳指100 / NASDAQ 100 名称匹配"
+            if is_nasdaq100_otc_name(fund["name"])
+            else "美国主榜前 3 名"
+        ),
+        "us_main_rank": fund.get("us_main_rank"),
         **({"share_class_evidence": fund["share_class_evidence"]}
            if fund.get("share_class_evidence") else {}),
         "code": fund["code"],
         "name": fund["name"],
+        "share_class": fund.get("share_class") or "primary",
         "fund_type": fund["fund_type"],
         "management_style": fund["contract_benchmark"]["management_style"],
         "product_structure_tags": product_structure_tags(
@@ -225,10 +232,32 @@ def build_nasdaq100_otc_records(
     document_cache: PeriodicReportCache,
     contract_catalog: ContractBenchmarkCatalog,
     run_performance_cache: dict[str, tuple[dict[str, Any], list[str]]] | None = None,
-) -> tuple[list[dict[str, Any]], list[str], dict[str, int], dict[str, Any]]:
+    us_main_top: list[tuple[str, int]] | None = None,
+) -> tuple[
+    list[dict[str, Any]], list[str], dict[str, int], dict[str, Any], list[dict[str, str]]
+]:
     candidates, snapshots, warnings = discover_nasdaq100_otc_candidates(
         client, metadata, holder_rows, as_of, announcement_cache, document_cache
     )
+    # Today's US-main top funds join the same comparison window.
+    us_ranks = dict(us_main_top or [])
+    by_code = {item["code"]: item for item in candidates}
+    for code, rank in us_ranks.items():
+        if code in by_code:
+            by_code[code]["us_main_rank"] = rank
+        elif code in metadata:
+            meta = metadata[code]
+            by_code[code] = {
+                **meta,
+                "share_class": nasdaq100_share_class(meta["name"]),
+                "us_main_rank": rank,
+                "institution_holding_ratio_pct": None,
+                "personal_holding_ratio_pct": None,
+                "holder_total_shares_100m": None,
+            }
+            candidates.append(by_code[code])
+        else:
+            warnings.append(f"场外纳指100告警 {code}：美国主榜第 {rank} 名缺少基金元数据，未加入对比。")
     known = {item["code"]: item for item in enriched_candidates}
     missing = [item for item in candidates if item["code"] not in known]
     if missing:
@@ -347,11 +376,27 @@ def build_nasdaq100_otc_records(
         benchmark,
     )
     warnings.extend(common_warnings)
+    # Only funds with a computed common-period return are listed.
+    excluded = [
+        {
+            "code": item["code"],
+            "name": item["name"],
+            "reason": item.get("common_period_error") or "公共区间收益无法计算。",
+        }
+        for item in performance_records
+        if item.get("common_period_return_pct") is None
+    ]
+    excluded.sort(key=lambda item: item["code"])
+    performance_records = [
+        item for item in performance_records if item.get("common_period_return_pct") is not None
+    ]
     performance_records.sort(key=nasdaq100_otc_sort_key)
     records = [
         build_nasdaq100_otc_output_record(fund, rank, holder_report_date)
         for rank, fund in enumerate(performance_records, start=1)
     ]
+    if comparison_window:
+        comparison_window["comparable_count"] = len(records)
     missing_counts = {
         "two_year_return": sum(item.get("two_year_return_pct") is None for item in records),
         "holding_cost": sum(item["holding_cost"].get("annualized_pct") is None for item in records),
@@ -368,4 +413,4 @@ def build_nasdaq100_otc_records(
         ),
         "inception_date": sum(item.get("inception_date") is None for item in records),
     }
-    return records, list(dict.fromkeys(warnings)), missing_counts, comparison_window
+    return records, list(dict.fromkeys(warnings)), missing_counts, comparison_window, excluded

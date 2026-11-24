@@ -310,7 +310,9 @@ def make_payload():
             },
             "comparison_window": {
                 "status": "unavailable",
-                "minimum_anchor_age_years": 1,
+                "window_years": 2,
+                "target_start_date": "2024-08-20",
+                "minimum_anchor_age_years": 2,
                 "max_boundary_delay_days": 7,
                 "anchor_inception_date": None,
                 "anchor_funds": [],

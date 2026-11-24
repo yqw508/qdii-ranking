@@ -383,9 +383,10 @@ def scan_nasdaq_otc(
     as_of: date,
     resources: PipelineResources,
     metrics: RunMetrics,
+    us_main_top: list[tuple[str, int]] | None = None,
 ) -> NasdaqStage:
     with metrics.phase("nasdaq100_otc"):
-        records, warnings, missing, comparison_window = build_nasdaq100_otc_records(
+        records, warnings, missing, comparison_window, excluded = build_nasdaq100_otc_records(
             client,
             discovery.metadata,
             discovery.holder_rows,
@@ -399,8 +400,11 @@ def scan_nasdaq_otc(
             resources.document_cache,
             resources.contract_catalog,
             resources.memo.performance,
+            us_main_top,
         )
-    return NasdaqStage(tuple(records), tuple(warnings), missing, comparison_window)
+    return NasdaqStage(
+        tuple(records), tuple(warnings), missing, comparison_window, tuple(excluded)
+    )
 
 
 def scan_exchange_premium(

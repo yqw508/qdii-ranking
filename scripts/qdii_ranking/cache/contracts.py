@@ -11,7 +11,11 @@ from typing import Any
 
 from ..config import CONTRACT_RESULT_CACHE_SCHEMA_VERSION, CONTRACT_RESULT_METHOD_VERSION
 from ..errors import DataError
-from ..sources.contracts import fetch_latest_legal_documents, resolve_contract_benchmark
+from ..sources.contracts import (
+    effective_share_class,
+    fetch_latest_legal_documents,
+    resolve_contract_benchmark,
+)
 from .base import parse_cache_date, write_json_atomic
 
 
@@ -43,9 +47,12 @@ class ContractProfileResultCache:
         code: str,
         as_of: date,
         snapshot: FundAnnouncementSnapshot,
+        share_class: str | None = None,
     ) -> tuple[str | None, str | None]:
+        target = effective_share_class(share_class)
+        class_kwargs = {"share_class": target} if target is not None else {}
         prospectus, summary = _fetch_latest_legal_documents(
-            client, code, as_of, snapshot=snapshot
+            client, code, as_of, snapshot=snapshot, **class_kwargs
         )
         return (
             prospectus.announcement_id if prospectus else None,
@@ -103,7 +110,7 @@ class ContractProfileResultCache:
     ) -> tuple[dict[str, Any], dict[str, Any], list[str]]:
         code = fund["code"]
         prospectus_id, summary_id = self._document_ids(
-            client, code, as_of, snapshot
+            client, code, as_of, snapshot, fund.get("share_class")
         )
         fund_identity = self._fund_identity(fund)
         path = self.directory / f"{code}.json"

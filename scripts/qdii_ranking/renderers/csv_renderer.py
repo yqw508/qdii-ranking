@@ -118,6 +118,7 @@ def _write_csv(path: Path, payload: dict[str, Any]) -> None:
         "performance_source_url",
         "quota_source_urls",
         *(f"share_evidence_{field}" for field in EVIDENCE_FIELDS),
+        "us_main_rank",
     ]
     with path.open("w", encoding="utf-8-sig", newline="") as stream:
         writer = csv.DictWriter(stream, fieldnames=fields)

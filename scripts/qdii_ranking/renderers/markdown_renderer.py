@@ -140,9 +140,6 @@ def render_markdown(path: Path, payload: dict[str, Any]) -> None:
         lines.append("| - | 暂无符合全部条件的基金 | - | - | - | - | - | - | - | - | - | - |")
     nasdaq_records = (payload.get("nasdaq100_otc") or {}).get("records") or []
     nasdaq_window = (payload.get("nasdaq100_otc") or {}).get("comparison_window") or {}
-    anchor_codes = "、".join(
-        item["code"] for item in nasdaq_window.get("anchor_funds") or []
-    ) or "暂无"
     window_text = (
         f"{nasdaq_window.get('start_date')} 至 {nasdaq_window.get('end_date')}"
         if nasdaq_window.get("status") == "available"
@@ -153,9 +150,9 @@ def render_markdown(path: Path, payload: dict[str, Any]) -> None:
             "",
             "## 场外纳指100",
             "",
-            "按名称匹配纳斯达克100、纳指100或 NASDAQ 100 的场外人民币 A 类份额及经产品概要确认的无标记人民币主份额；不以合同基准、成立年限、收益门槛、额度或当前申购状态筛除产品。",
+            "对比名称匹配纳斯达克100、纳指100或 NASDAQ 100 的场外人民币各类份额（A/C/D/E/F/I 等）及经产品概要确认的无标记人民币主份额，以及当天美国主榜前 3 名；排除美元、港币、后端和独立 ETF 份额；不以合同基准、收益门槛、额度或当前申购状态筛除产品。",
             "",
-            f"共同区间：{window_text}；锚点基金：{anchor_codes}。结束日随最新共同净值滚动。",
+            f"共同区间：{window_text}（最近两年）；没有区间收益的产品不列入。结束日随最新共同净值滚动。",
             "排序：公共区间收益降序、年化综合费率升序、公共区间跟踪误差升序、公共区间最大回撤较小者优先、规模降序、代码升序；缺失值排在有数据记录之后。",
             "",
             "| 排名 | 基金 | 成立日 | 申购状态 | 区间收益 | 区间回撤 | 综合费率 | 区间跟踪误差 | 规模 | 合同基准 |",
@@ -181,6 +178,8 @@ def render_markdown(path: Path, payload: dict[str, Any]) -> None:
             f"{scale_text} | "
             f"[{benchmark_display(contract)}]({contract_source}) |"
         )
+        if item.get("us_main_rank"):
+            lines.append(f"  - 美国主榜第 {int(item['us_main_rank'])} 名")
         if item.get("contract_name_match_warning"):
             lines.append(f"  - {item['contract_name_match_warning']}")
         if evidence := item.get("share_class_evidence"):
@@ -191,7 +190,13 @@ def render_markdown(path: Path, payload: dict[str, Any]) -> None:
         if item.get("common_period_error"):
             lines.append(f"  - 公共区间数据：{item['common_period_error']}")
     if not nasdaq_records:
-        lines.append("| - | 暂无名称匹配的场外纳指100产品 | - | - | - | - | - | - | - | - |")
+        lines.append("| - | 暂无有区间收益的场外纳指100产品 | - | - | - | - | - | - | - | - |")
+    nasdaq_excluded = (payload.get("nasdaq100_otc") or {}).get("excluded_records") or []
+    if nasdaq_excluded:
+        lines.extend(["", f"未列入（{len(nasdaq_excluded)} 只，没有公共区间收益）：", ""])
+        lines.extend(
+            f"- {item['code']} {item['name']}：{item['reason']}" for item in nasdaq_excluded
+        )
     if payload["warnings"]:
         lines.extend(["", "## 警告", ""])
         lines.extend(f"- {warning}" for warning in payload["warnings"])

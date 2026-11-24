@@ -67,7 +67,8 @@ def _build_payload(args, client, metrics, as_of, audit):
         exclusions,
     )
     audit.stage = "nasdaq100_otc"
-    nasdaq = scan_nasdaq_otc(client, discovery, as_of, resources, metrics)
+    us_main_top = [(record["code"], record["rank"]) for record in ranking.records[:3]]
+    nasdaq = scan_nasdaq_otc(client, discovery, as_of, resources, metrics, us_main_top)
     audit.stage = "premium"
     premium = scan_exchange_premium(
         args, client, discovery.metadata, as_of, resources, metrics

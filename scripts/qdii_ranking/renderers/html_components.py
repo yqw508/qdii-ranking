@@ -216,11 +216,15 @@ def render_nasdaq100_table(records: list[dict[str, Any]]) -> str:
             f'（{html.escape(evidence["published_date"])}）</dd></div>'
             if evidence else ""
         )
+        us_badge = (
+            f'<span class="us-main-badge">美国主榜第 {int(item["us_main_rank"])} 名</span>'
+            if item.get("us_main_rank") else ""
+        )
         rows.append(
             f"""<details class="nasdaq-item" data-code="{html.escape(item['code'], quote=True)}">
       <summary>
         <span class="rank">{item['rank']}</span>
-        <span class="fund-identity"><span class="fund-name-row"><strong>{html.escape(item['name'])}</strong></span><span class="fund-code">{html.escape(item['code'])} · {html.escape(item.get('fund_type') or '')}</span></span>
+        <span class="fund-identity"><span class="fund-name-row"><strong>{html.escape(item['name'])}</strong>{us_badge}</span><span class="fund-code">{html.escape(item['code'])} · {html.escape(item.get('fund_type') or '')}</span></span>
         <span class="nasdaq-summary-metrics">
           <span class="nasdaq-summary-metric"><span class="metric-label">申购状态</span><span class="metric-value small">{html.escape(purchase_status)}</span></span>
           <span class="nasdaq-summary-metric accent"><span class="metric-label">区间收益</span><span class="metric-value positive-text">{html.escape(format_optional_percentage(item.get('common_period_return_pct'), show_sign=True))}</span></span>
@@ -257,7 +261,21 @@ def render_nasdaq100_table(records: list[dict[str, Any]]) -> str:
       </div>
     </details>"""
         )
-    return "".join(rows) or '<p class="empty-state">暂无名称匹配的场外纳指100产品</p>'
+    return "".join(rows) or '<p class="empty-state">暂无有区间收益的场外纳指100产品</p>'
+
+
+def render_nasdaq100_excluded(excluded: list[dict[str, Any]]) -> str:
+    if not excluded:
+        return ""
+    items = "".join(
+        f'<li data-code="{html.escape(item["code"], quote=True)}">{html.escape(item["code"])} '
+        f'{html.escape(item["name"])}：{html.escape(item["reason"])}</li>'
+        for item in excluded
+    )
+    return (
+        f'<details class="nasdaq-excluded" id="nasdaq-excluded"><summary>未列入（{len(excluded)} 只）：'
+        f'没有公共区间收益</summary><ul>{items}</ul></details>'
+    )
 
 def render_list(
     records: list[dict[str, Any]], payload: dict[str, Any]

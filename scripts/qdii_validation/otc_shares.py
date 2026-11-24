@@ -6,7 +6,7 @@ from datetime import date
 from typing import Any
 
 from qdii_ranking.config import ANNOUNCEMENT_PDF_URL, EXCLUDED_FUND_TYPES
-from qdii_ranking.sources.candidates import is_otc_share
+from qdii_ranking.sources.candidates import is_otc_rmb_share_any_class
 from qdii_ranking.sources.otc_shares import (
     EVIDENCE_FIELDS, EVIDENCE_LABEL, needs_primary_share_verification, normalized_share_name,
 )
@@ -19,7 +19,7 @@ def validate_share_evidence(record: dict[str, Any], run_date: date) -> None:
     require(record["fund_type"] not in EXCLUDED_FUND_TYPES, f"{code} has an excluded fund type")
     evidence = record.get("share_class_evidence")
     if evidence is None:
-        require(is_otc_share(record), f"{code} requires verified share_class_evidence")
+        require(is_otc_rmb_share_any_class(record), f"{code} requires verified share_class_evidence")
         return
     require(needs_primary_share_verification(record), f"{code} is outside supplemental share scope")
     require(isinstance(evidence, dict), f"{code} has invalid share_class_evidence")

@@ -50,83 +50,44 @@ class NasdaqCommonWindowTests(unittest.TestCase):
         self.history_start = date(2023, 1, 1)
         self.benchmark = make_benchmark(self.history_start, self.end)
 
-    def test_latest_mature_fund_sets_start_and_end_rolls(self):
+    def test_trailing_two_year_window_excludes_funds_younger_than_cutoff(self):
+        # as_of 2026-04-01, so target_start is 2024-04-01; inception 2024-06-01 is too young.
         records = [
             make_record("000001", "2023-01-01"),
-            make_record("000002", "2024-03-22"),
+            make_record("000002", "2024-06-01"),
         ]
         points = {
             "000001": make_points(self.history_start, self.end, 1.0),
-            "000002": make_points(date(2024, 3, 22), self.end, 0.98),
+            "000002": make_points(date(2024, 6, 1), self.end, 0.98),
         }
         window, warnings = apply_common_window(
             records, points, self.as_of, self.benchmark
         )
         self.assertEqual([], warnings)
-        self.assertEqual("2024-03-22", window["start_date"])
+        self.assertEqual("2024-04-01", window["start_date"])
+        self.assertEqual("2024-04-01", window["target_start_date"])
+        self.assertEqual(2, window["window_years"])
+        self.assertEqual(2, window["minimum_anchor_age_years"])
+        self.assertIsNone(window["anchor_inception_date"])
+        self.assertEqual([], window["anchor_funds"])
         self.assertEqual("2026-03-31", window["end_date"])
-        self.assertEqual(["000002"], [item["code"] for item in window["anchor_funds"]])
-        self.assertTrue(all(item["common_period_return_pct"] is not None for item in records))
-
-        next_end = date(2026, 4, 1)
-        next_benchmark = make_benchmark(self.history_start, next_end)
-        next_points = {
-            code: [
-                *values,
-                {
-                    "date": next_end,
-                    "nav": values[-1]["nav"] * 1.001,
-                    "equity_return_pct": None,
-                    "unit_money": "",
-                },
-            ]
-            for code, values in points.items()
-        }
-        next_window, _ = apply_common_window(
-            records, next_points, next_end, next_benchmark
-        )
-        self.assertEqual("2024-03-22", next_window["start_date"])
-        self.assertEqual("2026-04-01", next_window["end_date"])
-
-    def test_under_one_year_is_displayed_but_does_not_move_anchor(self):
-        records = [
-            make_record("000001", "2024-03-22"),
-            make_record("000002", "2025-08-01"),
-        ]
-        points = {
-            "000001": make_points(date(2024, 3, 22), self.end),
-            "000002": make_points(date(2025, 8, 1), self.end),
-        }
-        window, _ = apply_common_window(records, points, self.as_of, self.benchmark)
-        self.assertEqual("2024-03-22", window["start_date"])
+        self.assertIsNotNone(records[0]["common_period_return_pct"])
         self.assertIsNone(records[1]["common_period_return_pct"])
-        self.assertIn("未满", records[1]["common_period_error"])
+        self.assertIn("未满两年", records[1]["common_period_error"])
 
-    def test_later_fund_moves_anchor_after_one_year(self):
-        records = [
-            make_record("000001", "2024-03-22"),
-            make_record("000002", "2025-01-01"),
-        ]
-        points = {
-            "000001": make_points(date(2024, 3, 22), self.end),
-            "000002": make_points(date(2025, 1, 1), self.end),
-        }
-        window, _ = apply_common_window(records, points, self.as_of, self.benchmark)
-        self.assertEqual("2025-01-01", window["start_date"])
-        self.assertEqual("000002", window["anchor_funds"][0]["code"])
-
-    def test_common_start_can_move_within_seven_days(self):
-        anchor = date(2024, 3, 22)
-        shared_start = anchor + timedelta(days=3)
+    def test_start_can_move_within_seven_days_from_target(self):
+        # Funds exist at target but have no NAV until a few days later.
+        target = date(2024, 4, 1)
+        shared_start = target + timedelta(days=3)
         records = [
             make_record("000001", "2023-01-01"),
-            make_record("000002", anchor.isoformat()),
+            make_record("000002", target.isoformat()),
         ]
         points = {
             "000001": [
                 point
                 for point in make_points(self.history_start, self.end)
-                if point["date"] < anchor or point["date"] >= shared_start
+                if point["date"] < target or point["date"] >= shared_start
             ],
             "000002": make_points(shared_start, self.end),
         }
@@ -136,7 +97,7 @@ class NasdaqCommonWindowTests(unittest.TestCase):
 
     def test_misaligned_fresh_end_only_excludes_outlier(self):
         records = [
-            make_record("000001", "2024-03-22"),
+            make_record("000001", "2023-01-01"),
             make_record("000002", "2023-01-01"),
             make_record("000003", "2022-01-01"),
         ]
@@ -162,19 +123,20 @@ class NasdaqCommonWindowTests(unittest.TestCase):
         self.assertTrue(any("000001" in warning for warning in warnings))
 
     def test_stale_record_does_not_freeze_healthy_records(self):
+        # One fund has stale NAV, so it's excluded; the other still computes its metrics.
         stale_end = self.as_of - timedelta(days=15)
         records = [
-            make_record("000001", "2024-03-22"),
+            make_record("000001", "2023-01-01"),
             make_record("000002", "2023-01-01"),
         ]
         points = {
-            "000001": make_points(date(2024, 3, 22), stale_end),
+            "000001": make_points(self.history_start, stale_end),
             "000002": make_points(self.history_start, self.end),
         }
         window, warnings = apply_common_window(
             records, points, self.as_of, self.benchmark
         )
-        self.assertEqual("2024-03-22", window["start_date"])
+        self.assertEqual("2024-04-01", window["start_date"])
         self.assertEqual(1, window["comparable_count"])
         self.assertTrue(any("000001" in warning for warning in warnings))
 

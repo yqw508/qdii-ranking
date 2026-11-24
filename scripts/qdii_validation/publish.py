@@ -133,7 +133,7 @@ def validate_local_artifacts(
         payload, global_section.get("records"), "global_supplement"
     )
     nasdaq_records = validate_nasdaq100_otc_section(
-        payload.get("nasdaq100_otc"), parse_date(expected_date)
+        payload.get("nasdaq100_otc"), parse_date(expected_date), us_records
     )
     require(us_records or global_records, "Both ranking lists are empty")
     records = [*us_records, *global_records]

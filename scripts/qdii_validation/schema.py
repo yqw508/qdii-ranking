@@ -521,17 +521,53 @@ def validate_records(
 
 
 
-def validate_nasdaq100_otc_section(section: Any, run_date: date) -> list[dict[str, Any]]:
+def validate_nasdaq100_otc_section(
+    section: Any, run_date: date, us_main_records: list[dict[str, Any]] | None = None
+) -> list[dict[str, Any]]:
     require(isinstance(section, dict), "nasdaq100_otc must be an object")
     records = section.get("records")
     require(isinstance(records, list), "nasdaq100_otc records must be a list")
+    excluded = section.get("excluded_records", [])
+    require(isinstance(excluded, list), "OTC Nasdaq-100 excluded records must be a list")
+    excluded_codes = set()
+    for item in excluded:
+        require(
+            isinstance(item, dict)
+            and isinstance(item.get("code"), str)
+            and re.fullmatch(r"\d{6}", item["code"])
+            and isinstance(item.get("name"), str)
+            and bool(item.get("reason")),
+            "OTC Nasdaq-100 excluded record is invalid",
+        )
+        excluded_codes.add(item["code"])
+    require(len(excluded_codes) == len(excluded), "OTC Nasdaq-100 excluded codes are duplicated")
+    require(
+        not excluded_codes & {item.get("code") for item in records if isinstance(item, dict)},
+        "OTC Nasdaq-100 code is both listed and excluded",
+    )
+    us_top = {
+        item["code"]: item["rank"]
+        for item in (us_main_records or [])[: int(section.get("us_main_top_count") or 0)]
+    }
+    for code in us_top:
+        require(
+            code in excluded_codes or any(item.get("code") == code for item in records),
+            f"US-main top fund {code} is missing from the OTC Nasdaq-100 comparison",
+        )
     require(section.get("candidate_count") == len(records), "OTC Nasdaq-100 candidate count differs")
     require(len({item.get("code") for item in records}) == len(records), "OTC Nasdaq-100 codes are duplicated")
     require(section.get("ranking_method") == EXPECTED_NASDAQ100_OTC_RANKING_METHOD, "OTC Nasdaq-100 ranking method differs")
     window = section.get("comparison_window")
     require(isinstance(window, dict), "OTC Nasdaq-100 comparison window is missing")
     require(window.get("status") in {"available", "unavailable"}, "OTC Nasdaq-100 comparison window status is invalid")
-    require(window.get("minimum_anchor_age_years") == 1, "OTC Nasdaq-100 anchor age differs")
+    require(window.get("minimum_anchor_age_years") == 2, "OTC Nasdaq-100 anchor age differs")
+    require(window.get("window_years") == 2, "OTC Nasdaq-100 window length differs")
+    from qdii_ranking.runtime import years_ago
+    target_start = years_ago(run_date, 2)
+    require(
+        window.get("target_start_date") == target_start.isoformat(),
+        "OTC Nasdaq-100 target start differs from the two-year window",
+    )
     require(window.get("max_boundary_delay_days") == 7, "OTC Nasdaq-100 boundary delay differs")
     require(isinstance(window.get("anchor_funds"), list), "OTC Nasdaq-100 anchor funds are invalid")
     window_start = window_end = None
@@ -546,11 +582,9 @@ def validate_nasdaq100_otc_section(section: Any, run_date: date) -> list[dict[st
                     validate_freshness(record["common_end_freshness"], window_end, run_date, "cn_nav", code=record["code"])
         else:
             require((run_date - window_end).days <= 7, "OTC Nasdaq-100 comparison end is stale")
-        anchor_inception = parse_date(window.get("anchor_inception_date"))
         require(
-            anchor_inception <= window_start
-            and (window_start - anchor_inception).days <= 7,
-            "OTC Nasdaq-100 comparison start differs from its anchor",
+            target_start <= window_start and (window_start - target_start).days <= 7,
+            "OTC Nasdaq-100 comparison start differs from the two-year target",
         )
     for expected_rank, record in enumerate(records, start=1):
         require(isinstance(record, dict), "OTC Nasdaq-100 record must be an object")
@@ -559,7 +593,21 @@ def validate_nasdaq100_otc_section(section: Any, run_date: date) -> list[dict[st
         require(isinstance(code, str) and re.fullmatch(r"\d{6}", code), f"{code} has an invalid fund code")
         require(record.get("rank") == expected_rank, f"{code} has a non-contiguous OTC Nasdaq-100 rank")
         require(record.get("ranking_list") == "nasdaq100_otc", f"{code} has an invalid OTC Nasdaq-100 list")
-        require(isinstance(name, str) and NASDAQ100_OTC_NAME_RE.search(name), f"{code} does not match the OTC Nasdaq-100 name rule")
+        require(isinstance(name, str), f"{code} has an invalid name")
+        us_rank = record.get("us_main_rank")
+        if us_rank is not None:
+            require(us_top.get(code) == us_rank, f"{code} US-main rank differs from the US main list")
+        if NASDAQ100_OTC_NAME_RE.search(name):
+            require(record.get("routing_reason") == "name_match", f"{code} has an invalid OTC Nasdaq-100 routing reason")
+        else:
+            require(
+                us_rank is not None and record.get("routing_reason") == "us_main_top",
+                f"{code} does not match the OTC Nasdaq-100 name rule",
+            )
+        require(
+            record.get("common_period_return_pct") is not None,
+            f"{code} is listed without a common-period return",
+        )
         require(
             str(record.get("fund_type", "")).startswith("QDII")
             or record.get("fund_type") == "指数型-海外股票",
@@ -586,6 +634,13 @@ def validate_nasdaq100_otc_section(section: Any, run_date: date) -> list[dict[st
         require(isinstance(cost, dict), f"{code} has no holding cost object")
         if cost.get("annualized_pct") is not None:
             as_number(cost["annualized_pct"], f"{code} holding cost")
+            from qdii_ranking.sources.contracts import effective_share_class, summary_title_share_class
+            target_class = effective_share_class(record.get("share_class"))
+            if target_class is not None and cost.get("source_title"):
+                require(
+                    summary_title_share_class(cost["source_title"]) in {None, target_class},
+                    f"{code} holding cost uses another share class's product summary",
+                )
         if record.get("contract_name_match") is False:
             require(bool(record.get("contract_name_match_warning")), f"{code} contract/name mismatch has no warning")
         fit = record.get("nasdaq100_fit_2y")
@@ -603,6 +658,10 @@ def validate_nasdaq100_otc_section(section: Any, run_date: date) -> list[dict[st
                 record.get("common_period_performance_start_date") == window["start_date"]
                 and record.get("common_period_performance_end_date") == window["end_date"],
                 f"{code} common-period dates differ from the section window",
+            )
+            require(
+                inception is not None and parse_date(inception) <= target_start,
+                f"{code} has common-period metrics but is younger than two years",
             )
             require(isinstance(common_fit, dict), f"{code} has no common-period Nasdaq fit")
             for field in ("correlation", "beta", "tracking_error_pct", "observations"):

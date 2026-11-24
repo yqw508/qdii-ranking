@@ -11,6 +11,7 @@ from ..config import (
     NASDAQ100_COMMON_MIN_COVERAGE_RATIO,
     NASDAQ100_COMMON_MIN_OBSERVATIONS,
     NASDAQ100_COMMON_MIN_SPAN_DAYS,
+    NASDAQ100_COMMON_WINDOW_YEARS,
 )
 from ..errors import DataError
 from ..freshness import freshness, require_fresh
@@ -32,9 +33,11 @@ COMMON_FIELDS = {
 }
 
 
-def _unavailable_window(reason: str) -> dict[str, Any]:
+def _unavailable_window(reason: str, target_start: date | None = None) -> dict[str, Any]:
     return {
         "status": "unavailable",
+        "window_years": NASDAQ100_COMMON_WINDOW_YEARS,
+        "target_start_date": target_start.isoformat() if target_start else None,
         "minimum_anchor_age_years": NASDAQ100_COMMON_MIN_AGE_YEARS,
         "max_boundary_delay_days": NASDAQ100_COMMON_MAX_BOUNDARY_DELAY_DAYS,
         "anchor_inception_date": None,
@@ -89,7 +92,8 @@ def apply_common_window(
     benchmark: Nasdaq100Benchmark,
 ) -> tuple[dict[str, Any], list[str]]:
     warnings: list[str] = []
-    cutoff = years_ago(as_of, NASDAQ100_COMMON_MIN_AGE_YEARS)
+    # Fixed trailing window: every comparable fund must exist at its start.
+    cutoff = years_ago(as_of, NASDAQ100_COMMON_WINDOW_YEARS)
     mature_records: list[tuple[dict[str, Any], date]] = []
     fresh_records: list[tuple[dict[str, Any], date, list[dict[str, Any]]]] = []
     for record in records:
@@ -100,7 +104,7 @@ def apply_common_window(
             continue
         inception = parse_date(str(raw_inception))
         if inception > cutoff:
-            record["common_period_error"] = "成立未满一个自然年，暂不参与公共区间排名。"
+            record["common_period_error"] = "成立未满两年，暂不参与公共区间排名。"
             continue
         mature_records.append((record, inception))
         points, error = _fresh_points(record, points_by_code.get(record["code"]), as_of)
@@ -111,43 +115,23 @@ def apply_common_window(
         fresh_records.append((record, inception, points))
 
     if not mature_records:
-        reason = "没有成立满一年的场外纳指100候选。"
+        reason = "没有成立满两年的场外纳指100候选。"
         warnings.append(f"场外纳指100公共区间告警：{reason}")
-        return _unavailable_window(reason), warnings
+        return _unavailable_window(reason, cutoff), warnings
 
-    anchor_inception = max(item[1] for item in mature_records)
-    anchors = [item for item in mature_records if item[1] == anchor_inception]
-    anchor_funds = [
-        {"code": record["code"], "name": record["name"]}
-        for record, _ in anchors
-    ]
-    limit = anchor_inception + timedelta(days=NASDAQ100_COMMON_MAX_BOUNDARY_DELAY_DAYS)
+    anchor_inception = None
+    anchor_funds: list[dict[str, str]] = []
+    limit = cutoff + timedelta(days=NASDAQ100_COMMON_MAX_BOUNDARY_DELAY_DAYS)
     start_date_sets = [
-        {
-            point["date"]
-            for point in points
-            if anchor_inception <= point["date"] <= limit
-        }
+        {point["date"] for point in points if cutoff <= point["date"] <= limit}
         for _, _, points in fresh_records
     ]
-    fresh_anchor_codes = {
-        record["code"]
-        for record, record_inception, _ in fresh_records
-        if record_inception == anchor_inception
-    }
-    anchor_dates = {
-        point["date"]
-        for record, _ in anchors
-        if record["code"] in fresh_anchor_codes
-        for point in (points_by_code.get(record["code"]) or [])
-        if anchor_inception <= point["date"] <= limit
-    }
-    candidate_start_dates = anchor_dates or set().union(*start_date_sets)
+    candidate_start_dates = set().union(*start_date_sets) if start_date_sets else set()
     start_date = _best_shared_date(
         start_date_sets, candidate_start_dates, latest=False
     )
     if start_date is None:
-        start_date = anchor_inception
+        start_date = cutoff
     comparable = [
         item
         for item in fresh_records
@@ -176,8 +160,8 @@ def apply_common_window(
             record["common_period_error"] = reason
         warnings.append(f"场外纳指100公共区间告警：{reason}")
         return {
-            **_unavailable_window(reason),
-            "anchor_inception_date": anchor_inception.isoformat(),
+            **_unavailable_window(reason, cutoff),
+            "anchor_inception_date": anchor_inception,
             "anchor_funds": anchor_funds,
             "start_date": start_date.isoformat(),
         }, warnings
@@ -228,9 +212,11 @@ def apply_common_window(
 
     return {
         "status": "available" if completed else "unavailable",
+        "window_years": NASDAQ100_COMMON_WINDOW_YEARS,
+        "target_start_date": cutoff.isoformat(),
         "minimum_anchor_age_years": NASDAQ100_COMMON_MIN_AGE_YEARS,
         "max_boundary_delay_days": NASDAQ100_COMMON_MAX_BOUNDARY_DELAY_DAYS,
-        "anchor_inception_date": anchor_inception.isoformat(),
+        "anchor_inception_date": anchor_inception,
         "anchor_funds": anchor_funds,
         "start_date": start_date.isoformat(),
         "end_date": end_date.isoformat(),

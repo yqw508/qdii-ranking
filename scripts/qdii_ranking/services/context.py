@@ -98,6 +98,7 @@ class NasdaqStage:
     warnings: tuple[str, ...]
     missing_fields: dict[str, int]
     comparison_window: dict[str, Any]
+    excluded_records: tuple[dict[str, str], ...] = ()
 
 
 @dataclass(frozen=True)

@@ -181,10 +181,15 @@ class PrimaryShareDiscoveryTests(unittest.TestCase):
                     "purchase_status_text": "暂停申购" if status == "suspended" else "限购100元",
                     "fund_page_url": "https://fund.eastmoney.com/160213.html",
                 }
+                def fake_window(items, *_args):
+                    for item in items:
+                        item["common_period_return_pct"] = 10.0
+                    return {}, []
+
                 with patch("qdii_ranking.assemblers.parse_fund_page", return_value=page), patch(
-                    "qdii_ranking.assemblers.apply_common_window", return_value=({}, [])
+                    "qdii_ranking.assemblers.apply_common_window", side_effect=fake_window
                 ) as common:
-                    records, _, _, _ = build_nasdaq100_otc_records(
+                    records, _, _, _, _ = build_nasdaq100_otc_records(
                         Mock(), {"160213": META}, [], [], AS_OF, "2026-06-30", Mock(),
                         performance, announcements, contracts, documents, Mock(),
                     )

@@ -20,6 +20,31 @@ from .announcements import (
 )
 
 
+# A standalone class letter: not part of QDII, ETF, LOF or other ASCII words.
+_TITLE_SHARE_CLASS_RE = re.compile(r"(?<![A-Za-z])([A-I])(?![A-Za-z])")
+_NON_RMB_TITLE_RE = re.compile(r"提示性公告|美元|美金|港币|港元|USD|HKD", re.IGNORECASE)
+
+
+def effective_share_class(share_class: str | None) -> str | None:
+    """Labeled classes need class-aware summary selection; unlabeled/primary does not."""
+    if not share_class or str(share_class) == "primary":
+        return None
+    return str(share_class).upper()
+
+
+def summary_title_share_class(title: str) -> str | None:
+    """Return the single share class named by a summary title; None if unlabeled or several."""
+    letters = set(_TITLE_SHARE_CLASS_RE.findall(title.upper()))
+    return letters.pop() if len(letters) == 1 else None
+
+
+def _is_class_summary_candidate(title: str, target: str) -> bool:
+    if _NON_RMB_TITLE_RE.search(title):
+        return False
+    title_class = summary_title_share_class(title)
+    return title_class is None or title_class == target
+
+
 class DocumentTextCache(Protocol):
     def get_text(
         self, client: HttpClient, document: LegalDocument, referer: str
@@ -79,7 +104,9 @@ def fetch_latest_legal_documents(
     code: str,
     as_of: date,
     snapshot: FundAnnouncementSnapshot | None = None,
+    share_class: str | None = None,
 ) -> tuple[LegalDocument | None, LegalDocument | None]:
+    target = effective_share_class(share_class)
     prospectuses: list[LegalDocument] = []
     summaries: list[LegalDocument] = []
     if snapshot is not None:
@@ -124,7 +151,11 @@ def fetch_latest_legal_documents(
                         "prospectus",
                     )
                 )
-            if "基金产品资料概要" in title and _is_rmb_product_summary(title):
+            if "基金产品资料概要" in title and (
+                _is_rmb_product_summary(title)
+                if target is None
+                else _is_class_summary_candidate(title, target)
+            ):
                 summaries.append(
                     LegalDocument(
                         announcement_id,
@@ -134,7 +165,10 @@ def fetch_latest_legal_documents(
                         "product_summary",
                     )
                 )
-        if prospectuses and summaries:
+        if prospectuses and summaries and (
+            target is None
+            or any(summary_title_share_class(item.title) == target for item in summaries)
+        ):
             break
         if not records:
             break
@@ -144,6 +178,11 @@ def fetch_latest_legal_documents(
         if prospectuses
         else None
     )
+    if target is not None:
+        # A summary for exactly this class wins over a combined (unlabeled) summary.
+        summaries = [
+            item for item in summaries if summary_title_share_class(item.title) == target
+        ] or summaries
     summary = (
         max(summaries, key=lambda item: (item.published_date, item.announcement_id))
         if summaries
@@ -318,21 +357,46 @@ def unreadable_contract_benchmark(fund: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _combined_summary_class_rate(compact: str, target: str) -> float:
+    """Read one class's rate from a summary that covers several share classes."""
+    label = re.search(r"基金运作综合费率\s*[（(]\s*年化\s*[）)]", compact)
+    if not label:
+        raise DataError("Could not locate annualized comprehensive operating expense")
+    section = compact[label.start(): label.end() + 400]
+    rates: dict[str, set[float]] = {}
+    for match in re.finditer(
+        r"(?<![A-Za-z])([A-I])\s*类(?:\s*(?:基金)?\s*份额)?[^0-9%A-Za-z]{0,20}?"
+        r"([0-9]+(?:\.[0-9]+)?)\s*%",
+        section,
+    ):
+        rates.setdefault(match.group(1).upper(), set()).add(float(match.group(2)))
+    values = rates.get(target) or set()
+    if len(values) != 1:
+        raise DataError(f"Could not determine the {target}-class annualized comprehensive operating expense")
+    return values.pop()
+
+
 def parse_holding_cost(
-    text: str, summary: LegalDocument, as_of: date
+    text: str, summary: LegalDocument, as_of: date, share_class: str | None = None
 ) -> dict[str, Any]:
     if summary.published_date > as_of:
         raise DataError("Holding-cost source publication date is in the future")
     compact = re.sub(r"\s+", " ", text.replace("\u3000", " ")).strip()
-    rate_match = re.search(
-        r"基金运作综合费率\s*[（(]\s*年化\s*[）)]"
-        r"(?:\s*(?:基金运作综合费率|\d+\s*/\s*\d+|[-–—])){0,3}"
-        r"\s*([0-9]+(?:\.[0-9]+)?)\s*%",
-        compact,
-    )
-    if not rate_match:
-        raise DataError("Could not locate annualized comprehensive operating expense")
-    rate = float(rate_match.group(1))
+    target = effective_share_class(share_class)
+    title_class = summary_title_share_class(summary.title)
+    if target is not None and title_class != target and not (target == "A" and title_class is None):
+        # Never fall back to another class's single rate in a combined summary.
+        rate = _combined_summary_class_rate(compact, target)
+    else:
+        rate_match = re.search(
+            r"基金运作综合费率\s*[（(]\s*年化\s*[）)]"
+            r"(?:\s*(?:基金运作综合费率|\d+\s*/\s*\d+|[-–—])){0,3}"
+            r"\s*([0-9]+(?:\.[0-9]+)?)\s*%",
+            compact,
+        )
+        if not rate_match:
+            raise DataError("Could not locate annualized comprehensive operating expense")
+        rate = float(rate_match.group(1))
     if not math.isfinite(rate) or rate < 0 or rate > 100:
         raise DataError("Annualized comprehensive operating expense is outside its valid range")
     date_match = re.search(
@@ -370,9 +434,11 @@ def resolve_contract_benchmark(
         if fund["fund_type"] == "指数型-海外股票" and "增强" not in fund["name"]
         else "active"
     )
+    target = effective_share_class(fund.get("share_class"))
+    class_kwargs = {"share_class": target} if target is not None else {}
     try:
         prospectus, summary = fetch_latest_legal_documents(
-            client, code, as_of, snapshot=snapshot
+            client, code, as_of, snapshot=snapshot, **class_kwargs
         )
     except DataError as exc:
         profile = unreadable_contract_benchmark(fund)
@@ -424,7 +490,9 @@ def resolve_contract_benchmark(
             warnings.append(f"持有费率告警 {code}：{exc}")
         else:
             try:
-                holding_cost = parse_holding_cost(summary_text, summary, as_of)
+                holding_cost = parse_holding_cost(
+                    summary_text, summary, as_of, **class_kwargs
+                )
             except DataError as exc:
                 warnings.append(f"持有费率告警 {code}：{exc}")
             try:

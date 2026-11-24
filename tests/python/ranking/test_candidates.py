@@ -321,9 +321,39 @@ class Nasdaq100OTCTests(unittest.TestCase):
         }
         rows = [["000001", "", "12.5", "1", "", "2"]]
         candidates = ranking.build_nasdaq100_otc_candidates(metadata, rows)
-        self.assertEqual(["000001", "000005"], [item["code"] for item in candidates])
+        self.assertEqual(["000001", "000003", "000005"], [item["code"] for item in candidates])
+        self.assertEqual(["A", "C", "A"], [item["share_class"] for item in candidates])
         self.assertEqual(12.5, candidates[0]["institution_holding_ratio_pct"])
         self.assertIsNone(candidates[1]["institution_holding_ratio_pct"])
+
+    def test_candidates_include_every_rmb_share_class_of_one_fund(self):
+        names = {
+            "018043": ("天弘纳斯达克100指数发起(QDII)A", "A"),
+            "018044": ("天弘纳斯达克100指数发起(QDII)C", "C"),
+            "022525": ("天弘纳斯达克100指数发起(QDII)D", "D"),
+            "021838": ("嘉实纳斯达克100ETF发起联接(QDII)I人民币", "I"),
+            "021778": ("广发纳指100ETF联接(QDII)人民币F", "F"),
+            "012870": ("易方达纳斯达克100ETF联接(QDII-LOF)C(人民币)", "C"),
+            "016535": ("嘉实纳斯达克100ETF发起联接(QDII)C美元现汇", None),
+            "040047": ("华安纳斯达克100ETF联接(QDII)A美元现钞", None),
+            "019175": ("摩根纳斯达克100指数(QDII)美元现汇C", None),
+            "159513": ("纳斯达克100ETF大成", None),
+        }
+        metadata = {
+            code: {"code": code, "name": name, "fund_type": "指数型-海外股票"}
+            for code, (name, _) in names.items()
+        }
+        candidates = ranking.build_nasdaq100_otc_candidates(metadata, [])
+        self.assertEqual(
+            {code: cls for code, (_, cls) in names.items() if cls},
+            {item["code"]: item["share_class"] for item in candidates},
+        )
+
+    def test_main_ranking_share_filter_still_excludes_c_and_d(self):
+        for name in ("天弘纳斯达克100指数发起(QDII)C", "天弘纳斯达克100指数发起(QDII)D"):
+            self.assertFalse(
+                ranking.is_otc_share({"code": "1", "name": name, "fund_type": "指数型-海外股票"})
+            )
 
     def test_two_year_window_does_not_apply_three_year_tolerance(self):
         points = [

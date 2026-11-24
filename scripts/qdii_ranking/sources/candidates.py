@@ -41,6 +41,38 @@ def is_otc_share(meta: dict[str, str]) -> bool:
     return not ("ETF" in name.upper() and "联接" not in name and "LOF" not in name.upper())
 
 
+_NON_RMB_SHARE_RE = re.compile(r"美元|美金|港币|港元|USD|HKD|后端", re.IGNORECASE)
+_SHARE_CLASS_RE = re.compile(
+    r"(?:人民币|RMB)\s*([A-I])(?:类|份额)?(?![A-Za-z])"
+    r"|(?<![A-Za-z])([A-I])(?:类|份额)?\s*(?:人民币|RMB)"
+    r"|[（(]([A-I])(?:类|份额)?[)）]"
+    r"|[)）]\s*([A-I])(?:类|份额)?(?![A-Za-z])"
+    r"|(?<![A-Za-z])([A-I])(?:类|份额)$"
+)
+
+
+def nasdaq100_share_class(name: str) -> str:
+    """Return the share-class letter in an OTC fund name, or ``primary`` when unlabeled."""
+    match = _SHARE_CLASS_RE.search(str(name or ""))
+    if match:
+        return next(group for group in match.groups() if group).upper()
+    return "primary"
+
+
+def is_otc_rmb_share_any_class(meta: dict[str, str]) -> bool:
+    """OTC RMB share of any class (A/C/D/E/F/I or explicit RMB primary)."""
+    fund_type = meta["fund_type"]
+    if not (fund_type.startswith("QDII") or fund_type == "指数型-海外股票"):
+        return False
+    name = meta["name"]
+    if _NON_RMB_SHARE_RE.search(name):
+        return False
+    upper = name.upper()
+    if "ETF" in upper and "联接" not in name and "LOF" not in upper:
+        return False
+    return "人民币" in name or "RMB" in upper or nasdaq100_share_class(name) != "primary"
+
+
 def is_nasdaq100_otc_name(name: str) -> bool:
     return bool(NASDAQ100_OTC_NAME_RE.search(str(name or "")))
 
@@ -75,7 +107,7 @@ def build_nasdaq100_otc_candidates(
     candidates: list[dict[str, Any]] = []
     for meta in metadata.values():
         if (
-            not is_otc_share(meta)
+            not is_otc_rmb_share_any_class(meta)
             or meta["fund_type"] in EXCLUDED_FUND_TYPES
             or not is_nasdaq100_otc_name(meta["name"])
         ):
@@ -83,6 +115,7 @@ def build_nasdaq100_otc_candidates(
         candidates.append(
             {
                 **meta,
+                "share_class": nasdaq100_share_class(meta["name"]),
                 **holder_by_code.get(
                     meta["code"],
                     {

@@ -12,6 +12,7 @@ from .common import summarize_periods
 from .html_components import (
     format_quote_time,
     render_list,
+    render_nasdaq100_excluded,
     render_nasdaq100_table,
     render_premium_row,
 )
@@ -36,19 +37,52 @@ def _premium_status_text(premium: dict[str, Any]) -> str:
     return text
 
 
+# Client-side pagination for the OTC Nasdaq-100 list; all rows stay in the HTML.
+NASDAQ_PAGER_SCRIPT = """    (() => {
+      const list = document.getElementById('nasdaq-list');
+      const pager = document.getElementById('nasdaq-pager');
+      if (!list || !pager) return;
+      const items = Array.from(list.querySelectorAll('.nasdaq-item'));
+      const size = Number(list.dataset.pageSize) || 10;
+      const pages = Math.ceil(items.length / size);
+      if (pages <= 1) return;
+      const numbers = pager.querySelector('.nasdaq-page-numbers');
+      const status = pager.querySelector('.nasdaq-page-status');
+      let current = 1;
+      const show = (page, scroll) => {
+        current = Math.min(Math.max(page, 1), pages);
+        items.forEach((item, index) => { item.hidden = Math.floor(index / size) + 1 !== current; });
+        numbers.querySelectorAll('button').forEach((button) => button.setAttribute('aria-current', String(Number(button.dataset.page) === current)));
+        pager.querySelector('[data-page-action="prev"]').disabled = current === 1;
+        pager.querySelector('[data-page-action="next"]').disabled = current === pages;
+        status.textContent = `第 ${current}/${pages} 页`;
+        if (scroll) list.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      };
+      for (let page = 1; page <= pages; page += 1) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.page = String(page);
+        button.textContent = String(page);
+        button.addEventListener('click', () => show(page, true));
+        numbers.appendChild(button);
+      }
+      pager.querySelector('[data-page-action="prev"]').addEventListener('click', () => show(current - 1, true));
+      pager.querySelector('[data-page-action="next"]').addEventListener('click', () => show(current + 1, true));
+      pager.hidden = false;
+      show(1, false);
+    })();"""
+
+
 def render_html(path: Path, payload: dict[str, Any]) -> None:
     us_records = payload["records"]
     global_records = payload["global_supplement"]["records"]
     nasdaq_records = (payload.get("nasdaq100_otc") or {}).get("records") or []
     nasdaq_window = (payload.get("nasdaq100_otc") or {}).get("comparison_window") or {}
-    anchor_funds = nasdaq_window.get("anchor_funds") or []
-    anchor_label = "、".join(
-        f"{item['code']} {item['name']}" for item in anchor_funds
-    ) or "暂无"
+    nasdaq_excluded = (payload.get("nasdaq100_otc") or {}).get("excluded_records") or []
     if nasdaq_window.get("status") == "available":
         nasdaq_window_text = (
-            f"共同区间 {nasdaq_window['start_date']} 至 {nasdaq_window['end_date']}；"
-            f"起点由成立满一年的最新产品 {anchor_label} 决定，结束日随共同净值滚动。"
+            f"共同区间 {nasdaq_window['start_date']} 至 {nasdaq_window['end_date']}（最近两年）；"
+            "对比名称匹配纳指100的人民币各类份额和当天美国主榜前 3 名；没有区间收益的产品不列入，结束日随共同净值滚动。"
         )
     else:
         nasdaq_window_text = (
@@ -163,8 +197,10 @@ def render_html(path: Path, payload: dict[str, Any]) -> None:
       <section id="panel-global" class="ranking-list" role="tabpanel" aria-labelledby="tab-global" hidden>{render_list(global_records, payload)}</section>
       <section id="panel-nasdaq100-otc" class="nasdaq-panel" role="tabpanel" aria-labelledby="tab-nasdaq100-otc" hidden>
         <div class="nasdaq-toolbar"><h2>场外纳指100</h2><p>{html.escape(nasdaq_window_text)}排序依次为区间收益、综合费率、区间跟踪误差、较小回撤、规模和代码。</p></div>
-        <p class="nasdaq-warning">本榜按名称识别，合同基准仅作展示。名称命中不等于基金严格跟踪纳斯达克100；请展开合同基准和来源核对。</p>
-        <div class="nasdaq-list">{render_nasdaq100_table(nasdaq_records)}</div>
+        <p class="nasdaq-warning">本榜按名称识别，合同基准仅作展示。名称命中不等于基金严格跟踪纳斯达克100；美国主榜前 3 名不一定跟踪纳指100，跟踪误差仅供参考。请展开合同基准和来源核对。</p>
+        <div class="nasdaq-list" id="nasdaq-list" data-page-size="10">{render_nasdaq100_table(nasdaq_records)}</div>
+        <nav class="nasdaq-pager" id="nasdaq-pager" aria-label="场外纳指100分页" hidden><button type="button" data-page-action="prev">上一页</button><span class="nasdaq-page-numbers"></span><button type="button" data-page-action="next">下一页</button><span class="nasdaq-page-status" aria-live="polite"></span></nav>
+        {render_nasdaq100_excluded(nasdaq_excluded)}
       </section>
       <section id="panel-premium" class="premium-panel" role="tabpanel" aria-labelledby="tab-premium" hidden>
         <div class="premium-toolbar">
@@ -207,6 +243,7 @@ def render_html(path: Path, payload: dict[str, Any]) -> None:
     const requestedTab = new URLSearchParams(window.location.search).get('tab');
     const initialTab = tabs.find((tab) => tab.id === `tab-${{requestedTab}}`);
     if (initialTab) selectTab(initialTab);
+{NASDAQ_PAGER_SCRIPT}
     globalThis.__ETF_PREMIUM_CONFIG__ = {premium_config_json};
 {browser_script}
   </script>

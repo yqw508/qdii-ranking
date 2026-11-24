@@ -308,6 +308,21 @@ def validate_html_document(
         parser.nasdaq_item_count == len(nasdaq_records),
         f"{label} OTC Nasdaq-100 detail rows differ",
     )
+    require(
+        document.count('id="nasdaq-pager"') == 1 and 'data-page-size="10"' in document,
+        f"{label} OTC Nasdaq-100 pagination is missing",
+    )
+    for record in nasdaq_records:
+        if record.get("us_main_rank"):
+            require(
+                f"美国主榜第 {int(record['us_main_rank'])} 名" in all_text,
+                f"{label} OTC Nasdaq-100 US-main badge is missing for {record['code']}",
+            )
+    for item in (payload.get("nasdaq100_otc") or {}).get("excluded_records") or []:
+        require(
+            f'<li data-code="{item["code"]}">' in document,
+            f"{label} OTC Nasdaq-100 excluded fund is missing for {item['code']}",
+        )
     premium_records = payload["exchange_premium"]["records"]
     require(
         parser.premium_codes == [record["code"] for record in premium_records],

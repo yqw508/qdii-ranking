@@ -290,7 +290,13 @@ class AnnouncementCacheTests(unittest.TestCase):
         with TemporaryDirectory() as directory:
             cache = ranking.AnnouncementIndexCache(Path(directory))
             first = cache.get(object(), "000043", as_of)
-            second = cache.get(object(), "000043", as_of)
+            # Same run: reuse the snapshot without another index request.
+            self.assertIs(first, cache.get(object(), "000043", as_of))
+            self.assertIs(first, cache.peek("000043", as_of))
+            self.assertEqual(2, page.call_count)
+            # Next run: the persisted cache still revalidates page 1.
+            next_run = ranking.AnnouncementIndexCache(Path(directory))
+            second = next_run.get(object(), "000043", as_of)
             self.assertEqual(3, page.call_count)
             self.assertNotIn("future", {item.announcement_id for item in first.items})
             prospectus, summary = ranking.fetch_latest_legal_documents(
@@ -311,8 +317,12 @@ class AnnouncementCacheTests(unittest.TestCase):
                 )],
             )
             self.assertEqual(
-                {"checks": 2, "pages_fetched": 3, "full_seeds": 1, "cache_loads": 1, "corrupt_rebuilds": 0},
+                {"memo_hits": 1, "checks": 1, "pages_fetched": 2, "full_seeds": 1, "cache_loads": 0, "corrupt_rebuilds": 0},
                 cache.stats(),
+            )
+            self.assertEqual(
+                {"memo_hits": 0, "checks": 1, "pages_fetched": 1, "full_seeds": 0, "cache_loads": 1, "corrupt_rebuilds": 0},
+                next_run.stats(),
             )
 
     @patch("qdii_ranking.cache.contracts.resolve_contract_benchmark")

@@ -72,9 +72,11 @@ def format_fee_components(cost: dict[str, Any]) -> str:
     parts = cost.get("components") or {}
     if not parts:
         return "--"
+    fetched = cost.get("source_published_date")
+    fetched_text = f"（概况页读取于 {fetched}）" if fetched else ""
     return (
         f"管理费 {float(parts['management_pct']):.2f}% + 托管费 {float(parts['custody_pct']):.2f}% "
-        f"+ 销售服务费 {float(parts['sales_service_pct']):.2f}%"
+        f"+ 销售服务费 {float(parts['sales_service_pct']):.2f}%{fetched_text}"
     )
 
 

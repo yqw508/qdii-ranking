@@ -589,6 +589,16 @@ def validate_nasdaq100_otc_section(
             code in excluded_codes or any(item.get("code") == code for item in records),
             f"US-main top fund {code} is missing from the OTC Nasdaq-100 comparison",
         )
+    manual_codes = section.get("manual_include_codes", [])
+    require(
+        isinstance(manual_codes, list) and all(isinstance(c, str) and re.fullmatch(r"\d{6}", c) for c in manual_codes),
+        "OTC Nasdaq-100 manual include codes are invalid",
+    )
+    for code in manual_codes:
+        require(
+            code in excluded_codes or any(item.get("code") == code for item in records),
+            f"Manual comparison fund {code} is missing from the OTC Nasdaq-100 comparison",
+        )
     require(section.get("candidate_count") == len(records), "OTC Nasdaq-100 candidate count differs")
     require(len({item.get("code") for item in records}) == len(records), "OTC Nasdaq-100 codes are duplicated")
     require(section.get("ranking_method") == EXPECTED_NASDAQ100_OTC_RANKING_METHOD, "OTC Nasdaq-100 ranking method differs")
@@ -632,11 +642,17 @@ def validate_nasdaq100_otc_section(
         us_rank = record.get("us_main_rank")
         if us_rank is not None:
             require(us_top.get(code) == us_rank, f"{code} US-main rank differs from the US main list")
+        if record.get("manual_include"):
+            require(code in manual_codes, f"{code} is marked manual but not in the manual include list")
         if NASDAQ100_OTC_NAME_RE.search(name):
             require(record.get("routing_reason") == "name_match", f"{code} has an invalid OTC Nasdaq-100 routing reason")
+        elif us_rank is not None:
+            require(record.get("routing_reason") == "us_main_top", f"{code} has an invalid OTC Nasdaq-100 routing reason")
         else:
             require(
-                us_rank is not None and record.get("routing_reason") == "us_main_top",
+                record.get("routing_reason") == "manual_include"
+                and record.get("manual_include") is True
+                and code in manual_codes,
                 f"{code} does not match the OTC Nasdaq-100 name rule",
             )
         require(

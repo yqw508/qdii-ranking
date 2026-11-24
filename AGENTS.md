@@ -53,13 +53,19 @@
   manager-announcement channel and share aggregation rules and report exclusions as warnings. A quota
   notice selected by title but yielding no effective transition makes the quota unresolved; never keep
   an older limit in that case.
+- The OTC Nasdaq-100 display tab also compares the US-main top three and the explicit
+  `NASDAQ100_OTC_MANUAL_CODES` list (currently 022523), routed as `us_main_top` / `manual_include`.
 - Calculate five- and ten-year adjusted returns from the existing NAV history when complete and apply
   their conditional eligibility thresholds without using them for ranking. The displayed annual fee
   on every tab is the management + custody + sales-service fee sum from the fund archive page
   (`fundf10.eastmoney.com/jbgk_<code>.html`, `---` means zero, a missing row is unavailable). Still
   parse the annualized comprehensive fund operating expense from the latest RMB product summary and
-  show it as a reference value only. Missing long history bypasses its threshold; missing fee data is
-  reported but does not affect eligibility, and NAV returns are not reduced by the fee a second time.
+  show it as a reference value only. The three-fee sum may reuse its `cache/fee-sums` entry only when
+  it is younger than its fixed per-code lifetime of 5-7 days (crc32 of the code) and this run's announcement index for that code has no newer title
+  containing 费率/管理费/托管费/销售服务费/产品资料概要/招募说明书/基金合同; otherwise refetch. Keep the real
+  fetch date as `source_published_date`, never persist or fall back to a failed read. Missing long
+  history bypasses its threshold; missing fee data is reported but does not affect eligibility, and
+  NAV returns are not reduced by the fee a second time.
 
 ## Candidate Continuity And Publication Calendars
 

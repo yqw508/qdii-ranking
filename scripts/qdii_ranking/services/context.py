@@ -10,6 +10,7 @@ from ..cache.announcements import AnnouncementIndexCache, PeriodicReportCache
 from ..cache.benchmark import Nasdaq100BenchmarkCache
 from ..cache.contracts import ContractProfileResultCache
 from ..cache.exposure import FundExposureResultCache
+from ..cache.fee_sums import FeeSumCache
 from ..cache.performance import PerformanceResultCache
 from ..cache.premium import ExchangePremiumHoldingCostCache
 from ..cache.quota import QuotaNoticeParseCache
@@ -55,6 +56,7 @@ class PipelineResources:
     exposure_cache: FundExposureResultCache
     benchmark: Nasdaq100Benchmark
     memo: RunMemo
+    fee_sum_cache: FeeSumCache | None = None
 
 
 @dataclass(frozen=True)

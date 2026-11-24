@@ -57,6 +57,8 @@ class AnnouncementIndexCache:
         self.full_seeds = 0
         self.cache_loads = 0
         self.corrupt_rebuilds = 0
+        self.memo_hits = 0
+        self._memo: dict[tuple[str, date], FundAnnouncementSnapshot] = {}
         self._stats_lock = Lock()
         self._key_locks: dict[str, Lock] = {}
         self._key_locks_lock = Lock()
@@ -186,11 +188,24 @@ class AnnouncementIndexCache:
         with self._key_locks_lock:
             key_lock = self._key_locks.setdefault(code, Lock())
         with key_lock:
-            return self._get_locked(client, code, as_of)
+            # One current index check per code per run; later stages reuse it.
+            memo = self._memo.get((code, as_of))
+            if memo is not None:
+                with self._stats_lock:
+                    self.memo_hits += 1
+                return memo
+            snapshot = self._get_locked(client, code, as_of)
+            self._memo[(code, as_of)] = snapshot
+            return snapshot
+
+    def peek(self, code: str, as_of: date) -> FundAnnouncementSnapshot | None:
+        """Snapshot already checked in this run, without any network request."""
+        return self._memo.get((code, as_of))
 
     def stats(self) -> dict[str, int]:
         with self._stats_lock:
             return {
+                "memo_hits": self.memo_hits,
                 "checks": self.checks,
                 "pages_fetched": self.pages_fetched,
                 "full_seeds": self.full_seeds,

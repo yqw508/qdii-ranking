@@ -55,14 +55,39 @@ def parse_fee_components(page: str, code: str, as_of: date) -> dict[str, Any]:
     }
 
 
-def fetch_fee_sums(client: Any, codes: list[str], as_of: date) -> tuple[dict[str, dict[str, Any]], list[str]]:
-    """Fetch each code once in this run; failures become ``unavailable`` with a warning."""
+def fetch_fee_sums(
+    client: Any,
+    codes: list[str],
+    as_of: date,
+    cache: Any = None,
+    snapshot_for: Any = None,
+) -> tuple[dict[str, dict[str, Any]], list[str]]:
+    """Each code once per run. A cached sum is reused only when the cache says it is
+    still valid (under 7 days old, no newer fee-related announcement in this run's index).
+    Failures become ``unavailable`` with a warning and never fall back to an old value."""
     def one(code: str) -> tuple[str, dict[str, Any], str | None]:
+        reason = "missing"
+        if cache is not None:
+            cached = cache.load(code, as_of)
+            snapshot = snapshot_for(code) if snapshot_for is not None else None
+            reason = cache.refresh_reason(cached, snapshot, as_of, code)
+            if reason is None:
+                cache.record(None, True)
+                return code, cached, None
         try:
             page = client.get_text(FUND_ARCHIVE_URL.format(code=code), referer="https://fundf10.eastmoney.com/")
-            return code, parse_fee_components(page, code, as_of), None
+            cost = parse_fee_components(page, code, as_of)
         except (DataError, OSError, ValueError) as exc:
+            if cache is not None:
+                cache.record(reason, False)
             return code, unavailable_fee_sum(code), f"持有费率告警 {code}：基金概况页三项费率无法读取：{exc}"
+        if cache is not None:
+            cache.record(reason, True)
+            try:
+                cache.save(code, cost)
+            except OSError:
+                pass  # Display-only cache; the fresh value is still used this run.
+        return code, cost, None
 
     unique = sorted(set(codes))
     with ThreadPoolExecutor(max_workers=max(1, min(DOCUMENT_WORKERS, len(unique) or 1))) as pool:
@@ -70,7 +95,9 @@ def fetch_fee_sums(client: Any, codes: list[str], as_of: date) -> tuple[dict[str
     return {code: cost for code, cost, _ in results}, [w for _, _, w in results if w]
 
 
-def apply_fee_sums(payload: dict[str, Any], client: Any, as_of: date) -> list[str]:
+def apply_fee_sums(
+    payload: dict[str, Any], client: Any, as_of: date, cache: Any = None, snapshot_for: Any = None
+) -> list[str]:
     """Move summary fees to ``summary_holding_cost`` and set the three-fee sum as primary."""
     sections = [
         payload.get("records") or [],
@@ -79,7 +106,9 @@ def apply_fee_sums(payload: dict[str, Any], client: Any, as_of: date) -> list[st
         (payload.get("exchange_premium") or {}).get("records") or [],
     ]
     records = [record for section in sections for record in section]
-    costs, warnings = fetch_fee_sums(client, [record["code"] for record in records], as_of)
+    costs, warnings = fetch_fee_sums(
+        client, [record["code"] for record in records], as_of, cache, snapshot_for
+    )
     for record in records:
         record["summary_holding_cost"] = record.get("holding_cost")
         record["holding_cost"] = dict(costs[record["code"]])

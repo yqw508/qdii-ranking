@@ -323,6 +323,14 @@ def validate_html_document(
                 f"美国主榜第 {int(record['us_main_rank'])} 名" in all_text,
                 f"{label} OTC Nasdaq-100 US-main badge is missing for {record['code']}",
             )
+        if record.get("manual_include"):
+            block = re.search(
+                rf'<details class="nasdaq-item" data-code="{record["code"]}">(.*?)</details>', document, re.S
+            )
+            require(
+                block is not None and "指定对比" in block.group(1),
+                f"{label} OTC Nasdaq-100 manual badge is missing for {record['code']}",
+            )
     for item in (payload.get("nasdaq100_otc") or {}).get("excluded_records") or []:
         require(
             f'<li data-code="{item["code"]}">' in document,

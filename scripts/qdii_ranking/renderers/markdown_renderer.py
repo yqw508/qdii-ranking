@@ -32,6 +32,16 @@ def _fee_line(item: dict[str, Any]) -> str:
     )
 
 
+def _nasdaq_tag_lines(item: dict[str, Any]) -> list[str]:
+    lines = []
+    if item.get("us_main_rank"):
+        lines.append(f"  - 美国主榜第 {int(item['us_main_rank'])} 名")
+    if item.get("manual_include"):
+        lines.append("  - 指定对比")
+    lines.append(_fee_line(item))
+    return lines
+
+
 def render_markdown(path: Path, payload: dict[str, Any]) -> None:
     records = payload["records"]
     global_records = payload["global_supplement"]["records"]
@@ -161,7 +171,7 @@ def render_markdown(path: Path, payload: dict[str, Any]) -> None:
             "",
             "## 场外纳指100",
             "",
-            "对比名称匹配纳斯达克100、纳指100或 NASDAQ 100 的场外人民币各类份额（A/C/D/E/F/I 等）及经产品概要确认的无标记人民币主份额，以及当天美国主榜前 3 名；排除美元、港币、后端和独立 ETF 份额；不以合同基准、收益门槛、额度或当前申购状态筛除产品。",
+            "对比名称匹配纳斯达克100、纳指100或 NASDAQ 100 的场外人民币各类份额（A/C/D/E/F/I 等）及经产品概要确认的无标记人民币主份额，以及当天美国主榜前 3 名和指定对比的天弘标普500 D 类；排除美元、港币、后端和独立 ETF 份额；不以合同基准、收益门槛、额度或当前申购状态筛除产品。",
             "",
             f"共同区间：{window_text}（最近两年）；没有区间收益的产品不列入。结束日随最新共同净值滚动。",
             "排序：公共区间收益降序、年费率升序、公共区间跟踪误差升序、公共区间最大回撤较小者优先、规模降序、代码升序；缺失值排在有数据记录之后。",
@@ -189,9 +199,7 @@ def render_markdown(path: Path, payload: dict[str, Any]) -> None:
             f"{scale_text} | "
             f"[{benchmark_display(contract)}]({contract_source}) |"
         )
-        if item.get("us_main_rank"):
-            lines.append(f"  - 美国主榜第 {int(item['us_main_rank'])} 名")
-        lines.append(_fee_line(item))
+        lines.extend(_nasdaq_tag_lines(item))
         if item.get("contract_name_match_warning"):
             lines.append(f"  - {item['contract_name_match_warning']}")
         if evidence := item.get("share_class_evidence"):

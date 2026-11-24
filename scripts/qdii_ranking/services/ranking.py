@@ -13,6 +13,7 @@ from ..cache.announcements import AnnouncementIndexCache, PeriodicReportCache
 from ..cache.benchmark import Nasdaq100BenchmarkCache
 from ..cache.contracts import ContractProfileResultCache
 from ..cache.exposure import FundExposureResultCache
+from ..cache.fee_sums import FeeSumCache
 from ..cache.performance import PerformanceResultCache
 from ..cache.premium import ExchangePremiumHoldingCostCache
 from ..cache.quota import QuotaNoticeParseCache
@@ -189,6 +190,7 @@ def initialize_resources(
         exposure_cache=FundExposureResultCache(cache_root / "fund-us-equity-exposures"),
         benchmark=benchmark,
         memo=RunMemo(as_of),
+        fee_sum_cache=FeeSumCache(cache_root / "fee-sums"),
     ), tuple(warnings)
 
 
@@ -410,11 +412,24 @@ def scan_nasdaq_otc(
 
 
 def apply_fee_stage(
-    payload: dict[str, Any], client: HttpClient, as_of: date, metrics: RunMetrics
+    payload: dict[str, Any],
+    client: HttpClient,
+    as_of: date,
+    metrics: RunMetrics,
+    resources: PipelineResources | None = None,
 ) -> None:
     """Primary fee = archive-page three-fee sum on every tab; summary rate kept as reference."""
+    fee_cache = resources.fee_sum_cache if resources is not None else None
+    snapshot_for = (
+        (lambda code: resources.announcement_cache.peek(code, as_of))
+        if resources is not None else None
+    )
     with metrics.phase("fee_sums"):
-        fee_warnings = apply_fee_sums(payload, client, as_of)
+        fee_warnings = apply_fee_sums(payload, client, as_of, fee_cache, snapshot_for)
+    if fee_cache is not None:
+        cache_section = payload.setdefault("cache", {})
+        cache_section["fee_sums"] = fee_cache.stats()
+        cache_section["announcement_indexes"] = resources.announcement_cache.stats()
     payload["warnings"] = list(dict.fromkeys([*payload["warnings"], *fee_warnings]))
     nasdaq_section = payload["nasdaq100_otc"]
     nasdaq_section["records"].sort(key=nasdaq100_otc_sort_key)

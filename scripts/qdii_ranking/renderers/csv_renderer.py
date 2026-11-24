@@ -119,6 +119,7 @@ def _write_csv(path: Path, payload: dict[str, Any]) -> None:
         "quota_source_urls",
         *(f"share_evidence_{field}" for field in EVIDENCE_FIELDS),
         "us_main_rank",
+        "manual_include",
         "holding_cost_management_pct",
         "holding_cost_custody_pct",
         "holding_cost_sales_service_pct",

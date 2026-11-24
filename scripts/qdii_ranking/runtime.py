@@ -67,6 +67,8 @@ def http_category(url: str) -> str:
         return "benchmark"
     if url.startswith((ETF_QUOTE_API_URL, ETF_MARKET_LIST_API_URL, ETF_LOF_NAV_API_URL)):
         return "exchange_premium"
+    if url.startswith("https://fundf10.eastmoney.com/jbgk_"):
+        return "fund_archive"
     if url.startswith("https://fund.eastmoney.com/") and url.endswith(".html"):
         return "fund_page"
     if url == FUND_LIST_URL:

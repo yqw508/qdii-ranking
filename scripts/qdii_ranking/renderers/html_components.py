@@ -228,6 +228,8 @@ def render_nasdaq100_table(records: list[dict[str, Any]]) -> str:
             f'<span class="us-main-badge">美国主榜第 {int(item["us_main_rank"])} 名</span>'
             if item.get("us_main_rank") else ""
         )
+        if item.get("manual_include"):
+            us_badge += '<span class="us-main-badge">指定对比</span>'
         rows.append(
             f"""<details class="nasdaq-item" data-code="{html.escape(item['code'], quote=True)}">
       <summary>

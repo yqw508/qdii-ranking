@@ -116,6 +116,15 @@ class NasdaqSectionRuleTests(unittest.TestCase):
         section["excluded_records"] = [{"code": "023422", "name": "建信纳斯达克100指数(QDII)D人民币", "reason": "成立未满两年"}]
         self.check(section, [{"code": record["code"], "rank": 1}])
 
+    def test_accepts_manual_include_record(self):
+        section = self.section()
+        section["records"][0].update({
+            "name": "天弘标普500发起(QDII-FOF)D", "routing_reason": "manual_include", "manual_include": True,
+            "share_class": "D",
+        })
+        section["manual_include_codes"] = [section["records"][0]["code"]]
+        self.check(section, [])
+
     def test_rejects_invalid_nasdaq_section_states(self):
         cases = {
             "listed without return": lambda s, u: s["records"][0].update({"common_period_return_pct": None, "common_period_error": "x", "nasdaq100_fit_common_period": None}),
@@ -123,6 +132,8 @@ class NasdaqSectionRuleTests(unittest.TestCase):
             "US rank mismatch": lambda s, u: (s["records"][0].update({"name": "嘉实美国成长股票人民币", "routing_reason": "us_main_top", "us_main_rank": 2}), s.update({"us_main_top_count": 3})),
             "US top fund missing": lambda s, u: (s.update({"us_main_top_count": 3}), u.append({"code": "999999", "rank": 2})),
             "listed and excluded": lambda s, u: s.update({"excluded_records": [{"code": s["records"][0]["code"], "name": "x", "reason": "y"}]}),
+            "manual flag outside list": lambda s, u: s["records"][0].update({"name": "天弘标普500发起(QDII-FOF)D", "routing_reason": "manual_include", "manual_include": True}),
+            "manual list code missing": lambda s, u: s.update({"manual_include_codes": ["022523"]}),
         }
         for label, mutate in cases.items():
             with self.subTest(label):

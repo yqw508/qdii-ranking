@@ -98,7 +98,7 @@ def _build_payload(args, client, metrics, as_of, audit):
     )
 
     audit.stage = "fees"
-    apply_fee_stage(payload, client, as_of, metrics)
+    apply_fee_stage(payload, client, as_of, metrics, resources)
 
     payload["nasdaq100_otc"]["freshness_policy_version"] = 1
     for record in payload["nasdaq100_otc"]["records"]:

@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from typing import Any
 
 from .cache.announcements import AnnouncementIndexCache, PeriodicReportCache
 from .cache.contracts import ContractProfileResultCache
 from .cache.performance import PerformanceResultCache
-from .config import FUND_PAGE_URL, PERFORMANCE_DATA_URL
+from .config import (
+    DOCUMENT_WORKERS,
+    FUND_PAGE_URL,
+    NASDAQ100_OTC_MANUAL_CODES,
+    PERFORMANCE_DATA_URL,
+)
 from .errors import DataError
 from .models import Nasdaq100Benchmark
 from .runtime import HttpClient
@@ -138,17 +144,24 @@ def build_nasdaq100_otc_output_record(
     contract_match_warning = None
     if not contract_mentions_nasdaq100(fund["contract_benchmark"]):
         contract_match_warning = "名称命中但合同基准未明确识别为纳斯达克100，本榜按名称口径保留。"
+    if is_nasdaq100_otc_name(fund["name"]):
+        routing_reason = "name_match"
+    elif fund.get("us_main_rank"):
+        routing_reason = "us_main_top"
+    else:
+        routing_reason = "manual_include"
     return {
         **({"nav_freshness": fund["nav_freshness"]} if fund.get("nav_freshness") else {}),
         "rank": rank,
         "ranking_list": "nasdaq100_otc",
-        "routing_reason": "name_match" if is_nasdaq100_otc_name(fund["name"]) else "us_main_top",
-        "name_match_rule": (
-            "纳斯达克100 / 纳指100 / NASDAQ 100 名称匹配"
-            if is_nasdaq100_otc_name(fund["name"])
-            else "美国主榜前 3 名"
-        ),
+        "routing_reason": routing_reason,
+        "name_match_rule": {
+            "name_match": "纳斯达克100 / 纳指100 / NASDAQ 100 名称匹配",
+            "us_main_top": "美国主榜前 3 名",
+            "manual_include": "指定对比",
+        }[routing_reason],
         "us_main_rank": fund.get("us_main_rank"),
+        "manual_include": bool(fund.get("manual_include")),
         **({"share_class_evidence": fund["share_class_evidence"]}
            if fund.get("share_class_evidence") else {}),
         "code": fund["code"],
@@ -218,6 +231,116 @@ def build_nasdaq100_otc_output_record(
     }
 
 
+def _ordered_map(items: list[Any], worker: Any, max_workers: int) -> list[Any]:
+    """Run ``worker`` concurrently and return results in input order."""
+    if not items:
+        return []
+    with ThreadPoolExecutor(max_workers=min(max_workers, len(items))) as pool:
+        return list(pool.map(worker, items))
+
+
+def _fetch_missing_fund_page(
+    client: HttpClient, candidate: dict[str, Any]
+) -> tuple[str, dict[str, Any], list[str]]:
+    code = candidate["code"]
+    url = FUND_PAGE_URL.format(code=code)
+    try:
+        return code, {**candidate, **parse_fund_page(client.get_text(url, referer=url), code)}, []
+    except (DataError, OSError, ValueError) as exc:
+        return code, {
+            **candidate,
+            "inception_date": None,
+            "scale_billion_cny": None,
+            "scale_report_date": None,
+            "purchase_status": "unknown",
+            "purchase_status_text": "数据不可用",
+            "fund_page_url": url,
+            "latest_nav_date": None,
+            "latest_nav_value": None,
+        }, [f"场外纳指100告警 {code}：基金主页无法完整读取：{exc}"]
+
+
+def _unavailable_performance(code: str, as_of: date, error: str) -> dict[str, Any]:
+    return {
+        "performance_source_url": PERFORMANCE_DATA_URL.format(
+            code=code, cache_buster=as_of.strftime("%Y%m%d")
+        ),
+        "nav_history_start_date": None,
+        "nav_history_end_date": None,
+        **{
+            f"{prefix}_{field}": None
+            for prefix in ("one_year", "two_year", "three_year", "five_year", "ten_year")
+            for field in (
+                "return_pct", "max_drawdown_pct", "performance_start_date", "performance_end_date",
+            )
+        },
+        "three_year_boundary_shortfall_days": 0,
+        "nasdaq100_fit": None,
+        "nasdaq100_fit_2y": None,
+        "nasdaq100_fit_2y_error": error,
+    }
+
+
+def _evaluate_nasdaq_candidate(
+    client: HttpClient,
+    fund: dict[str, Any],
+    as_of: date,
+    benchmark: Nasdaq100Benchmark,
+    performance_cache: PerformanceResultCache,
+    announcement_cache: AnnouncementIndexCache,
+    contract_result_cache: ContractProfileResultCache,
+    document_cache: PeriodicReportCache,
+    contract_catalog: ContractBenchmarkCatalog,
+    run_performance_cache: dict[str, tuple[dict[str, Any], list[str]]] | None,
+    snapshot: Any,
+) -> tuple[dict[str, Any], list[str]]:
+    """Performance plus contract/fee for one candidate; never raises for source errors."""
+    code = fund["code"]
+    warnings: list[str] = []
+    try:
+        cached = run_performance_cache.get(code) if run_performance_cache is not None else None
+        if cached is not None:
+            performance, performance_warnings = cached
+        else:
+            performance, performance_warnings = performance_cache.get(client, fund, as_of, benchmark)
+            if run_performance_cache is not None:
+                run_performance_cache[code] = (performance, performance_warnings)
+        warnings.extend(f"场外纳指100告警 {code}：{warning}" for warning in performance_warnings)
+    except (DataError, OSError, ValueError) as exc:
+        warnings.append(f"场外纳指100告警 {code}：净值历史无法读取：{exc}")
+        performance = _unavailable_performance(code, as_of, str(exc))
+    try:
+        if snapshot is None:
+            snapshot = announcement_cache.get(client, code, as_of)
+        profile, holding_cost, profile_warnings = contract_result_cache.get(
+            client, fund, as_of, document_cache, contract_catalog, snapshot
+        )
+    except (DataError, OSError, ValueError) as exc:
+        profile = unreadable_contract_benchmark(fund)
+        profile["management_style"] = (
+            "passive"
+            if fund["fund_type"] == "指数型-海外股票" and "增强" not in fund["name"]
+            else "active"
+        )
+        profile.update(
+            {
+                "prospectus_title": None,
+                "prospectus_published_date": None,
+                "source_url": None,
+                "product_summary_status": "unreadable",
+                "product_summary_published_date": None,
+                "product_summary_source_url": None,
+                "catalog_fingerprint": contract_catalog.fingerprint,
+            }
+        )
+        holding_cost = unavailable_holding_cost(None)
+        profile_warnings = [f"场外纳指100告警 {code}：合同/费率无法读取：{exc}"]
+    warnings.extend(profile_warnings)
+    return {
+        **fund, **performance, "contract_benchmark": profile, "holding_cost": holding_cost,
+    }, warnings
+
+
 def build_nasdaq100_otc_records(
     client: HttpClient,
     metadata: dict[str, dict[str, str]],
@@ -258,113 +381,42 @@ def build_nasdaq100_otc_records(
             candidates.append(by_code[code])
         else:
             warnings.append(f"场外纳指100告警 {code}：美国主榜第 {rank} 名缺少基金元数据，未加入对比。")
+    for code in NASDAQ100_OTC_MANUAL_CODES:
+        if code in by_code:
+            by_code[code]["manual_include"] = True
+        elif code in metadata:
+            meta = metadata[code]
+            by_code[code] = {
+                **meta,
+                "share_class": nasdaq100_share_class(meta["name"]),
+                "manual_include": True,
+                "institution_holding_ratio_pct": None,
+                "personal_holding_ratio_pct": None,
+                "holder_total_shares_100m": None,
+            }
+            candidates.append(by_code[code])
+        else:
+            warnings.append(f"场外纳指100告警 {code}：指定对比基金缺少基金元数据，未加入对比。")
     known = {item["code"]: item for item in enriched_candidates}
     missing = [item for item in candidates if item["code"] not in known]
-    if missing:
-        for candidate in missing:
-            try:
-                known[candidate["code"]] = {
-                    **candidate,
-                    **parse_fund_page(
-                        client.get_text(
-                            FUND_PAGE_URL.format(code=candidate["code"]),
-                            referer=FUND_PAGE_URL.format(code=candidate["code"]),
-                        ),
-                        candidate["code"],
-                    ),
-                }
-            except (DataError, OSError, ValueError) as exc:
-                warnings.append(f"场外纳指100告警 {candidate['code']}：基金主页无法完整读取：{exc}")
-                known[candidate["code"]] = {
-                    **candidate,
-                    "inception_date": None,
-                    "scale_billion_cny": None,
-                    "scale_report_date": None,
-                    "purchase_status": "unknown",
-                    "purchase_status_text": "数据不可用",
-                    "fund_page_url": FUND_PAGE_URL.format(code=candidate["code"]),
-                    "latest_nav_date": None,
-                    "latest_nav_value": None,
-                }
+    for code, page, page_warnings in _ordered_map(
+        missing, lambda candidate: _fetch_missing_fund_page(client, candidate), DOCUMENT_WORKERS
+    ):
+        known[code] = page
+        warnings.extend(page_warnings)
 
-    performance_records: list[dict[str, Any]] = []
-    for candidate in candidates:
-        fund = {**known[candidate["code"]], **candidate}
-        try:
-            if run_performance_cache is not None and fund["code"] in run_performance_cache:
-                performance, performance_warnings = run_performance_cache[fund["code"]]
-            else:
-                performance, performance_warnings = performance_cache.get(
-                    client, fund, as_of, benchmark
-                )
-                if run_performance_cache is not None:
-                    run_performance_cache[fund["code"]] = (
-                        performance,
-                        performance_warnings,
-                    )
-            warnings.extend(
-                f"场外纳指100告警 {fund['code']}：{warning}"
-                for warning in performance_warnings
-            )
-        except (DataError, OSError, ValueError) as exc:
-            warnings.append(f"场外纳指100告警 {fund['code']}：净值历史无法读取：{exc}")
-            performance = {
-                "performance_source_url": PERFORMANCE_DATA_URL.format(
-                    code=fund["code"], cache_buster=as_of.strftime("%Y%m%d")
-                ),
-                "nav_history_start_date": None,
-                "nav_history_end_date": None,
-                **{
-                    f"{prefix}_{field}": None
-                    for prefix in ("one_year", "two_year", "three_year", "five_year", "ten_year")
-                    for field in (
-                        "return_pct",
-                        "max_drawdown_pct",
-                        "performance_start_date",
-                        "performance_end_date",
-                    )
-                },
-                "three_year_boundary_shortfall_days": 0,
-                "nasdaq100_fit": None,
-                "nasdaq100_fit_2y": None,
-                "nasdaq100_fit_2y_error": str(exc),
-            }
-        try:
-            snapshot = snapshots.get(fund["code"])
-            if snapshot is None:
-                snapshot = announcement_cache.get(client, fund["code"], as_of)
-            profile, holding_cost, profile_warnings = contract_result_cache.get(
-                client, fund, as_of, document_cache, contract_catalog, snapshot
-            )
-        except (DataError, OSError, ValueError) as exc:
-            profile = unreadable_contract_benchmark(fund)
-            profile["management_style"] = (
-                "passive"
-                if fund["fund_type"] == "指数型-海外股票" and "增强" not in fund["name"]
-                else "active"
-            )
-            profile.update(
-                {
-                    "prospectus_title": None,
-                    "prospectus_published_date": None,
-                    "source_url": None,
-                    "product_summary_status": "unreadable",
-                    "product_summary_published_date": None,
-                    "product_summary_source_url": None,
-                    "catalog_fingerprint": contract_catalog.fingerprint,
-                }
-            )
-            holding_cost = unavailable_holding_cost(None)
-            profile_warnings = [f"场外纳指100告警 {fund['code']}：合同/费率无法读取：{exc}"]
-        warnings.extend(profile_warnings)
-        performance_records.append(
-            {
-                **fund,
-                **performance,
-                "contract_benchmark": profile,
-                "holding_cost": holding_cost,
-            }
+    def evaluate(candidate: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
+        return _evaluate_nasdaq_candidate(
+            client, {**known[candidate["code"]], **candidate}, as_of, benchmark,
+            performance_cache, announcement_cache, contract_result_cache, document_cache,
+            contract_catalog, run_performance_cache, snapshots.get(candidate["code"]),
         )
+
+    # Concurrent per-candidate work; results and warnings keep input order.
+    performance_records: list[dict[str, Any]] = []
+    for record, candidate_warnings in _ordered_map(candidates, evaluate, DOCUMENT_WORKERS):
+        performance_records.append(record)
+        warnings.extend(candidate_warnings)
 
     comparison_window, common_warnings = apply_common_window(
         performance_records,
